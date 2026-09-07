@@ -1,0 +1,14 @@
+# Dependências
+node_modules/
+
+# Arquivos gerados (TypeScript)
+dist/
+
+# Variáveis de ambiente
+.env
+.env.*
+!.env.example
+
+# Arquivos do sistema operacional
+.DS_Store
+Thumbs.db
