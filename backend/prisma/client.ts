@@ -1,6 +1,5 @@
 import "dotenv/config";
 import { PrismaPg } from "@prisma/adapter-pg";
-// Aqui dá erro por que
 import { PrismaClient } from "./generated/client";
 
 const adapter = new PrismaPg({
