@@ -1,0 +1,17 @@
+generator client{
+    provider = "prisma-client"
+    output = "./generated"
+}
+
+datasource db{
+    provider = "postgresql"
+}
+
+/*
+    Quando o banco de dados no supabase estiver pronto, rodamos npx prisma db pull e serão criados modelos como esse exemplo:
+
+    model Cliente{
+        id      Int     @id     @default(autoincrement())
+        nome    String
+    }
+*/

@@ -4,6 +4,9 @@ node_modules/
 # Arquivos gerados (TypeScript)
 dist/
 
+# Cliente Prisma
+backend/prisma/generated
+
 # Variáveis de ambiente
 .env
 .env.*
