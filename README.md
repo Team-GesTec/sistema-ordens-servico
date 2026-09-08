@@ -38,7 +38,7 @@ O SGOS resolve essa dor ao oferecer um agrupador central de projetos, desmembram
 
 ## Cronograma de Evolução do Projeto
 
-```
+```text
 [Sprint 1: Set/2026] ➔ [Sprint 2: Out/2026] ➔ [Sprint 3: Nov/2026]
  ├─ Autenticação        ├─ Ciclo de Vida O.S.    ├─ Histórico & Auditoria
  ├─ Cadastros Base      ├─ Regras de SLA         ├─ Dashboards Visuais
@@ -48,7 +48,7 @@ O SGOS resolve essa dor ao oferecer um agrupador central de projetos, desmembram
 ### Tabela Descritiva das Sprints
 
 | Período da Sprint | Link para Documentação da Sprint | Link para Vídeo no Youtube do Incremento Entregue |
-|---|---|---|
+| --- | --- | --- |
 | Sprint 1: 01/09/2026 - 25/09/2026 | [Documentação da Sprint 1](#) | [Demonstração da Sprint 1 - YouTube](#) |
 | Sprint 2: 28/09/2026 - 23/10/2026 | [Documentação da Sprint 2](#) | [Demonstração da Sprint 2 - YouTube](#) |
 | Sprint 3: 26/10/2026 - 20/11/2026 | [Documentação da Sprint 3](#) | [Demonstração da Sprint 3 - YouTube](#) |
@@ -67,8 +67,8 @@ O SGOS resolve essa dor ao oferecer um agrupador central de projetos, desmembram
 
 ## Estrutura do Projeto
 
-```
-SGOS-GesTec/
+```bash
+sistema-ordens-servico/
 ├── backend
 │   ├── controllers
 │   │   └── .gitkeep
@@ -104,8 +104,8 @@ SGOS-GesTec/
 **1. Clonar o Repositório:**
 
 ```bash
-git clone https://github.com/GesTec-Fatec/SGOS-ALTAVE.git
-cd SGOS-ALTAVE
+git clone https://github.com/Team-GesTec/sistema-ordens-servico.git
+cd sistema-ordens-servico
 ```
 
 **2. Configuração do Backend e Banco de Dados:**
@@ -148,13 +148,13 @@ npm run test
 ## Equipe GesTec
 
 | Nome Completo | Papel | Foto | Link para GitHub | Link para LinkedIn |
-|---|---|---|---|---|
-| Samuel Estevão Pereira Martins | Product Owner | <img src="https://github.com/identicons/samuel.png" width="50"> | [GitHub](#) | [LinkedIn](#) |
-| Cid Daniel Neves DOliveira | Scrum Master | <img src="https://github.com/identicons/cid.png" width="50"> | [GitHub](#) | [LinkedIn](#) |
-| Guilherme de Lima Leite | Desenvolvedor | <img src="https://github.com/identicons/guilherme.png" width="50"> | [GitHub](#) | [LinkedIn](#) |
-| Júlia Carolina dos Santos Inácio | Desenvolvedora | <img src="https://github.com/identicons/julia.png" width="50"> | [GitHub](#) | [LinkedIn](#) |
-| Marina Duque de Holanda Cavalcanti | Desenvolvedora | <img src="https://github.com/identicons/marina.png" width="50"> | [GitHub](#) | [LinkedIn](#) |
-| Pamela Emily Iwabuchi Maciel | Desenvolvedora | <img src="https://github.com/identicons/pamela.png" width="50"> | [GitHub](#) | [LinkedIn](#) |
-| Pedro Pereira Rodrigues| Desenvolvedor | <img src="https://github.com/identicons/pedro.png" width="50"> | [GitHub](#) | [LinkedIn](#) |
-| Rafael Silva Mioni Coltro | Desenvolvedor | <img src="https://github.com/identicons/rafael.png" width="50"> | [GitHub](#) | [LinkedIn](#) |
-| Vitor Assis Hasman Diniz | Desenvolvedor | <img src="https://github.com/identicons/vitor.png" width="50"> | [GitHub](#) | [LinkedIn](#) |
+| --- | --- | --- | --- | --- |
+| Samuel Estevão Pereira Martins | Product Owner | <img src="https://github.com/SamuelMartins00.png" width="50"> | [GitHub](https://github.com/SamuelMartins00) | [LinkedIn](#) |
+| Cid Daniel Neves DOliveira | Scrum Master | <img src="https://github.com/C1dneve.png" width="50"> | [GitHub](https://github.com/C1dneve) | [LinkedIn](#) |
+| Guilherme de Lima Leite | Desenvolvedor | <img src="https://github.com/Guilherme-Leite1701.png" width="50"> | [GitHub](https://github.com/Guilherme-Leite1701) | [LinkedIn](#) |
+| Júlia Carolina dos Santos Inácio | Desenvolvedora | <img src="https://github.com/juliacarolina728-sudo.png" width="50"> | [GitHub](https://github.com/juliacarolina728-sudo) | [LinkedIn](#) |
+| Marina Duque de Holanda Cavalcanti | Desenvolvedora | <img src="https://github.com/ninaduquehc.png" width="50"> | [GitHub](https://github.com/ninaduquehc) | [LinkedIn](#) |
+| Pamela Emily Iwabuchi Maciel | Desenvolvedora | <img src="https://github.com/pamelaiwabuchi.png" width="50"> | [GitHub](https://github.com/pamelaiwabuchi) | [LinkedIn](#) |
+| Pedro Pereira Rodrigues| Desenvolvedor | <img src="https://github.com/pedroprdgs.png" width="50"> | [GitHub](https://github.com/pedroprdgs) | [LinkedIn](https://linkedin.com/in/pedroprdgs) |
+| Rafael Silva Mioni Coltro | Desenvolvedor | <img src="https://github.com/RafaelMioniC.png" width="50"> | [GitHub](https://github.com/RafaelMioniC) | [LinkedIn](#) |
+| Vitor Assis Hasman Diniz | Desenvolvedor | <img src="https://github.com/VitorAssisHasmanDiniz.png" width="50"> | [GitHub](https://github.com/VitorAssisHasmanDiniz) | [LinkedIn](#) |
