@@ -1,6 +1,7 @@
 {
   "dependencies": {
-    "express": "^5.2.1"
+    "express": "^5.2.1",
+    "tsc": "^2.0.4"
   },
   "name": "sistema-ordens-servico",
   "version": "1.0.0",
@@ -24,6 +25,7 @@
     "@types/node": "^22.20.2",
     "nodemon": "^3.1.14",
     "ts-node": "^10.9.2",
+    "tsx": "^4.23.13",
     "typescript": "^7.0.2"
   }
 }

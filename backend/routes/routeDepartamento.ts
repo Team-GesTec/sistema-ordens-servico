@@ -1,23 +1,31 @@
 import { Router, Request, Response } from 'express';
 import { controller } from '../controllers/controllerDepartamento';
-import { Departamento } from '../models/modelDepartamento';
+
 const router = Router();
-let departamentos: Departamento[] = [];
+
 //GET ALL
-router.get('/departamento', (req: Request, res: Response) => {
+router.get('/', (req: Request, res: Response) => {
     controller.getAll(req, res);
 })
-router.get('/departamento/:id', (req: Request, res: Response) => {
+
+//GET BY ID
+router.get('/:id', (req: Request, res: Response) => {
     controller.getById(req, res);
 })
+
 //POST
-router.post('/departamento', (req: Request, res: Response) => {
-    controller.CriarDepartamento(req, res);
-}
-)
+router.post('/', (req: Request, res: Response) => {
+    controller.criarDepartamento(req, res);
+})
+
 //PUT
-router.put('/departamento/:id', (req: Request, res: Response) => {
+router.put('/:id', (req: Request, res: Response) => {
     controller.updateDepartamento(req, res);
-}
-)
+})
+
+//DELETE
+router.delete('/:id', (req: Request, res: Response) => {
+    controller.deleteDepartamento(req, res);
+})
+
 export default router;
