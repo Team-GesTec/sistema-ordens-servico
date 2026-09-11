@@ -1,0 +1,29 @@
+{
+  "dependencies": {
+    "express": "^5.2.1"
+  },
+  "name": "sistema-ordens-servico",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Team-GesTec/sistema-ordens-servico.git"
+  },
+  "keywords": [],
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/Team-GesTec/sistema-ordens-servico/issues"
+  },
+  "homepage": "https://github.com/Team-GesTec/sistema-ordens-servico#readme",
+  "devDependencies": {
+    "@types/express": "^5.0.6",
+    "@types/node": "^22.20.2",
+    "nodemon": "^3.1.14",
+    "ts-node": "^10.9.2",
+    "typescript": "^7.0.2"
+  }
+}
