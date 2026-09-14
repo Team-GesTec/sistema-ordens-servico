@@ -1,17 +1,202 @@
-generator client{
-    provider = "prisma-client"
-    output = "./generated"
+generator client {
+  provider = "prisma-client"
+  output   = "./generated"
 }
 
-datasource db{
-    provider = "postgresql"
+datasource db {
+  provider = "postgresql"
 }
 
-/*
-    Quando o banco de dados no supabase estiver pronto, rodamos npx prisma db pull e serão criados modelos como esse exemplo:
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model anexos {
+  id             Int             @id @default(autoincrement())
+  os_id          Int?
+  sla_id         Int?
+  nome           String          @db.VarChar(255)
+  tipo           tipo_arquivo
+  tamanho_bytes  BigInt
+  caminho        String
+  data_upload    DateTime        @default(now()) @db.Timestamptz(6)
+  ordens_servico ordens_servico? @relation(fields: [os_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  slas           slas?           @relation(fields: [sla_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
 
-    model Cliente{
-        id      Int     @id     @default(autoincrement())
-        nome    String
-    }
-*/
+model auditoria {
+  id               Int            @id @default(autoincrement())
+  os_id            Int
+  funcionario_id   Int
+  data_modificacao DateTime       @default(now()) @db.Timestamptz(6)
+  acao             tipo_auditoria
+  campo_alterado   String?
+  dado_antigo      String?
+  dado_novo        String?
+  funcionarios     funcionarios   @relation(fields: [funcionario_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  ordens_servico   ordens_servico @relation(fields: [os_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model clientes {
+  id                  Int                   @id @default(autoincrement())
+  nome                String
+  categoria           String
+  razao_social        String?
+  ramo_atuacao        String?
+  locais_operacionais locais_operacionais[]
+  ordens_servico      ordens_servico[]
+  projetos            projetos[]
+}
+
+model departamentos {
+  id                                                       Int                      @id @default(autoincrement())
+  responsavel_id                                           Int?
+  nome                                                     String
+  funcionarios_departamentos_responsavel_idTofuncionarios  funcionarios?            @relation("departamentos_responsavel_idTofuncionarios", fields: [responsavel_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "responsavel_fk")
+  funcionarios_funcionarios_departamento_idTodepartamentos funcionarios[]           @relation("funcionarios_departamento_idTodepartamentos")
+  ordens_servico                                           ordens_servico[]
+  projetos_departamentos                                   projetos_departamentos[]
+}
+
+model equipes {
+  funcionario_id Int
+  os_id          Int
+  funcionarios   funcionarios   @relation(fields: [funcionario_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  ordens_servico ordens_servico @relation(fields: [os_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@id([funcionario_id, os_id])
+}
+
+model funcionarios {
+  id                                                         Int              @id @default(autoincrement())
+  departamento_id                                            Int
+  usuario                                                    String           @unique
+  senha_hash                                                 String
+  nome                                                       String
+  tipo                                                       tipo_perfil      @default(tecnico)
+  auditoria                                                  auditoria[]
+  departamentos_departamentos_responsavel_idTofuncionarios   departamentos[]  @relation("departamentos_responsavel_idTofuncionarios")
+  equipes                                                    equipes[]
+  departamentos_funcionarios_departamento_idTodepartamentos  departamentos    @relation("funcionarios_departamento_idTodepartamentos", fields: [departamento_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  ordens_servico_ordens_servico_responsavel_idTofuncionarios ordens_servico[] @relation("ordens_servico_responsavel_idTofuncionarios")
+  ordens_servico_ordens_servico_solicitante_idTofuncionarios ordens_servico[] @relation("ordens_servico_solicitante_idTofuncionarios")
+}
+
+model locais_operacionais {
+  id         Int                    @id @default(autoincrement())
+  cliente_id Int
+  descricao  String
+  tipo       tipo_local_operacional
+  clientes   clientes               @relation(fields: [cliente_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model ordens_servico {
+  id                                                       Int                  @id @default(autoincrement())
+  departamento_id                                          Int
+  cliente_id                                               Int
+  solicitante_id                                           Int
+  responsavel_id                                           Int?
+  projeto_id                                               Int?
+  sla_id                                                   Int?
+  anterior_id                                              Int?
+  parecer_tecnico                                          String?
+  tipo                                                     tipo_ordem_servico   @default(instalacao)
+  descricao                                                String
+  status                                                   status_ordem_servico @default(pendente)
+  data_criacao                                             DateTime             @default(now()) @db.Timestamptz(6)
+  anexos                                                   anexos[]
+  auditoria                                                auditoria[]
+  equipes                                                  equipes[]
+  ordens_servico                                           ordens_servico?      @relation("ordens_servicoToordens_servico", fields: [anterior_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  other_ordens_servico                                     ordens_servico[]     @relation("ordens_servicoToordens_servico")
+  clientes                                                 clientes             @relation(fields: [cliente_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  departamentos                                            departamentos        @relation(fields: [departamento_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  projetos                                                 projetos?            @relation(fields: [projeto_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  funcionarios_ordens_servico_responsavel_idTofuncionarios funcionarios?        @relation("ordens_servico_responsavel_idTofuncionarios", fields: [responsavel_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  slas                                                     slas?                @relation(fields: [sla_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  funcionarios_ordens_servico_solicitante_idTofuncionarios funcionarios         @relation("ordens_servico_solicitante_idTofuncionarios", fields: [solicitante_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model projetos {
+  id                     Int                      @id @default(autoincrement())
+  cliente_id             Int
+  data_prazo             DateTime?                @db.Timestamptz(6)
+  status                 status_projeto           @default(pendente)
+  ordens_servico         ordens_servico[]
+  clientes               clientes                 @relation(fields: [cliente_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  projetos_departamentos projetos_departamentos[]
+}
+
+model projetos_departamentos {
+  projeto_id      Int
+  departamento_id Int
+  departamentos   departamentos @relation(fields: [departamento_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  projetos        projetos      @relation(fields: [projeto_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@id([projeto_id, departamento_id])
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model slas {
+  id             Int               @id @default(autoincrement())
+  descricao      String
+  prazo_horas    Int               @default(120)
+  criticidade    nivel_criticidade @default(medio)
+  anexos         anexos[]
+  ordens_servico ordens_servico[]
+}
+
+enum nivel_criticidade {
+  baixo
+  medio
+  alto
+  muito_alto
+  urgente
+}
+
+enum status_ordem_servico {
+  pendente
+  em_andamento
+  aguardando_embarque
+  validacao_testes
+  bloqueado
+  review
+  concluido
+}
+
+enum status_projeto {
+  pendente
+  em_andamento
+  aguardando_embarque
+  validacao_testes
+  bloqueado
+  review
+  concluido
+}
+
+enum tipo_arquivo {
+  png
+  jpeg
+  pdf
+  webp
+}
+
+enum tipo_auditoria {
+  insercao
+  atualizacao
+  exclusao
+}
+
+enum tipo_local_operacional {
+  offshore
+  terrestre
+  site
+}
+
+enum tipo_ordem_servico {
+  instalacao
+  manutencao
+}
+
+enum tipo_perfil {
+  gestor
+  analista
+  tecnico
+}
