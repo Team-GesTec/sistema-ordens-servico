@@ -12,18 +12,19 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    background: radial-gradient(circle, var(--azul-claro), var(--azul-escuro));
+    background: radial-gradient(circle at 75% 25%, var(--azul-claro), var(--azul-escuro));
+    padding: 20px;
+    box-sizing: border-box;
 }
 
 .login-card {
-    margin: 5% auto;
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: flex-start;
-    width: 35.16vw;
-    height: 83.33vh;
-    padding: 40px;
+    justify-content: space-evenly;
+    width: min(400px, 100%);
+    min-height: 500px;
+    padding: 40px 24px;
     box-sizing: border-box;
 
     background: rgba(255, 255, 255, 0.18);
@@ -34,49 +35,50 @@
     border-radius: 10px;
 
     box-shadow:
-        0 4px 15px rgba(0, 0, 0, 0.08),
+        0 15px 25px rgba(0, 0, 0, 0.55),
+        0 4px 6px rgba(0, 0, 0, 0.4),
         inset 0 1px 1px rgba(255, 255, 255, 0.4);
+}
 
-    transition:
-        transform 0.15s ease,
-        filter 0.15s ease,
-        box-shadow 0.15s ease;
+.login-card .logo {
+    width: min(180px, 60%);
+    height: auto;
+    margin-bottom: 24px;
 }
 
 .login-card form {
     display: flex;
     flex-direction: column;
     align-items: center;
+    justify-content: center;
+    gap: 2.5vh;
     width: 100%;
-}
-
-.login-card .logo {
-    width: 27.03vw;
-    height: auto;
 }
 
 .login-card input {
     display: block;
     box-sizing: border-box;
-    width: 24.53vw;
+    width: 100%;
     height: 5.05vh;
+    min-height: 42px;
     background: rgba(57, 55, 57, 1);
     color: rgba(255, 233, 233, 1);
     border: none;
     border-radius: 3px;
     padding: 0 12px;
-    margin-bottom: 16px;
     font-family: inter, sans-serif;
 }
+
 .login-card input::placeholder {
     color: #bbb;
 }
 
 .login-card button {
-    width: 7.96vw;
+    width: min(140px, 60%);
     height: 5.68vh;
-    margin-top: 7.6vh;
-    background:rgba(21, 137, 202, 1);
+    min-height: 44px;
+    margin-top: 2.5vh;
+    background: rgba(21, 137, 202, 1);
     color: rgba(255, 233, 233, 1);
     border: none;
     border-radius: 3px;
@@ -86,13 +88,12 @@
     align-items: center;
     justify-content: center;
     box-sizing: border-box;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+    transition: box-shadow 0.15s ease;
 }
 
 .login-card button:hover {
-    background: rgba(21, 137, 202, 1);
-    border: 1px solid #FFE9E9;
-    font-family: inter, sans-serif;
-    color: rgba(255, 233, 233, 1);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
 }
 
 .erro-msg {
@@ -105,20 +106,10 @@
     font-size: 0.9rem;
     padding: 10px 14px;
     border-radius: 6px;
-    margin-bottom: 16px;
     box-sizing: border-box;
 }
 
 .erro-icone {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 18px;
-    height: 18px;
-    min-width: 18px;
-    background: #d32f2f;
-    color: #ffffff;
-    border-radius: 50%;
-    font-size: 0.7rem;
-    font-weight: bold;
+    color: #d32f2f;
+    font-size: 1.1rem;
 }

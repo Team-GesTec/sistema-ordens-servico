@@ -2,6 +2,7 @@ import { useState } from "react";
 import "../styles/home.css";
 import "../styles/darkmode.css";
 import logo from "../images/logo_gestec.png";
+import logoDark from "../images/AZUL.CLARO_BRANCO_SemNome.png";
 
 interface OrdemServico {
 id: number;
@@ -141,7 +142,7 @@ return (
     >
 
         <aside className="sidebar">
-            <img src={logo} alt='...'></img>
+            <img src={darkMode ? logoDark : logo} alt='...'></img>
 
             <nav className="sidebar-nav">
 

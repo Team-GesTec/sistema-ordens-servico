@@ -1,6 +1,6 @@
 import { useState } from "react";
 import Home from "./Home";
-import logo from "../images/logo_gestec.png";
+import logo from "../images/PRETO_BRANCO.png";
 import "../styles/login.css";
 
 function Login() {
@@ -30,6 +30,13 @@ function Login() {
                 <img src={logo} alt="GESTEC" className="logo" />
 
                 <form onSubmit={entrar}>
+                    {erro && (
+                        <div className="erro-msg">
+                            <i className="fa-solid fa-circle-xmark erro-icone"></i>
+                            Acesso negado. Usuário ou senha incorretos.
+                        </div>
+                    )}
+
                     <input
                         type="text"
                         placeholder="Usuário"
@@ -45,13 +52,6 @@ function Login() {
                         onChange={(e) => setSenha(e.target.value)}
                         required
                     />
-
-                    {erro && (
-                        <div className="erro-msg">
-                            <span className="erro-icone">✕</span>
-                            Acesso negado. Usuário ou senha incorretos.
-                        </div>
-                    )}
 
                     <button type="submit">Entrar</button>
                 </form>
