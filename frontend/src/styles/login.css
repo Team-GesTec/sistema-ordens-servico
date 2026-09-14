@@ -1,0 +1,70 @@
+.login-card {
+    margin: 5% auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+   justify-content: flex-start;
+    width: 35.16vw;
+    height: 83.33vh;
+    background: linear-gradient(#ffffff, #aaaaaa);
+    border: 1px solid #d9d9d9;
+    border-radius: 8px;
+    padding: 40px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    box-sizing: border-box;
+}
+
+.login-card form {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+}
+
+.login-card .logo {
+    width: 27.03vw;
+    height: auto;
+}
+
+.login-card input {
+    display: block;
+    box-sizing: border-box;
+    width: 24.53vw;
+    height: 5.05vh;
+    background: rgba(57, 55, 57, 1);
+    color: rgba(255, 233, 233, 1);
+    border: none;
+    border-radius: 3px;
+    padding: 0 12px;
+    margin-bottom: 16px;
+    font-family: inter, sans-serif;
+}
+.login-card input::placeholder {
+    color: #bbb;
+}
+
+.login-card button {
+    width: 7.96vw;
+    height: 5.68vh;
+    margin-top: 7.6vh;
+    background:rgba(21, 137, 202, 1);
+    color: rgba(255, 233, 233, 1);
+    border: none;
+    border-radius: 3px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+}
+
+.login-card button:hover {
+    background: rgba(21, 137, 202, 1);
+    border: 1px solid #FFE9E9;
+    font-family: inter, sans-serif;
+    color: rgba(255, 233, 233, 1);
+}
+.erro-oculto {
+    display: none;
+}
