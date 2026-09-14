@@ -5,17 +5,18 @@ import "../styles/login.css";
 
 function Login() {
     const [logado, setLogado] = useState(false);
-
     const [usuario, setUsuario] = useState("");
     const [senha, setSenha] = useState("");
+    const [erro, setErro] = useState(false);
 
     function entrar(event: React.FormEvent<HTMLFormElement>) {
         event.preventDefault();
 
         if (usuario === "admin" && senha === "1234") {
             setLogado(true);
+            setErro(false);
         } else {
-            alert("Usuário ou senha incorretos");
+            setErro(true);
         }
     }
 
@@ -24,13 +25,9 @@ function Login() {
     }
 
     return (
-        <>
+        <div className="login-page">
             <div className="login-card">
-                <img
-                    src={logo}
-                    alt="GESTEC"
-                    className="logo"
-                />
+                <img src={logo} alt="GESTEC" className="logo" />
 
                 <form onSubmit={entrar}>
                     <input
@@ -49,12 +46,17 @@ function Login() {
                         required
                     />
 
-                    <button type="submit">
-                        Entrar
-                    </button>
+                    {erro && (
+                        <div className="erro-msg">
+                            <span className="erro-icone">✕</span>
+                            Acesso negado. Usuário ou senha incorretos.
+                        </div>
+                    )}
+
+                    <button type="submit">Entrar</button>
                 </form>
             </div>
-        </>
+        </div>
     );
 }
 
