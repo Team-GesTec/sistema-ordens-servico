@@ -1,10 +1,11 @@
 import { useState } from "react";
-import Home from "./Home";
+import { useNavigate } from "react-router-dom";
 import logo from "../images/PRETO_BRANCO.png";
 import "../styles/login.css";
 
 function Login() {
-    const [logado, setLogado] = useState(false);
+    const navigate = useNavigate();
+
     const [usuario, setUsuario] = useState("");
     const [senha, setSenha] = useState("");
     const [erro, setErro] = useState(false);
@@ -13,15 +14,11 @@ function Login() {
         event.preventDefault();
 
         if (usuario === "admin" && senha === "1234") {
-            setLogado(true);
             setErro(false);
+            navigate("/home");
         } else {
             setErro(true);
         }
-    }
-
-    if (logado) {
-        return <Home />;
     }
 
     return (

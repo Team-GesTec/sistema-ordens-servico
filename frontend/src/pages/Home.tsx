@@ -1,437 +1,379 @@
 import { useState } from "react";
 import "../styles/home.css";
 import "../styles/darkmode.css";
-import logo from "../images/logo_gestec.png";
-import logoDark from "../images/AZUL.CLARO_BRANCO_SemNome.png";
 
 interface OrdemServico {
-id: number;
-titulo: string;
-setor: string;
-status: string;
-prioridade: string;
-tipo: string;
-solicitante: string;
-descricao: string;
-funcionario: string;
-dataCriacao: string;
-prazoEntrega: string;
-osRelacionada: string;
+    id: number;
+    titulo: string;
+    setor: string;
+    status: string;
+    prioridade: string;
+    tipo: string;
+    solicitante: string;
+    descricao: string;
+    funcionario: string;
+    dataCriacao: string;
+    prazoEntrega: string;
+    osRelacionada: string;
 }
 
 const ordens: OrdemServico[] = [
-{
-id: 1,
-titulo: "OS01 - Sistema web",
-setor: "Hardware",
-status: "Em andamento",
-prioridade: "Alta",
-tipo: "Projeto",
-solicitante: "João Silva",
-descricao: "Desenvolvimento da página inicial do sistema.",
-funcionario: "Carlos Oliveira",
-dataCriacao: "10/09/2026",
-prazoEntrega: "20/09/2026",
-osRelacionada: "Nenhuma"
-},
+    {
+        id: 1,
+        titulo: "OS01 - Sistema web",
+        setor: "Hardware",
+        status: "Em andamento",
+        prioridade: "Alta",
+        tipo: "Projeto",
+        solicitante: "João Silva",
+        descricao: "Desenvolvimento da página inicial do sistema.",
+        funcionario: "Carlos Oliveira",
+        dataCriacao: "10/09/2026",
+        prazoEntrega: "20/09/2026",
+        osRelacionada: "Nenhuma"
+    },
 
-{
-    id: 2,
-    titulo: "OS02 - Banco de dados",
-    setor: "Backend",
-    status: "Pendente",
-    prioridade: "Média",
-    tipo: "Manutenção",
-    solicitante: "Maria Souza",
-    descricao: "Correção de inconsistências no banco de dados.",
-    funcionario: "Ana Costa",
-    dataCriacao: "11/09/2026",
-    prazoEntrega: "18/09/2026",
-    osRelacionada: "OS01"
-},
+    {
+        id: 2,
+        titulo: "OS02 - Banco de dados",
+        setor: "Backend",
+        status: "Pendente",
+        prioridade: "Média",
+        tipo: "Manutenção",
+        solicitante: "Maria Souza",
+        descricao: "Correção de inconsistências no banco de dados.",
+        funcionario: "Ana Costa",
+        dataCriacao: "11/09/2026",
+        prazoEntrega: "18/09/2026",
+        osRelacionada: "OS01"
+    },
 
-{
-    id: 3,
-    titulo: "OS03 - Relatório",
-    setor: "Financeiro",
-    status: "Concluído",
-    prioridade: "Baixa",
-    tipo: "Relatório",
-    solicitante: "Pedro Santos",
-    descricao: "Criação do relatório mensal de projetos.",
-    funcionario: "Lucas Mendes",
-    dataCriacao: "08/09/2026",
-    prazoEntrega: "12/09/2026",
-    osRelacionada: "Nenhuma"
-},
+    {
+        id: 3,
+        titulo: "OS03 - Relatório",
+        setor: "Financeiro",
+        status: "Concluído",
+        prioridade: "Baixa",
+        tipo: "Relatório",
+        solicitante: "Pedro Santos",
+        descricao: "Criação do relatório mensal de projetos.",
+        funcionario: "Lucas Mendes",
+        dataCriacao: "08/09/2026",
+        prazoEntrega: "12/09/2026",
+        osRelacionada: "Nenhuma"
+    },
 
-{
-    id: 4,
-    titulo: "OS04 - Instalar hardware",
-    setor: "Hardware",
-    status: "Pendente",
-    prioridade: "Prioritária",
-    tipo: "Relatório",
-    solicitante: "Pedro Santos",
-    descricao: "Criação do relatório mensal de projetos.",
-    funcionario: "Lucas Mendes",
-    dataCriacao: "08/09/2026",
-    prazoEntrega: "12/09/2026",
-    osRelacionada: "Nenhuma"
-}
+    {
+        id: 4,
+        titulo: "OS04 - Instalar hardware",
+        setor: "Hardware",
+        status: "Pendente",
+        prioridade: "Prioritária",
+        tipo: "Relatório",
+        solicitante: "Pedro Santos",
+        descricao: "Criação do relatório mensal de projetos.",
+        funcionario: "Lucas Mendes",
+        dataCriacao: "08/09/2026",
+        prazoEntrega: "12/09/2026",
+        osRelacionada: "Nenhuma"
+    }
 
 ];
 
 const setores = [
-"",
-"Frontend",
-"Backend",
-"Hardware",
-"Financeiro"
+    "",
+    "Frontend",
+    "Backend",
+    "Hardware",
+    "Financeiro"
 ];
 
 function getPriorityClass(prioridade: string) {
-switch (prioridade) {
-case "Baixa":
-return "prioridade-baixa";
+    switch (prioridade) {
+        case "Baixa":
+            return "prioridade-baixa";
 
-    case "Média":
-        return "prioridade-media";
+        case "Média":
+            return "prioridade-media";
 
-    case "Alta":
-        return "prioridade-alta";
+        case "Alta":
+            return "prioridade-alta";
 
-    case "Prioritária":
-        return "prioridade-prioritaria";
+        case "Prioritária":
+            return "prioridade-prioritaria";
 
-    default:
-        return "";
-}
+        default:
+            return "";
+    }
 
 }
 
 function Home() {
-const [selectedOrder, setSelectedOrder] =
-useState<OrdemServico | null>(null);
+    const [selectedOrder, setSelectedOrder] =
+        useState<OrdemServico | null>(null);
 
-const [darkMode, setDarkMode] = useState(false);
+    const [search, setSearch] = useState("");
 
-const [search, setSearch] = useState("");
+    const [selectedSetor, setSelectedSetor] = useState("");
 
-const [selectedSetor, setSelectedSetor] = useState("");
+    const [selectOpen, setSelectOpen] = useState(false);
 
-const [selectOpen, setSelectOpen] = useState(false);
+    const filteredOrders = ordens.filter((ordem) => {
+        const matchesSearch = ordem.titulo
+            .toLowerCase()
+            .includes(search.toLowerCase());
 
-const filteredOrders = ordens.filter((ordem) => {
-    const matchesSearch = ordem.titulo
-        .toLowerCase()
-        .includes(search.toLowerCase());
+        const matchesSetor =
+            selectedSetor === "" ||
+            ordem.setor === selectedSetor;
 
-    const matchesSetor =
-        selectedSetor === "" ||
-        ordem.setor === selectedSetor;
+        return matchesSearch && matchesSetor;
+    });
 
-    return matchesSearch && matchesSetor;
-});
+    return (
+        <div
+            className={`layout ${selectedOrder ? "details-open" : ""
+                }`}
+        >
 
-return (
-    <div
-        className={`layout ${
-            selectedOrder ? "details-open" : ""
-        } ${darkMode ? "dark-mode" : ""}`}
-    >
+            <main className="main">
 
-        <aside className="sidebar">
-            <img src={darkMode ? logoDark : logo} alt='...'></img>
+                <div className="container">
 
-            <nav className="sidebar-nav">
+                    <div className="filter">
 
-                <button className="theme-button" onClick={() => setDarkMode(!darkMode)}>
-                    <i className={darkMode ? "fa-solid fa-sun" : "fa-solid fa-moon"}></i>
-                </button>
-
-                <a href="#" className="menu-item active">
-                    <i className="fa-solid fa-house"></i>
-                    <span>Início</span>
-                </a>
-
-                <a href="#" className="menu-item">
-                    <i className="fa-solid fa-users"></i>
-                    <span>Clientes</span>
-                </a>
-
-                <a href="#" className="menu-item">
-                    <i className="fa-solid fa-clipboard-list"></i>
-                    <span>Ordens de Serviço</span>
-                </a>
-
-                <a href="#" className="menu-item">
-                    <i className="fa-solid fa-diagram-project"></i>
-                    <span>Projetos</span>
-                </a>
-
-                <a href="#" className="menu-item">
-                    <i className="fa-solid fa-user-tie"></i>
-                    <span>Funcionários</span>
-                </a>
-
-                <a href="#" className="menu-item">
-                    <i className="fa-solid fa-chart-line"></i>
-                    <span>Relatórios</span>
-                </a>
-
-                <a href="#" className="menu-item">
-                    <i className="fa-solid fa-gear"></i>
-                    <span>Configurações</span>
-                </a>
-
-            </nav>
-
-        </aside>
-
-
-        <main className="main">
-
-            <div className="container">
-
-                <div className="filter">
-
-                    <input
-                        type="text"
-                        placeholder="Pesquisar ordem de serviço"
-                        value={search}
-                        onChange={(event) =>
-                            setSearch(event.target.value)
-                        }
-                    />
-
-
-                    <div className="custom-select">
-
-                        <button
-                            type="button"
-                            className="custom-select-button"
-                            onClick={() =>
-                                setSelectOpen(!selectOpen)
+                        <input
+                            type="text"
+                            placeholder="Pesquisar ordem de serviço"
+                            value={search}
+                            onChange={(event) =>
+                                setSearch(event.target.value)
                             }
-                        >
-                            <span>
-                                {selectedSetor === ""
-                                    ? "Todos os setores"
-                                    : selectedSetor}
-                            </span>
-
-                            <i
-                                className={`fa-solid ${
-                                    selectOpen
-                                        ? "fa-chevron-up"
-                                        : "fa-chevron-down"
-                                }`}
-                            ></i>
-                        </button>
+                        />
 
 
-                        {selectOpen && (
-                            <div className="custom-select-options">
+                        <div className="custom-select">
 
-                                {setores.map((setor) => (
+                            <button
+                                type="button"
+                                className="custom-select-button"
+                                onClick={() =>
+                                    setSelectOpen(!selectOpen)
+                                }
+                            >
+                                <span>
+                                    {selectedSetor === ""
+                                        ? "Todos os setores"
+                                        : selectedSetor}
+                                </span>
 
-                                    <button
-                                        type="button"
-                                        key={setor || "todos"}
-                                        className={`custom-option ${
-                                            selectedSetor === setor
-                                                ? "selected"
-                                                : ""
+                                <i
+                                    className={`fa-solid ${selectOpen
+                                            ? "fa-chevron-up"
+                                            : "fa-chevron-down"
                                         }`}
-                                        onClick={() => {
-                                            setSelectedSetor(setor);
-                                            setSelectOpen(false);
-                                        }}
-                                    >
-                                        {setor === ""
-                                            ? "Todos os setores"
-                                            : setor}
-                                    </button>
+                                ></i>
+                            </button>
 
-                                ))}
 
-                            </div>
-                        )}
+                            {selectOpen && (
+                                <div className="custom-select-options">
+
+                                    {setores.map((setor) => (
+
+                                        <button
+                                            type="button"
+                                            key={setor || "todos"}
+                                            className={`custom-option ${selectedSetor === setor
+                                                    ? "selected"
+                                                    : ""
+                                                }`}
+                                            onClick={() => {
+                                                setSelectedSetor(setor);
+                                                setSelectOpen(false);
+                                            }}
+                                        >
+                                            {setor === ""
+                                                ? "Todos os setores"
+                                                : setor}
+                                        </button>
+
+                                    ))}
+
+                                </div>
+                            )}
+
+                        </div>
+
+
+                        <div className="filter-button">
+                            <button></button>
+                            <button></button>
+                            <button></button>
+                        </div>
 
                     </div>
 
 
-                    <div className="filter-button">
-                        <button></button>
-                        <button></button>
-                        <button></button>
+                    <div className="cards">
+
+                        {filteredOrders.map((ordem) => (
+
+                            <div
+                                key={ordem.id}
+                                className={`card ${selectedOrder?.id === ordem.id
+                                        ? "selected"
+                                        : ""
+                                    } ${ordem.status === "Concluído"
+                                        ? "concluido"
+                                        : getPriorityClass(ordem.prioridade)
+                                    }`}
+                                onClick={() =>
+                                    setSelectedOrder(ordem)
+                                }
+                            >
+
+                                <span className="card-title">
+                                    {ordem.titulo}
+                                </span>
+
+                                <span className="card-status">
+                                    {ordem.status}
+                                </span>
+
+                            </div>
+
+                        ))}
+
                     </div>
 
                 </div>
 
+            </main>
 
-                <div className="cards">
 
-                    {filteredOrders.map((ordem) => (
+            <aside className="details">
 
-                        <div
-                            key={ordem.id}
-                            className={`card ${
-                                selectedOrder?.id === ordem.id
-                                    ? "selected"
-                                    : ""
-                            } ${
-                                ordem.status === "Concluído"
-                                    ? "concluido"
-                                    : getPriorityClass(ordem.prioridade)
-                            }`}
-                            onClick={() =>
-                                setSelectedOrder(ordem)
-                            }
-                        >
+                {selectedOrder && (
 
-                            <span className="card-title">
-                                {ordem.titulo}
+                    <div className="details-content">
+
+                        <div className="details-header">
+
+                            <span>
+                                {selectedOrder.titulo}
                             </span>
 
-                            <span className="card-status">
-                                {ordem.status}
-                            </span>
+                            <button
+                                className="details-close"
+                                onClick={() =>
+                                    setSelectedOrder(null)
+                                }
+                            >
+                                <i className="fa-solid fa-xmark"></i>
+                            </button>
 
                         </div>
 
-                    ))}
 
-                </div>
+                        <div className="details-info">
 
-            </div>
-
-        </main>
-
-
-        <aside className="details">
-
-            {selectedOrder && (
-
-                <div className="details-content">
-
-                    <div className="details-header">
-
-                        <span>
-                            {selectedOrder.titulo}
-                        </span>
-
-                        <button
-                            className="details-close"
-                            onClick={() =>
-                                setSelectedOrder(null)
-                            }
-                        >
-                            <i className="fa-solid fa-xmark"></i>
-                        </button>
-
-                    </div>
+                            <div className="info-row">
+                                <span>Detalhes</span>
+                            </div>
 
 
-                    <div className="details-info">
+                            <div className="info-grid">
 
-                        <div className="info-row">
-                            <span>Detalhes</span>
-                        </div>
+                                <div>
+                                    <span>Criticidade</span>
+                                    <strong>
+                                        {selectedOrder.prioridade}
+                                    </strong>
+                                </div>
+
+                                <div>
+                                    <span>Tipo</span>
+                                    <strong>
+                                        {selectedOrder.tipo}
+                                    </strong>
+                                </div>
+
+                                <div>
+                                    <span>Status</span>
+                                    <strong>
+                                        {selectedOrder.status}
+                                    </strong>
+                                </div>
+
+                            </div>
 
 
-                        <div className="info-grid">
-
-                            <div>
-                                <span>Criticidade</span>
+                            <div className="info-field">
+                                <span>Setor</span>
                                 <strong>
-                                    {selectedOrder.prioridade}
+                                    {selectedOrder.setor}
                                 </strong>
                             </div>
 
-                            <div>
-                                <span>Tipo</span>
+
+                            <div className="info-field">
+                                <span>Solicitante</span>
                                 <strong>
-                                    {selectedOrder.tipo}
+                                    {selectedOrder.solicitante}
                                 </strong>
                             </div>
 
-                            <div>
-                                <span>Status</span>
+
+                            <div className="info-field">
+                                <span>Descrição</span>
                                 <strong>
-                                    {selectedOrder.status}
+                                    {selectedOrder.descricao}
                                 </strong>
                             </div>
 
-                        </div>
+
+                            <div className="info-field">
+                                <span>Funcionário responsável</span>
+                                <strong>
+                                    {selectedOrder.funcionario}
+                                </strong>
+                            </div>
 
 
-                        <div className="info-field">
-                            <span>Setor</span>
-                            <strong>
-                                {selectedOrder.setor}
-                            </strong>
-                        </div>
+                            <div className="info-field">
+                                <span>Data de criação</span>
+                                <strong>
+                                    {selectedOrder.dataCriacao}
+                                </strong>
+                            </div>
 
 
-                        <div className="info-field">
-                            <span>Solicitante</span>
-                            <strong>
-                                {selectedOrder.solicitante}
-                            </strong>
-                        </div>
+                            <div className="info-field">
+                                <span>Prazo de entrega</span>
+                                <strong>
+                                    {selectedOrder.prazoEntrega}
+                                </strong>
+                            </div>
 
 
-                        <div className="info-field">
-                            <span>Descrição</span>
-                            <strong>
-                                {selectedOrder.descricao}
-                            </strong>
-                        </div>
+                            <div className="info-field">
+                                <span>O.S Relacionada</span>
+                                <strong>
+                                    {selectedOrder.osRelacionada}
+                                </strong>
+                            </div>
 
-
-                        <div className="info-field">
-                            <span>Funcionário responsável</span>
-                            <strong>
-                                {selectedOrder.funcionario}
-                            </strong>
-                        </div>
-
-
-                        <div className="info-field">
-                            <span>Data de criação</span>
-                            <strong>
-                                {selectedOrder.dataCriacao}
-                            </strong>
-                        </div>
-
-
-                        <div className="info-field">
-                            <span>Prazo de entrega</span>
-                            <strong>
-                                {selectedOrder.prazoEntrega}
-                            </strong>
-                        </div>
-
-
-                        <div className="info-field">
-                            <span>O.S Relacionada</span>
-                            <strong>
-                                {selectedOrder.osRelacionada}
-                            </strong>
                         </div>
 
                     </div>
 
-                </div>
+                )}
 
-            )}
+            </aside>
 
-        </aside>
-
-    </div>
-);
+        </div>
+    );
 
 }
 
