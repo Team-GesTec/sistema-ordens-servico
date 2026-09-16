@@ -1,31 +1,40 @@
-import { Router, Request, Response } from 'express';
+/**
+ * routes/routeProjeto.ts
+ *
+ * Rotas de Projeto (US#1.2), montadas em `/projeto` no app.ts.
+ * Todas exigem login (o `autenticar` é aplicado no app.ts); criar, alterar e excluir exigem o
+ * perfil `gestor`.
+ *
+ * Os handlers usam arrow function SEM chaves (`=> controller.x(req, res)`) para RETORNAR a Promise:
+ * é isso que permite ao Express 5 capturar erros assíncronos e enviá-los ao middleware de erros.
+ *
+ * ALTERAÇÃO (16/09/2026): adicionados a checagem de perfil (`autorizar('gestor')`) e o PATCH.
+ */
+import { Router, type Request, type Response } from 'express';
 import { controller } from '../controllers/controllerProjeto';
+import { autorizar } from '../middlewares/authMiddleware';
 
 const router = Router();
 
-//GET ALL
-router.get('/', (req: Request, res: Response) => {
-    controller.getAll(req, res);
-})
+/** Somente gestores podem alterar projetos. */
+const somenteGestor = autorizar('gestor');
 
-//GET BY ID
-router.get('/:id', (req: Request, res: Response) => {
-    controller.getById(req, res);
-})
+// GET ALL — qualquer usuário autenticado
+router.get('/', (req: Request, res: Response) => controller.getAll(req, res));
 
-//POST
-router.post('/', (req: Request, res: Response) => {
-    controller.criarProjeto(req, res);
-})
+// GET BY ID — qualquer usuário autenticado
+router.get('/:id', (req: Request, res: Response) => controller.getById(req, res));
 
-//PUT
-router.put('/:id', (req: Request, res: Response) => {
-    controller.updateProjeto(req, res);
-})
+// POST — gestor
+router.post('/', somenteGestor, (req: Request, res: Response) => controller.criarProjeto(req, res));
 
-//DELETE
-router.delete('/:id', (req: Request, res: Response) => {
-    controller.deleteProjeto(req, res);
-})
+// PUT — gestor
+router.put('/:id', somenteGestor, (req: Request, res: Response) => controller.updateProjeto(req, res));
+
+// PATCH — gestor
+router.patch('/:id', somenteGestor, (req: Request, res: Response) => controller.patchProjeto(req, res));
+
+// DELETE — gestor
+router.delete('/:id', somenteGestor, (req: Request, res: Response) => controller.deleteProjeto(req, res));
 
 export default router;
