@@ -1,0 +1,17 @@
+{
+    "default": {
+        "formatOptions": {
+            "snippetInterface": "synchronous"
+        },
+        "paths": [
+            "features/**/*.feature"
+        ],
+        "require": [
+            "features/**/*.steps.ts",
+            "features/support/**/*.ts"
+        ],
+        "requireModule": [
+            "tsx/cjs"
+        ]
+    }
+}
