@@ -1,3 +1,20 @@
+:root {
+    --branco: #F9FBFF;
+    --vermelho: #D92528;
+    --laranja: #D86F25;
+    --amarelo: #FFC300;
+    --verde: #43D925;
+    --azul-claro: #1589CA;
+    --azul-escuro: #090C5C;
+    --preto: #1A1A1A;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
 * {
     margin: 0;
     padding: 0;

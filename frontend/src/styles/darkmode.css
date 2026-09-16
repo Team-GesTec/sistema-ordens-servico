@@ -1,24 +1,21 @@
+/* =========================
+   BASE
+========================= */
+
 .dark-mode {
-    background: #071d2e;
-    color: #f2f2f2;
+    background: var(--azul-escuro);
+    color: var(--branco);
 }
 
-.dark-mode .main {
-    background: linear-gradient(to bottom,
-            #0b3d62,
-            #071d2e);
-    
-}
+/* =========================
+   SIDEBAR
+========================= */
 
 .dark-mode .sidebar {
     background: linear-gradient(to bottom,
-            #123f5c,
-            #071d2e);
-
-
-    border-right: 1px solid #1b506f;
-
-
+            color-mix(in srgb, var(--azul-escuro) 35%, var(--azul-claro)),
+            var(--azul-escuro));
+    border-right: 1px solid color-mix(in srgb, var(--azul-claro) 30%, transparent);
 }
 
 .dark-mode .menu-item {
@@ -30,34 +27,56 @@
 }
 
 .dark-mode .menu-item.active {
-    background: #1477aa;
+    background: color-mix(in srgb, var(--azul-claro) 70%, var(--azul-escuro));
 }
 
-.dark-mode .details {
-    background: linear-gradient(180deg,
-            #123f5c 0%,
-            #0b2c43 40%,
-            #071d2e 78%);
-
-
-    border-left: 1px solid #1b506f;
-
-
-}
-
-.dark-mode .filter input {
-    background: #102b3d;
+.dark-mode .theme-button {
+    background: color-mix(in srgb, var(--azul-escuro) 60%, var(--azul-claro));
     color: #f2f2f2;
 }
 
+.dark-mode .theme-button:hover {
+    background: color-mix(in srgb, var(--azul-escuro) 85%, black);
+}
+
+/* =========================
+   MAIN
+========================= */
+
+.dark-mode .main {
+    background: linear-gradient(to bottom,
+            color-mix(in srgb, var(--azul-escuro) 35%, var(--azul-claro)),
+            color-mix(in srgb, var(--azul-escuro) 90%, black));
+}
+
+/* =========================
+   FILTROS
+========================= */
+
+.dark-mode .filter input {
+    background: #393739;
+    color: #f2f2f2;
+}
+
+.dark-mode .filter input::placeholder {
+    color: #9eb0bd;
+}
+
+.dark-mode .filter-button button {
+    background: #393739;
+}
+
+/* =========================
+   SELECT CUSTOMIZADO
+========================= */
+
 .dark-mode .custom-select-button {
-    background: #102b3d;
+    background: #393739;
     color: #f2f2f2;
 }
 
 .dark-mode .custom-select-options {
     background: #102b3d;
-
     box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35);
 }
 
@@ -73,27 +92,51 @@
     background: #1c4b64;
 }
 
-.dark-mode .filter input::placeholder {
-    color: #9eb0bd;
-}
-
-.dark-mode .filter-button button {
-    background: #102b3d;
-}
+/* =========================
+   CARDS DE OS
+========================= */
 
 .dark-mode .card {
-    background: rgb(32, 32, 32);
+    background: color-mix(in srgb, var(--azul-claro) 8%, transparent);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+
+    border-top: 1px solid rgba(255, 255, 255, 0.15);
+    border-right: 1px solid rgba(255, 255, 255, 0.15);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.dark-mode .card.prioridade-baixa {
+    border-left-color: var(--branco);
+}
+
+.dark-mode .card.prioridade-media {
+    border-left-color: var(--amarelo);
+}
+
+.dark-mode .card.prioridade-alta {
+    border-left-color: var(--laranja);
+}
+
+.dark-mode .card.prioridade-prioritaria {
+    border-left-color: var(--vermelho);
+}
+
+.dark-mode .card.concluido {
+    border-left-color: var(--verde);
 }
 
 .dark-mode .card.selected {
     box-shadow: 0 0 0 2px #42bfff;
 }
 
-.dark-mode .theme-button {
-    background: #173c51;
-    color: #f2f2f2;
-}
+/* =========================
+   ASIDE DIREITO (DETALHES)
+========================= */
 
-.dark-mode .theme-button:hover {
-    background: #0c2736;
+.dark-mode .details {
+    background: linear-gradient(180deg,
+            color-mix(in srgb, var(--azul-escuro) 60%, var(--azul-claro)) 0%,
+            color-mix(in srgb, var(--azul-escuro) 85%, black) 78%);
+    border-left: 1px solid color-mix(in srgb, var(--azul-claro) 30%, transparent);
 }
