@@ -10,7 +10,13 @@
  *   - novas rotas `/auth` (login) e exigência de token (`autenticar`) em todas as rotas de dados;
  *   - CORS configurável por `CORS_ORIGIN`, limite de tamanho do JSON e rota `/health`;
  *   - handlers de 404 e de erro movidos para `middlewares/errorMiddleware.ts`.
+ *
+  * ALTERAÇÕES (20/09/2026):
+ *   - nova rota `/ordens-servico` (US#2.1, abertura de O.S.): `routerOS` importado e registrado
+ *     com `autenticar`; o perfil permitido (gestor ou técnico) é checado no próprio router.
  */
+
+
 import express, { type Express, type Request, type Response } from 'express';
 import cors, { type CorsOptions } from 'cors';
 import { env } from './config/env';
@@ -21,6 +27,7 @@ import routerCL from './routes/routeCliente';
 import routerDP from './routes/routeDepartamento';
 import routerFN from './routes/routeFuncionario';
 import routerPR from './routes/routeProjeto';
+import routerOS from './routes/routeOrdemServico';
 
 /** Tamanho máximo aceito para o corpo JSON das requisições. */
 const LIMITE_JSON = '100kb';
@@ -60,10 +67,12 @@ export function criarApp(): Express {
     app.use('/departamento', autenticar, routerDP);
     app.use('/funcionario', autenticar, routerFN);
     app.use('/projeto', autenticar, routerPR);
+    app.use('/ordens-servico', autenticar, routerOS);
 
     // Precisam ser os últimos: 404 para rotas inexistentes e tratamento central de erros.
     app.use(rotaNaoEncontrada);
     app.use(tratarErros);
+
 
     return app;
 }
