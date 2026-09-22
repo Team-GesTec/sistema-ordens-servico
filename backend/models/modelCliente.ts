@@ -33,7 +33,5 @@ export interface DadosCriacaoCliente {
 
 /**
  * Dados validados para atualizar um cliente (só os campos presentes são alterados).
- * `locais_operacionais` fica de fora: o update de locais operacionais exige uma estratégia
- * própria (substituição total ou diff por id) ainda não definida com o time — ver US#1.1.
  */
-export type DadosAtualizacaoCliente = Partial<Omit<DadosCriacaoCliente, 'locais_operacionais'>>;
+export type DadosAtualizacaoCliente = Partial<DadosCriacaoCliente>;

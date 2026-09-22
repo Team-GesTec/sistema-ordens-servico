@@ -14,6 +14,7 @@
  * Cada item exige `tipo` (enum: offshore, terrestre, site) e `descricao`, ambos
  * obrigatórios — de acordo com o schema.prisma, que define `descricao` sem `?`.
  * */
+
 import { AppError } from '../errors/AppError';
 import { repositoryCliente, type RepositoryCliente } from '../repositories/repositoryCliente';
 import type { Cliente, DadosAtualizacaoCliente, DadosCriacaoCliente, DadosCriacaoLocalOperacional } from '../models/modelCliente';
@@ -111,6 +112,9 @@ export class ServiceCliente {
         if (!parcial || campoPresente(dados, 'ramo_atuacao')) {
             alteracoes.ramo_atuacao = textoOpcional(dados.ramo_atuacao, 'ramo_atuacao', { maximo: TEXTO_MAXIMO });
         }
+        if (!parcial || campoPresente(dados, 'locais_operacionais')) {
+            alteracoes.locais_operacionais = this.validarLocaisOperacionais(dados.locais_operacionais)
+        }
         return alteracoes;
     }
 
@@ -128,5 +132,6 @@ export class ServiceCliente {
         });
     }
 }
+
 /** Instância única usada pelo controller. */
 export const serviceCliente = new ServiceCliente();

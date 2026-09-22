@@ -50,7 +50,15 @@ export class RepositoryCliente {
     /** Atualiza os campos informados de um cliente e atualiza o cache. */
     async atualizar(id: number, dados: DadosAtualizacaoCliente): Promise<Cliente> {
         try {
-            const atualizado = await prisma.clientes.update({ where: { id }, data: dados });
+            const atualizado = await prisma.clientes.update({ where: { id }, data: {
+                nome: dados.nome,
+                categoria: dados.categoria,
+                razao_social: dados.razao_social,
+                ramo_atuacao: dados.ramo_atuacao,
+                locais_operacionais: {
+                    create: dados.locais_operacionais, // lista de { descricao, tipo }
+                }
+            } });
             clienteCache.definir(atualizado);
             return atualizado;
         } catch (erro) {
