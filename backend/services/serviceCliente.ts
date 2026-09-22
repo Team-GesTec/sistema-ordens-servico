@@ -6,21 +6,31 @@
  *
  * ALTERAÇÃO (16/09/2026): a validação que ficava no controllerCliente foi movida para cá, e o
  * serviço passou a suportar atualização parcial (PATCH).
- */
+ * ALTERAÇÃO (20/09/2026): `criar` agora também valida e monta `locais_operacionais` (BE-08).
+ * O campo é uma LISTA (`DadosCriacaoLocalOperacional[]`), não um valor único — um cliente pode
+ * ter vários locais/ativos operacionais ao mesmo tempo (ex.: uma embarcação e um site
+ * simultaneamente), de acordo com a relação um-para-muitos já modelada em `locais_operacionais`
+ * no schema.prisma (cliente_id como chave estrangeira). 
+ * Cada item exige `tipo` (enum: offshore, terrestre, site) e `descricao`, ambos
+ * obrigatórios — de acordo com o schema.prisma, que define `descricao` sem `?`.
+ * */
 import { AppError } from '../errors/AppError';
 import { repositoryCliente, type RepositoryCliente } from '../repositories/repositoryCliente';
-import type { Cliente, DadosAtualizacaoCliente, DadosCriacaoCliente } from '../models/modelCliente';
+import type { Cliente, DadosAtualizacaoCliente, DadosCriacaoCliente, DadosCriacaoLocalOperacional } from '../models/modelCliente';
 import {
     campoPresente,
     exigirAlteracoes,
     exigirTexto,
     lerCorpo,
+    exigirEnum,
     textoOpcional,
     type CorpoRequisicao,
 } from '../utils/validacao';
 
 /** Tamanho máximo aceito para os textos de cliente. */
 const TEXTO_MAXIMO = 255;
+//Valores aceitos para local operacional até o momento (21/09)
+const TIPOS_LOCAL_OPERACIONAL = ['offshore', 'terrestre', 'site'] as const;
 
 export class ServiceCliente {
     private readonly repositorio: RepositoryCliente;
@@ -56,11 +66,13 @@ export class ServiceCliente {
      */
     async criar(corpo: unknown): Promise<Cliente> {
         const dados = lerCorpo(corpo);
+        const locaisOperacionais = this.validarLocaisOperacionais(dados.locais_operacionais)
         const novo: DadosCriacaoCliente = {
             nome: exigirTexto(dados.nome, 'nome', { maximo: TEXTO_MAXIMO }),
             categoria: exigirTexto(dados.categoria, 'categoria', { maximo: TEXTO_MAXIMO }),
             razao_social: textoOpcional(dados.razao_social, 'razao_social', { maximo: TEXTO_MAXIMO }),
             ramo_atuacao: textoOpcional(dados.ramo_atuacao, 'ramo_atuacao', { maximo: TEXTO_MAXIMO }),
+            locais_operacionais: locaisOperacionais,
         };
         return this.repositorio.criar(novo);
     }
@@ -101,7 +113,20 @@ export class ServiceCliente {
         }
         return alteracoes;
     }
-}
 
+    //
+    private validarLocaisOperacionais(valor: unknown): DadosCriacaoLocalOperacional[] {
+        if (!Array.isArray(valor)) {
+            throw AppError.requisicaoInvalida('locais_operacionais deve ser uma lista');
+        }
+        return valor.map((item, indice) => {
+            const local = lerCorpo(item);
+            return {
+                tipo: exigirEnum(local.tipo, TIPOS_LOCAL_OPERACIONAL, `locais_operacionais[${indice}].tipo`),
+                descricao: exigirTexto(local.descricao, `locais_operacionais[${indice}].descricao`, { maximo: TEXTO_MAXIMO }),
+            };
+        });
+    }
+}
 /** Instância única usada pelo controller. */
 export const serviceCliente = new ServiceCliente();
