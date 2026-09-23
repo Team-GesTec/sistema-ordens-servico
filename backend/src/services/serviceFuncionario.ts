@@ -25,7 +25,7 @@ import {
     type Funcionario,
     type PerfilFuncionario,
 } from '../models/modelFuncionario';
-import { gerarHashSenha, validarSenha } from '../utils/senha';
+import { gerarHashSenha, validarSenha } from '../../utils/senha';
 import {
     campoPresente,
     exigirAlteracoes,
@@ -34,7 +34,7 @@ import {
     exigirTexto,
     lerCorpo,
     type CorpoRequisicao,
-} from '../utils/validacao';
+} from '../../utils/validacao';
 
 /** Perfil com permissão de administração. */
 const PERFIL_GESTOR: PerfilFuncionario = 'gestor';

@@ -17,8 +17,8 @@ import { AppError } from '../errors/AppError';
 import { repositoryFuncionario, type RepositoryFuncionario } from '../repositories/repositoryFuncionario';
 import type { PayloadToken, RespostaLogin } from '../models/modelAuth';
 import type { Funcionario } from '../models/modelFuncionario';
-import { compararSenha, gerarHashSenha } from '../utils/senha';
-import { exigirTexto, lerCorpo } from '../utils/validacao';
+import { compararSenha, gerarHashSenha } from '../../utils/senha';
+import { exigirTexto, lerCorpo } from '../../utils/validacao';
 import { normalizarUsuario } from './serviceFuncionario';
 
 /** Mensagem única para qualquer falha de login. */

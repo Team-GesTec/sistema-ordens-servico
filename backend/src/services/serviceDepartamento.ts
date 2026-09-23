@@ -23,7 +23,7 @@ import {
     inteiroPositivoOpcional,
     lerCorpo,
     type CorpoRequisicao,
-} from '../utils/validacao';
+} from '../../utils/validacao';
 
 /** Tamanho máximo do nome do departamento. */
 const NOME_MAXIMO = 100;

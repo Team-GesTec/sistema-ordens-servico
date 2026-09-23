@@ -16,7 +16,6 @@
  *     com `autenticar`; o perfil permitido (gestor ou técnico) é checado no próprio router.
  */
 
-
 import express, { type Express, type Request, type Response } from 'express';
 import cors, { type CorsOptions } from 'cors';
 import { env } from './config/env';
@@ -72,7 +71,6 @@ export function criarApp(): Express {
     // Precisam ser os últimos: 404 para rotas inexistentes e tratamento central de erros.
     app.use(rotaNaoEncontrada);
     app.use(tratarErros);
-
 
     return app;
 }
