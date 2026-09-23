@@ -1,6 +1,8 @@
 import { useState } from "react";
 import "../styles/home.css";
 import "../styles/darkmode.css";
+import CustomSelect from "../components/CustomSelect";
+import type { SelectOption } from "../components/CustomSelect"
 
 interface OrdemServico {
     id: number;
@@ -80,12 +82,12 @@ const ordens: OrdemServico[] = [
 
 ];
 
-const setores = [
-    "",
-    "Frontend",
-    "Backend",
-    "Hardware",
-    "Financeiro"
+const setorOptions: SelectOption[] = [
+    { value: "", label: "Todos os setores" },
+    { value: "Frontend", label: "Frontend" },
+    { value: "Backend", label: "Backend" },
+    { value: "Hardware", label: "Hardware" },
+    { value: "Financeiro", label: "Financeiro" }
 ];
 
 function getPriorityClass(prioridade: string) {
@@ -115,8 +117,6 @@ function Home() {
     const [search, setSearch] = useState("");
 
     const [selectedSetor, setSelectedSetor] = useState("");
-
-    const [selectOpen, setSelectOpen] = useState(false);
 
     const filteredOrders = ordens.filter((ordem) => {
         const matchesSearch = ordem.titulo
@@ -152,58 +152,12 @@ function Home() {
                         />
 
 
-                        <div className="custom-select">
-
-                            <button
-                                type="button"
-                                className="custom-select-button"
-                                onClick={() =>
-                                    setSelectOpen(!selectOpen)
-                                }
-                            >
-                                <span>
-                                    {selectedSetor === ""
-                                        ? "Todos os setores"
-                                        : selectedSetor}
-                                </span>
-
-                                <i
-                                    className={`fa-solid ${selectOpen
-                                            ? "fa-chevron-up"
-                                            : "fa-chevron-down"
-                                        }`}
-                                ></i>
-                            </button>
-
-
-                            {selectOpen && (
-                                <div className="custom-select-options">
-
-                                    {setores.map((setor) => (
-
-                                        <button
-                                            type="button"
-                                            key={setor || "todos"}
-                                            className={`custom-option ${selectedSetor === setor
-                                                    ? "selected"
-                                                    : ""
-                                                }`}
-                                            onClick={() => {
-                                                setSelectedSetor(setor);
-                                                setSelectOpen(false);
-                                            }}
-                                        >
-                                            {setor === ""
-                                                ? "Todos os setores"
-                                                : setor}
-                                        </button>
-
-                                    ))}
-
-                                </div>
-                            )}
-
-                        </div>
+                        <CustomSelect
+                            options={setorOptions}
+                            value={selectedSetor}
+                            onChange={setSelectedSetor}
+                            placeholder="Todos os setores"
+                        />
 
 
                         <div className="filter-button">

@@ -47,16 +47,6 @@ function Sidebar({ darkMode, setDarkMode }: SidebarProps) {
                     <span>Funcionários</span>
                 </NavLink>
 
-                <NavLink to="/relatorios" className="menu-item">
-                    <i className="fa-solid fa-chart-line"></i>
-                    <span>Relatórios</span>
-                </NavLink>
-
-                <NavLink to="/configuracoes" className="menu-item">
-                    <i className="fa-solid fa-gear"></i>
-                    <span>Configurações</span>
-                </NavLink>
-
             </nav>
 
         </aside>

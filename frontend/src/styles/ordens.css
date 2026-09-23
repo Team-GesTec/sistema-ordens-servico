@@ -69,15 +69,8 @@
     border-radius: 8px;
     outline: none;
 
-    background: #393739;
-    color: #f2f2f2;
-
     font-size: 12px;
     font-family: inherit;
-}
-
-.form-input::placeholder {
-    color: #f2f2f2;
 }
 
 .form-textarea {
@@ -121,7 +114,6 @@
 
     cursor: pointer;
 
-    transition: background 0.2s ease;
 }
 
 .department-confirm:hover {
