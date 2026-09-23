@@ -15,6 +15,9 @@ function Login() {
 
         if (usuario === "admin" && senha === "1234") {
             setErro(false);
+
+            sessionStorage.setItem("autenticado", "true");
+
             navigate("/home");
         } else {
             setErro(true);
@@ -24,9 +27,18 @@ function Login() {
     return (
         <div className="login-page">
             <div className="login-card">
-                <img src={logo} alt="GESTEC" className="logo" />
 
-                <form onSubmit={entrar}>
+                <img
+                    src={logo}
+                    alt="GESTEC"
+                    className="logo"
+                />
+
+                <form
+                    onSubmit={entrar}
+                    autoComplete="on"
+                >
+
                     {erro && (
                         <div className="erro-msg">
                             <i className="fa-solid fa-circle-xmark erro-icone"></i>
@@ -35,22 +47,40 @@ function Login() {
                     )}
 
                     <input
+                        id="usuario"
+                        name="username"
                         type="text"
                         placeholder="Usuário"
                         value={usuario}
-                        onChange={(e) => setUsuario(e.target.value)}
+                        onChange={(e) => {
+                            setUsuario(e.target.value);
+                            setErro(false);
+                        }}
+                        autoComplete="username"
+                        autoCapitalize="none"
+                        autoCorrect="off"
+                        spellCheck={false}
                         required
                     />
 
                     <input
+                        id="senha"
+                        name="password"
                         type="password"
                         placeholder="Senha"
                         value={senha}
-                        onChange={(e) => setSenha(e.target.value)}
+                        onChange={(e) => {
+                            setSenha(e.target.value);
+                            setErro(false);
+                        }}
+                        autoComplete="current-password"
                         required
                     />
 
-                    <button type="submit">Entrar</button>
+                    <button type="submit">
+                        Entrar
+                    </button>
+
                 </form>
             </div>
         </div>

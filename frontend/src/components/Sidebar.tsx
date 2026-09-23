@@ -1,4 +1,4 @@
-import { NavLink } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
 import logo from "../images/logo_gestec.png";
 
 interface SidebarProps {
@@ -8,10 +8,17 @@ interface SidebarProps {
 
 function Sidebar({ darkMode, setDarkMode }: SidebarProps) {
 
+    const navigate = useNavigate();
+
+    function sair() {
+        sessionStorage.removeItem("autenticado");
+        navigate("/login");
+    }
+
     return (
         <aside className="sidebar">
 
-            <img src={logo} alt="Logo da Altave" />
+            <img src={logo} alt="Logo da Altave" className="logo" />
 
             <nav className="sidebar-nav">
 
@@ -46,17 +53,6 @@ function Sidebar({ darkMode, setDarkMode }: SidebarProps) {
                     <i className="fa-solid fa-user-tie"></i>
                     <span>Funcionários</span>
                 </NavLink>
-
-                <NavLink to="/relatorios" className="menu-item">
-                    <i className="fa-solid fa-chart-line"></i>
-                    <span>Relatórios</span>
-                </NavLink>
-
-                <NavLink to="/configuracoes" className="menu-item">
-                    <i className="fa-solid fa-gear"></i>
-                    <span>Configurações</span>
-                </NavLink>
-
             </nav>
 
         </aside>

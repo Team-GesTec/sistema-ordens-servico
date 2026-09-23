@@ -44,25 +44,30 @@
 ========================= */
 
 .dark-mode .main {
-    background: linear-gradient(to bottom,
-            color-mix(in srgb, var(--azul-escuro) 35%, var(--azul-claro)),
-            color-mix(in srgb, var(--azul-escuro) 90%, black));
+    background: linear-gradient(
+        to bottom,
+        color-mix(in srgb, var(--azul-escuro) 35%, var(--azul-claro)),
+        color-mix(in srgb, var(--azul-escuro) 90%, black)
+    );
 }
 
+.dark-mode .container::before {
+    background-image: var(--logo-gestec-dark);
+}
 /* =========================
    FILTROS
 ========================= */
 
-.dark-mode .filter input {
+.dark-mode input, .dark-mode .form-textarea{
     background: #393739;
     color: #f2f2f2;
 }
 
-.dark-mode .filter input::placeholder {
+.dark-mode input::placeholder {
     color: #9eb0bd;
 }
 
-.dark-mode .filter-button button {
+.dark-mode button {
     background: #393739;
 }
 

@@ -1,7 +1,13 @@
 import { useState } from "react";
-import "../styles/home.css";
+import "../styles/variaveis.css";
+import "../styles/global.css";
+import "../styles/layout.css";
+import "../styles/sidebar.css";
+import "../styles/filters.css";
+import "../styles/cards.css";
+import "../styles/details.css";
 import "../styles/darkmode.css";
-import "../styles/ordens.css"
+import "../styles/forms.css"
 import type { SelectOption } from "../components/CustomSelect";
 import CustomSelect from "../components/CustomSelect";
 
@@ -37,10 +43,10 @@ const TIPOS: SelectOption[] = [
     { value: "melhoria", label: "Melhoria" },
 ];
 
-const SLAs: SelectOption[] = [
-    { value: "1", label: "SLA01" },
-    { value: "2", label: "SLA02" },
-    { value: "3", label: "SLA03" },
+const CRITICIDADES: SelectOption[] = [
+    { value: "1", label: "Alta" },
+    { value: "2", label: "Media" },
+    { value: "3", label: "Baixa" },
 ];
 
 interface OSFormState {
@@ -50,7 +56,7 @@ interface OSFormState {
     responsavel: string | null;
     osAnterior: string | null;
     tipo: string | null;
-    sla: string | null;
+    criticidade: string | null;
     descricao: string;
 }
 
@@ -61,7 +67,7 @@ const INITIAL_FORM_STATE: OSFormState = {
     responsavel: null,
     osAnterior: null,
     tipo: null,
-    sla: null,
+    criticidade: null,
     descricao: "",
 };
 
@@ -230,12 +236,12 @@ function Ordens() {
                             </div>
 
                             <div className="form-field">
-                                <label>SLA</label>
+                                <label>criticidade</label>
                                 <CustomSelect
-                                    options={SLAs}
-                                    value={form.sla}
-                                    onChange={(value) => updateField("sla", value)}
-                                    placeholder="Selecione a SLA"
+                                    options={CRITICIDADES}
+                                    value={form.criticidade}
+                                    onChange={(value) => updateField("criticidade", value)}
+                                    placeholder="Selecione a criticidade"
                                 />
                             </div>
 
