@@ -13,22 +13,26 @@
     "pg": "^8.23.0"
   },
   "devDependencies": {
+    "@cucumber/cucumber": "^13.2.1",
     "@types/bcryptjs": "^2.4.6",
     "@types/cors": "^2.8.17",
     "@types/express": "^5.0.6",
     "@types/jsonwebtoken": "^9.0.7",
-    "@types/node": "^26.5.0",
+    "@types/node": "^26.6.1",
+    "@types/pg": "^8.23.1",
+    "@types/supertest": "^7.2.1",
     "prisma": "^7.10.0",
+    "supertest": "^7.2.2",
     "tsx": "^4.23.13",
     "typescript": "^5.7.0"
   },
   "scripts": {
     "postinstall": "prisma generate",
-    "dev": "tsx watch server.ts",
+    "dev": "tsx watch src/server.ts",
     "build": "tsc",
     "start": "node dist/server.js",
     "typecheck": "tsc --noEmit",
-    "test": "tsx --test \"tests/*.test.ts\"",
+    "test": "cucumber-js",
     "prisma:generate": "prisma generate",
     "db:status": "prisma migrate status",
     "db:seed": "prisma db seed"

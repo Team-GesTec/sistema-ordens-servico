@@ -11,10 +11,10 @@
  *   router.post('/', autorizar('gestor'), (req, res) => ...);       // só gestor pode criar
  */
 import type { NextFunction, Request, RequestHandler, Response } from 'express';
-import { AppError } from '../errors/AppError';
-import type { PerfilFuncionario } from '../models/modelFuncionario';
-import { repositoryFuncionario } from '../repositories/repositoryFuncionario';
-import { serviceAuth } from '../services/serviceAuth';
+import { AppError } from '../src/errors/AppError';
+import type { PerfilFuncionario } from '../src/models/modelFuncionario';
+import { repositoryFuncionario } from '../src/repositories/repositoryFuncionario';
+import { serviceAuth } from '../src/services/serviceAuth';
 
 /** Prefixo esperado no cabeçalho Authorization. */
 const PREFIXO_BEARER = 'Bearer ';

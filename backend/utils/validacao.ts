@@ -7,7 +7,7 @@
  * valor já convertido e tipado, ou lançam `AppError` 400 com uma mensagem clara em PT-BR.
  * Assim os services não repetem `if (!campo) return res.status(400)...` em todo lugar.
  */
-import { AppError } from '../errors/AppError';
+import { AppError } from '../src/errors/AppError';
 
 /** Maior valor de uma coluna INTEGER do Postgres (os ids do schema são `Int`/SERIAL). */
 export const INTEIRO_MAXIMO_POSTGRES = 2_147_483_647;

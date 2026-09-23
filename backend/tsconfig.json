@@ -24,7 +24,5 @@
   },
   "include": ["**/*.ts"],
   // Ignora o arquivo de configuração do prisma, as dependências e a saída do build.
-  // (Ao definir "exclude", o padrão do TypeScript deixa de valer, por isso node_modules e dist
-  // precisam estar listados explicitamente.)
   "exclude": ["prisma.config.ts", "node_modules", "dist"]
 }

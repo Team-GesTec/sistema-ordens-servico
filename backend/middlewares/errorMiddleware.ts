@@ -3,12 +3,9 @@
  *
  * Tratamento centralizado de erros e de rotas inexistentes.
  * Toda resposta de erro da API tem o formato `{ "mensagem": "..." }`.
- *
- * ALTERAÇÃO (16/09/2026): estes handlers ficavam inline no app.ts; foram movidos para cá e agora
- * reconhecem `AppError` (erros esperados, com status próprio).
  */
 import type { NextFunction, Request, Response } from 'express';
-import { AppError } from '../errors/AppError';
+import { AppError } from '../src/errors/AppError';
 
 /**
  * Lê o status HTTP de erros gerados pelo próprio Express/body-parser (ex.: corpo grande demais = 413).

@@ -47,11 +47,11 @@ O SGOS resolve essa dor ao oferecer um agrupador central de projetos, desmembram
 
 ### Tabela Descritiva das Sprints
 
-| Período da Sprint | Link para Documentação da Sprint | Link para Vídeo no Youtube do Incremento Entregue |
-| --- | --- | --- |
-| Sprint 1: 01/09/2026 - 25/09/2026 | [Documentação da Sprint 1](#) | [Demonstração da Sprint 1 - YouTube](#) |
-| Sprint 2: 28/09/2026 - 23/10/2026 | [Documentação da Sprint 2](#) | [Demonstração da Sprint 2 - YouTube](#) |
-| Sprint 3: 26/10/2026 - 20/11/2026 | [Documentação da Sprint 3](#) | [Demonstração da Sprint 3 - YouTube](#) |
+| Período da Sprint | Meta (User Stories) | Link para Documentação da Sprint | Link para Vídeo no Youtube do Incremento Entregue |
+| --- | --- | --- | --- |
+| Sprint 1: 01/09/2026 - 25/09/2026 | US#4.1, US#2.1, US#1.2 | [Documentação da Sprint 1](#) | [Demonstração da Sprint 1 - YouTube](#) |
+| Sprint 2: 28/09/2026 - 23/10/2026 | *Em progresso* | [Documentação da Sprint 2](#) | [Demonstração da Sprint 2 - YouTube](#) |
+| Sprint 3: 26/10/2026 - 20/11/2026 | *Em progresso* | [Documentação da Sprint 3](#) | [Demonstração da Sprint 3 - YouTube](#) |
 
 ---
 
@@ -69,31 +69,49 @@ O SGOS resolve essa dor ao oferecer um agrupador central de projetos, desmembram
 
 ```bash
 sistema-ordens-servico/
-├── backend
-│   ├── controllers
-│   │   └── .gitkeep
-│   ├── models
-│   │   └── .gitkeep
-│   ├── repositories
-│   │   └── .gitkeep
-│   ├── routes
-│   │   └── .gitkeep
-│   └── services
-│       └── .gitkeep
-├── docs
-│   └── .gitkeep
-├── frontend
-│   ├── components
-│   │   └── .gitkeep
-│   ├── images
-│   │   └── .gitkeep
-│   ├── pages
-│   │   └── .gitkeep
-│   ├── services
-│   │   └── .gitkeep
-│   └── styles
-│       └── .gitkeep
+├── backend/
+│   ├── controllers/
+│   ├── models/
+│   ├── prisma/
+│   │   ├── migrations/
+│   │   ├── client.ts
+│   │   └── schema.prisma
+│   ├── repositories/
+│   ├── routes/
+│   ├── services/
+│   ├── .env.example
+│   ├── app.ts
+│   ├── package-lock.json
+│   ├── package.json
+│   ├── prisma.config.ts
+│   └── tsconfig.json
+├── docs/
+│   ├── checklist-dor-dod.md
+│   └── manual-instalacao.md
+├── frontend/
+│   ├── public/
+│   ├── src/
+│   │   ├── assets/
+│   │   ├── components/
+│   │   ├── images/
+│   │   ├── pages/
+│   │   ├── services/
+│   │   ├── styles/
+│   │   ├── App.css
+│   │   ├── App.tsx
+│   │   ├── index.css
+│   │   └── main.tsx
+│   ├── eslint.config.js
+│   ├── index.html
+│   ├── package-lock.json
+│   ├── package.json
+│   ├── README.md
+│   ├── tsconfig.app.json
+│   ├── tsconfig.json
+│   ├── tsconfig.node.json
+│   └── vite.config.ts
 ├── .gitignore
+├── CONTRIBUTING.md
 └── README.md
 ```
 
@@ -101,24 +119,46 @@ sistema-ordens-servico/
 
 ## Como Executar, Usar e Testar o Projeto
 
-**1. Clonar o Repositório:**
+### 1. Clonar o Repositório
 
 ```bash
 git clone https://github.com/Team-GesTec/sistema-ordens-servico.git
 cd sistema-ordens-servico
 ```
 
-**2. Configuração do Backend e Banco de Dados:**
+### 2. Configuração do Backend e Banco de Dados
 
 ```bash
 cd backend
 npm install
+```
+
+Crie o arquivo `.env` a partir do arquivo de exemplo:
+
+```bash
 cp .env.example .env
+```
+
+Preencha as variáveis de ambiente no `.env` com as informações do banco PostgreSQL.
+
+> [!NOTE]
+> Caso esteja utilizando um banco PostgreSQL local, informe no `.env` os dados correspondentes à sua conexão.
+>
+> As variáves necessárias estão disponíveis no arquivo `.env.example`.
+
+Com o banco configurado, execute as migrations do Prisma:
+
+```bash
 npm run migrate
+```
+
+Por fim, inicie o servidor em modo de desenvolvimento:
+
+```bash
 npm run dev
 ```
 
-**3. Configuração do Frontend:**
+### 3. Configuração do Frontend
 
 ```bash
 cd ../frontend
@@ -126,7 +166,7 @@ npm install
 npm run dev
 ```
 
-**4. Execução dos Testes Automatizados:**
+### 4. Execução dos Testes Automatizados
 
 ```bash
 # No diretório backend ou frontend
@@ -135,13 +175,19 @@ npm run test
 
 ---
 
+## Contribuição
+
+O fluxo de trabalho no GitHub, a estratégia de branches e o padrão de commits do GesTec estão documentados em [CONTRIBUTING.md](./CONTRIBUTING.md).
+
+---
+
 ## Links para Pasta de Documentação
 
-- [Checklist de DoR e DoD](#)
-- [DoR e DoD por Sprint](#)
-- [Estratégia de Branch](#)
-- [Manual do Usuário](#)
-- [Manual de Instalação](#)
+- [Checklist de DoR e DoD](./docs/checklist-dor-dod.md)
+- DoR e DoD por Sprint — *Em progresso*
+- [Estratégia de Branch e Padrão de Commits](./CONTRIBUTING.md)
+- Manual do Usuário — *Em progresso*
+- [Manual de Instalação](./docs/manual-instalacao.md)
 
 ---
 

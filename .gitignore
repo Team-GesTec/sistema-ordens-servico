@@ -3,6 +3,8 @@ node_modules/
 
 # Arquivos gerados (TypeScript)
 dist/
+dist-ssr
+*.local
 
 # Cliente Prisma
 backend/prisma/generated
@@ -12,6 +14,23 @@ backend/prisma/generated
 .env.*
 !.env.example
 
-# Arquivos do sistema operacional
+# Arquivos do sistema operacional e editores
 .DS_Store
 Thumbs.db
+.vscode/*
+!.vscode/extensions.json
+.idea
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
