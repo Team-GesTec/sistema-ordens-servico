@@ -37,10 +37,10 @@ const TIPOS: SelectOption[] = [
     { value: "melhoria", label: "Melhoria" },
 ];
 
-const SLAs: SelectOption[] = [
-    { value: "1", label: "SLA01" },
-    { value: "2", label: "SLA02" },
-    { value: "3", label: "SLA03" },
+const CRITICIDADES: SelectOption[] = [
+    { value: "1", label: "Alta" },
+    { value: "2", label: "Media" },
+    { value: "3", label: "Baixa" },
 ];
 
 interface OSFormState {
@@ -48,9 +48,10 @@ interface OSFormState {
     cliente: string | null;
     projeto: string | null;
     responsavel: string | null;
+    departamento: string | null;
     osAnterior: string | null;
     tipo: string | null;
-    sla: string | null;
+    criticidade: string | null;
     descricao: string;
 }
 
@@ -59,15 +60,12 @@ const INITIAL_FORM_STATE: OSFormState = {
     cliente: null,
     projeto: null,
     responsavel: null,
+    departamento: null,
     osAnterior: null,
     tipo: null,
-    sla: null,
+    criticidade: null,
     descricao: "",
 };
-
-interface OSPayload extends OSFormState {
-    departamentos: string[];
-}
 
 function Ordens() {
     const [form, setForm] = useState<OSFormState>(INITIAL_FORM_STATE);
@@ -81,36 +79,12 @@ function Ordens() {
         setForm((prev) => ({ ...prev, [field]: value }));
     }
 
-    function handleConfirmDepartamento() {
-        if (!departamentoAtual) return;
-
-        const jaAdicionado = departamentos.some((dep) => dep.value === departamentoAtual);
-        if (jaAdicionado) {
-            setDepartamentoAtual(null);
-            return;
-        }
-
-        const departamentoSelecionado = DEPARTAMENTOS.find(
-            (dep) => dep.value === departamentoAtual
-        );
-        if (!departamentoSelecionado) return;
-
-        setDepartamentos((prev) => [...prev, departamentoSelecionado]);
-        setDepartamentoAtual(null);
-    }
-
-    function handleRemoveDepartamento(value: string) {
-        setDepartamentos((prev) => prev.filter((dep) => dep.value !== value));
-    }
-
     function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
         event.preventDefault();
 
-        const payload: OSPayload = {
-            ...form,
-            departamentos: departamentos.map((dep) => dep.value),
+        const payload: OSFormState = {
+            ...form
         };
-
         // TODO: integrar com a API de cadastro de ordens de serviço.
         console.log("Ordem de serviço a enviar:", payload);
     }
@@ -154,39 +128,12 @@ function Ordens() {
 
                             <div className="form-field">
                                 <label>Departamento</label>
-                                <div className="department-group">
-                                    <CustomSelect
-                                        options={DEPARTAMENTOS}
-                                        value={departamentoAtual}
-                                        onChange={setDepartamentoAtual}
-                                        placeholder="Selecione o departamento"
-                                    />
-                                    <button
-                                        type="button"
-                                        className="department-confirm"
-                                        onClick={handleConfirmDepartamento}
-                                        aria-label="Adicionar departamento"
-                                    >
-                                        <i className="fa-solid fa-check"></i>
-                                    </button>
-                                </div>
-
-                                {departamentos.length > 0 && (
-                                    <div className="department-tags">
-                                        {departamentos.map((dep) => (
-                                            <span className="department-tag" key={dep.value}>
-                                                {dep.label}
-                                                <button
-                                                    type="button"
-                                                    onClick={() => handleRemoveDepartamento(dep.value)}
-                                                    aria-label={`Remover ${dep.label}`}
-                                                >
-                                                    <i className="fa-solid fa-xmark"></i>
-                                                </button>
-                                            </span>
-                                        ))}
-                                    </div>
-                                )}
+                                <CustomSelect
+                                    options={DEPARTAMENTOS}
+                                    value={form.departamento}
+                                    onChange={(value) => updateField("departamento", value)}
+                                    placeholder="Selecione o departamento"
+                                />
                             </div>
 
                             <div className="form-field">
@@ -230,12 +177,12 @@ function Ordens() {
                             </div>
 
                             <div className="form-field">
-                                <label>SLA</label>
+                                <label>criticidade</label>
                                 <CustomSelect
-                                    options={SLAs}
-                                    value={form.sla}
-                                    onChange={(value) => updateField("sla", value)}
-                                    placeholder="Selecione a SLA"
+                                    options={CRITICIDADES}
+                                    value={form.criticidade}
+                                    onChange={(value) => updateField("criticidade", value)}
+                                    placeholder="Selecione a criticidade"
                                 />
                             </div>
 
