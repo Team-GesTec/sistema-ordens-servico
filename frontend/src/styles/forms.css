@@ -4,10 +4,13 @@
 
 .form-title {
     margin-bottom: 20px;
+
     font-size: 22px;
     font-weight: 600;
+
     color: #fff;
 }
+
 
 /* =========================
    CARD DO FORMULÁRIO
@@ -20,9 +23,11 @@
 
     display: flex;
     flex-direction: column;
+
     gap: 20px;
 
     background: rgba(255, 255, 255, 0.18);
+
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
 
@@ -34,15 +39,24 @@
         inset 0 1px 1px rgba(255, 255, 255, 0.4);
 }
 
+
+/* =========================
+   GRID DO FORMULÁRIO
+========================= */
+
 .form-grid {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+
+    grid-template-columns:
+        repeat(2, minmax(0, 1fr));
+
     gap: 18px 24px;
 }
 
 .form-field {
     display: flex;
     flex-direction: column;
+
     gap: 6px;
 }
 
@@ -55,8 +69,9 @@
     color: #fff;
 }
 
+
 /* =========================
-   INPUTS / TEXTAREA
+   INPUTS
 ========================= */
 
 .form-input {
@@ -67,6 +82,7 @@
 
     border: none;
     border-radius: 8px;
+
     outline: none;
 
     font-size: 12px;
@@ -82,13 +98,41 @@
     resize: vertical;
 }
 
+.form-textarea-lg {
+    min-height: 220px;
+}
+
+
 /* =========================
-   DEPARTAMENTO (select + confirmar)
+   FORMULÁRIO EM COLUNAS
+========================= */
+
+.form-columns {
+    display: flex;
+    align-items: flex-start;
+
+    gap: 32px;
+}
+
+.form-column {
+    flex: 1;
+    min-width: 0;
+
+    display: flex;
+    flex-direction: column;
+
+    gap: 20px;
+}
+
+
+/* =========================
+   DEPARTAMENTO
 ========================= */
 
 .department-group {
     display: flex;
     align-items: center;
+
     gap: 8px;
 }
 
@@ -113,16 +157,21 @@
     color: #fff;
 
     cursor: pointer;
-
 }
 
 .department-confirm:hover {
     background: #0f6fa8;
 }
 
+
+/* =========================
+   TAGS DE DEPARTAMENTO
+========================= */
+
 .department-tags {
     display: flex;
     flex-wrap: wrap;
+
     gap: 8px;
 
     margin-top: 4px;
@@ -131,6 +180,7 @@
 .department-tag {
     display: flex;
     align-items: center;
+
     gap: 8px;
 
     padding: 6px 12px;
@@ -149,17 +199,21 @@
     justify-content: center;
 
     border: none;
+
     background: transparent;
     color: #fff;
 
     font-size: 10px;
+
     cursor: pointer;
+
     opacity: 0.85;
 }
 
 .department-tag button:hover {
     opacity: 1;
 }
+
 
 /* =========================
    AÇÕES DO FORMULÁRIO
@@ -168,12 +222,14 @@
 .form-actions {
     display: flex;
     justify-content: flex-start;
+
     gap: 12px;
 }
 
 .btn-primary,
 .btn-secondary {
     height: 40px;
+
     padding: 0 20px;
 
     border: none;
@@ -184,7 +240,10 @@
     font-family: inherit;
 
     cursor: pointer;
-    transition: filter 0.15s ease, transform 0.15s ease;
+
+    transition:
+        filter 0.15s ease,
+        transform 0.15s ease;
 }
 
 .btn-primary {
@@ -200,8 +259,10 @@
 .btn-primary:hover,
 .btn-secondary:hover {
     filter: brightness(1.05);
+
     transform: translateY(-1px);
 }
+
 
 /* =========================
    RESPONSIVIDADE
@@ -211,6 +272,10 @@
 
     .form-grid {
         grid-template-columns: 1fr;
+    }
+
+    .form-columns {
+        flex-direction: column;
     }
 
     .form-actions {

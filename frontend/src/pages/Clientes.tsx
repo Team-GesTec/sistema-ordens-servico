@@ -1,7 +1,13 @@
 import { useState } from "react";
-import "../styles/home.css";
+import "../styles/variaveis.css";
+import "../styles/global.css";
+import "../styles/layout.css";
+import "../styles/sidebar.css";
+import "../styles/filters.css";
+import "../styles/cards.css";
+import "../styles/details.css";
 import "../styles/darkmode.css";
-import "../styles/ordens.css";
+import "../styles/forms.css"
 import type { SelectOption } from "../components/CustomSelect";
 import CustomSelect from "../components/CustomSelect";
 
