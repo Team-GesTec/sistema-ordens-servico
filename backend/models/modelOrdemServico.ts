@@ -12,6 +12,6 @@ export interface DadosCriacaoOrdemServico {
     departamento_id: number;
     solicitante_id: number;
     projeto_id?: number | null;
-    sla_id: number | null;
+    criticidade_id: number | null;
     anterior_id?: number | null;
 }
