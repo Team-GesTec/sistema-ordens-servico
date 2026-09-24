@@ -96,15 +96,19 @@
 }
 
 .card.prioridade-media {
-    border-left-color: #ffd12a;
+    border-left-color: #ffd438;
 }
 
 .card.prioridade-alta {
-    border-left-color: #f88a23;
+    border-left-color: #ffc165;
 }
 
-.card.prioridade-prioritaria {
-    border-left-color: #fd2323;
+.card.prioridade-muito-alta {
+    border-left-color: #ff761b;
+}
+
+.card.prioridade-urgente {
+    border-left-color: #ff0000;
 }
 
 .card.concluido {

@@ -1,14 +1,14 @@
 import { useEffect, useRef, useState } from "react";
 
 export interface SelectOption {
-  value: string;
+  value: number;
   label: string;
 }
 
 interface CustomSelectProps {
   options: SelectOption[];
-  value: string | null;
-  onChange: (value: string) => void;
+  value: number | null;
+  onChange: (value: number) => void;
   placeholder: string;
 }
 
