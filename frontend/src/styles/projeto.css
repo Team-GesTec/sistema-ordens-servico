@@ -1,0 +1,25 @@
+.form-columns {
+    display: flex;
+    align-items: flex-start;
+    gap: 32px;
+}
+ 
+.form-column {
+    flex: 1;
+    min-width: 0;
+ 
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+ 
+.form-textarea-lg {
+    min-height: 220px;
+}
+ 
+@media (max-width: 650px) {
+ 
+    .form-columns {
+        flex-direction: column;
+    }
+}

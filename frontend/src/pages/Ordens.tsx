@@ -37,11 +37,10 @@ const TIPOS: SelectOption[] = [
     { value: "melhoria", label: "Melhoria" },
 ];
 
-const CRITICIDADES: SelectOption[] = [
-    { value: "baixa", label: "Baixa" },
-    { value: "media", label: "Média" },
-    { value: "alta", label: "Alta" },
-    { value: "prioritaria", label: "Prioritária" },
+const SLAs: SelectOption[] = [
+    { value: "1", label: "SLA01" },
+    { value: "2", label: "SLA02" },
+    { value: "3", label: "SLA03" },
 ];
 
 interface OSFormState {
@@ -51,7 +50,7 @@ interface OSFormState {
     responsavel: string | null;
     osAnterior: string | null;
     tipo: string | null;
-    criticidade: string | null;
+    sla: string | null;
     descricao: string;
 }
 
@@ -62,7 +61,7 @@ const INITIAL_FORM_STATE: OSFormState = {
     responsavel: null,
     osAnterior: null,
     tipo: null,
-    criticidade: null,
+    sla: null,
     descricao: "",
 };
 
@@ -231,12 +230,12 @@ function Ordens() {
                             </div>
 
                             <div className="form-field">
-                                <label>Criticidade</label>
+                                <label>SLA</label>
                                 <CustomSelect
-                                    options={CRITICIDADES}
-                                    value={form.criticidade}
-                                    onChange={(value) => updateField("criticidade", value)}
-                                    placeholder="Defina o nível de prioridade"
+                                    options={SLAs}
+                                    value={form.sla}
+                                    onChange={(value) => updateField("sla", value)}
+                                    placeholder="Selecione a SLA"
                                 />
                             </div>
 
