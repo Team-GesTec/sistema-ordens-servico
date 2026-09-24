@@ -48,7 +48,7 @@ export class ServiceOrdemServico {
         const departamentoId = exigirInteiroPositivo(dados.departamento_id, 'departamento_id');
         const projetoId = inteiroPositivoOpcional(dados.projeto_id, 'projeto_id');
         const anteriorId = inteiroPositivoOpcional(dados.anterior_id, 'anterior_id');
-        const slaId = inteiroPositivoOpcional(dados.sla_id, 'sla_id');
+        const criticidadeId = inteiroPositivoOpcional(dados.criticidade_id, 'criticidade_id');
         if (anteriorId !== null) {
             const anterior = await this.repositorio.buscarPorId(anteriorId);
             if (!anterior) {
@@ -64,7 +64,7 @@ export class ServiceOrdemServico {
             solicitante_id: solicitanteId,
             projeto_id: projetoId,
             anterior_id: anteriorId,
-            sla_id:slaId
+            criticidade_id: criticidadeId
         };
 
         return this.repositorio.criar(novaOS);
