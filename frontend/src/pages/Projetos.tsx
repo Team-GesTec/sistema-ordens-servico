@@ -1,7 +1,6 @@
 import { useState } from "react";
 import CustomSelect from "../components/CustomSelect";
 import type { SelectOption } from "../components/CustomSelect"
-import "../styles/projeto.css"
 
 const DEPARTAMENTOS: SelectOption[] = [
   { value: "dep-x", label: "Departamento X" },
@@ -174,7 +173,7 @@ export default function Projetos() {
 
                 <div className="form-actions">
                   <button type="submit" className="btn-primary">
-                    Salvar cliente
+                    Salvar Projeto
                   </button>
                   <button type="button" className="btn-secondary" onClick={handleCancel}>
                     Cancelar
