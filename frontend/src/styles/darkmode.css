@@ -1,0 +1,147 @@
+/* =========================
+   BASE
+========================= */
+
+.dark-mode {
+    background: var(--azul-escuro);
+    color: var(--branco);
+}
+
+/* =========================
+   SIDEBAR
+========================= */
+
+.dark-mode .sidebar {
+    background: linear-gradient(to bottom,
+            color-mix(in srgb, var(--azul-escuro) 35%, var(--azul-claro)),
+            var(--azul-escuro));
+    border-right: 1px solid color-mix(in srgb, var(--azul-claro) 30%, transparent);
+}
+
+.dark-mode .menu-item {
+    color: #f2f2f2;
+}
+
+.dark-mode .menu-item:hover {
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.dark-mode .menu-item.active {
+    background: color-mix(in srgb, var(--azul-claro) 70%, var(--azul-escuro));
+}
+
+.dark-mode .theme-button {
+    background: color-mix(in srgb, var(--azul-escuro) 60%, var(--azul-claro));
+    color: #f2f2f2;
+}
+
+.dark-mode .theme-button:hover {
+    background: color-mix(in srgb, var(--azul-escuro) 85%, black);
+}
+
+/* =========================
+   MAIN
+========================= */
+
+.dark-mode .main {
+    background: linear-gradient(
+        to bottom,
+        color-mix(in srgb, var(--azul-escuro) 35%, var(--azul-claro)),
+        color-mix(in srgb, var(--azul-escuro) 90%, black)
+    );
+}
+
+.dark-mode .container::before {
+    background-image: var(--logo-gestec-dark);
+}
+/* =========================
+   FILTROS
+========================= */
+
+.dark-mode input, .dark-mode .form-textarea{
+    background: #393739;
+    color: #f2f2f2;
+}
+
+.dark-mode input::placeholder {
+    color: #9eb0bd;
+}
+
+.dark-mode button {
+    background: #393739;
+}
+
+/* =========================
+   SELECT CUSTOMIZADO
+========================= */
+
+.dark-mode .custom-select-button {
+    background: #393739;
+    color: #f2f2f2;
+}
+
+.dark-mode .custom-select-options {
+    background: #102b3d;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35);
+}
+
+.dark-mode .custom-option {
+    color: #f2f2f2;
+}
+
+.dark-mode .custom-option:hover {
+    background: #173c51;
+}
+
+.dark-mode .custom-option.selected {
+    background: #1c4b64;
+}
+
+/* =========================
+   CARDS DE OS
+========================= */
+
+.dark-mode .card {
+    background: color-mix(in srgb, var(--azul-claro) 8%, transparent);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+
+    border-top: 1px solid rgba(255, 255, 255, 0.15);
+    border-right: 1px solid rgba(255, 255, 255, 0.15);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.dark-mode .card.prioridade-baixa {
+    border-left-color: var(--branco);
+}
+
+.dark-mode .card.prioridade-media {
+    border-left-color: var(--amarelo);
+}
+
+.dark-mode .card.prioridade-alta {
+    border-left-color: var(--laranja);
+}
+
+.dark-mode .card.prioridade-prioritaria {
+    border-left-color: var(--vermelho);
+}
+
+.dark-mode .card.concluido {
+    border-left-color: var(--verde);
+}
+
+.dark-mode .card.selected {
+    box-shadow: 0 0 0 2px #42bfff;
+}
+
+/* =========================
+   ASIDE DIREITO (DETALHES)
+========================= */
+
+.dark-mode .details {
+    background: linear-gradient(180deg,
+            color-mix(in srgb, var(--azul-escuro) 60%, var(--azul-claro)) 0%,
+            color-mix(in srgb, var(--azul-escuro) 85%, black) 78%);
+    border-left: 1px solid color-mix(in srgb, var(--azul-claro) 30%, transparent);
+}

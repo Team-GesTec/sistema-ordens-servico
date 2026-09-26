@@ -23,6 +23,6 @@
     "skipLibCheck": true,
   },
   "include": ["**/*.ts"],
-  // Ignora o arquivo de configuração do prisma
-  "exclude": ["prisma.config.ts"]
+  // Ignora o arquivo de configuração do prisma, as dependências e a saída do build.
+  "exclude": ["prisma.config.ts", "node_modules", "dist"]
 }
