@@ -1,48 +1,49 @@
-import { useState } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import logo from "../images/PRETO_BRANCO.png";
 import "../styles/login.css";
+import { ApiError } from "../services/api";
+import { authService } from "../services/auth";
 
 function Login() {
     const navigate = useNavigate();
-
     const [usuario, setUsuario] = useState("");
     const [senha, setSenha] = useState("");
-    const [erro, setErro] = useState(false);
+    const [erro, setErro] = useState<string | null>(null);
+    const [carregando, setCarregando] = useState(false);
 
-    function entrar(event: React.FormEvent<HTMLFormElement>) {
+    useEffect(() => {
+        if (authService.hasSession()) {
+            navigate("/home", { replace: true });
+        }
+    }, [navigate]);
+
+    async function entrar(event: FormEvent<HTMLFormElement>) {
         event.preventDefault();
+        setErro(null);
+        setCarregando(true);
 
-        if (usuario === "admin" && senha === "1234") {
-            setErro(false);
-
-            sessionStorage.setItem("autenticado", "true");
-
-            navigate("/home");
-        } else {
-            setErro(true);
+        try {
+            await authService.login(usuario, senha);
+            navigate("/home", { replace: true });
+        } catch (error) {
+            const mensagem = error instanceof ApiError ? error.message : "Não foi possível realizar o login.";
+            setErro(mensagem);
+        } finally {
+            setCarregando(false);
         }
     }
 
     return (
         <div className="login-page">
             <div className="login-card">
+                <img src={logo} alt="GESTEC" className="logo" />
 
-                <img
-                    src={logo}
-                    alt="GESTEC"
-                    className="logo"
-                />
-
-                <form
-                    onSubmit={entrar}
-                    autoComplete="on"
-                >
-
+                <form onSubmit={entrar} autoComplete="on">
                     {erro && (
-                        <div className="erro-msg">
+                        <div className="erro-msg" role="alert">
                             <i className="fa-solid fa-circle-xmark erro-icone"></i>
-                            Acesso negado. Usuário ou senha incorretos.
+                            {erro}
                         </div>
                     )}
 
@@ -52,9 +53,9 @@ function Login() {
                         type="text"
                         placeholder="Usuário"
                         value={usuario}
-                        onChange={(e) => {
-                            setUsuario(e.target.value);
-                            setErro(false);
+                        onChange={(event) => {
+                            setUsuario(event.target.value);
+                            setErro(null);
                         }}
                         autoComplete="username"
                         autoCapitalize="none"
@@ -69,18 +70,17 @@ function Login() {
                         type="password"
                         placeholder="Senha"
                         value={senha}
-                        onChange={(e) => {
-                            setSenha(e.target.value);
-                            setErro(false);
+                        onChange={(event) => {
+                            setSenha(event.target.value);
+                            setErro(null);
                         }}
                         autoComplete="current-password"
                         required
                     />
 
-                    <button type="submit">
-                        Entrar
+                    <button type="submit" disabled={carregando}>
+                        {carregando ? "Entrando..." : "Entrar"}
                     </button>
-
                 </form>
             </div>
         </div>

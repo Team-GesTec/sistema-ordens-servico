@@ -11,16 +11,16 @@
  * voltar a tê-lo, o time precisa decidir e criar uma migration adicionando a coluna.
  */
 import type { projetos } from '../../prisma/generated/client';
-import { status_projeto } from '../../prisma/generated/enums';
+import { status_enum } from '../../prisma/generated/enums';
 
 /** Status válidos (espelho do enum `status_projeto`). */
-export const STATUS_PROJETO = Object.values(status_projeto);
+export const STATUS_PROJETO = Object.values(status_enum);
 
 /** Um dos status de projeto. */
-export type StatusProjeto = status_projeto;
+export type StatusProjeto = status_enum;
 
 /** Status atribuído quando o cadastro não informa `status` (mesmo default do schema). */
-export const STATUS_PADRAO: StatusProjeto = status_projeto.pendente;
+export const STATUS_PADRAO: StatusProjeto = status_enum.pendente;
 
 /** Projeto como a API devolve e como fica no cache: dados da tabela + ids dos departamentos. */
 export type Projeto = projetos & { departamentos: number[] };

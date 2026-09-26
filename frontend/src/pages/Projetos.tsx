@@ -1,189 +1,205 @@
-import { useState } from "react";
+import { useEffect, useState, type FormEvent } from "react";
+import "../styles/variaveis.css";
+import "../styles/global.css";
+import "../styles/layout.css";
+import "../styles/sidebar.css";
+import "../styles/darkmode.css";
+import "../styles/forms.css";
+import type { SelectOption } from "../components/CustomSelect";
 import CustomSelect from "../components/CustomSelect";
-import type { SelectOption } from "../components/CustomSelect"
+import { ApiError } from "../services/api";
+import { clienteService } from "../services/cliente";
+import { departamentoService } from "../services/departamento";
+import { projetoService } from "../services/projeto";
+import type { Cliente, Departamento, Projeto, StatusProjeto } from "../types/api";
 
-const DEPARTAMENTOS: SelectOption[] = [
-  { value: "dep-x", label: "Departamento X" },
-  { value: "dep-y", label: "Departamento Y" },
-  { value: "dep-z", label: "Departamento Z" },
-];
-
-const CLIENTES: SelectOption[] = [
-  { value: "cliente-1", label: "Cliente A" },
-  { value: "cliente-2", label: "Cliente B" },
+const STATUS: SelectOption[] = [
+    { value: "pendente", label: "Pendente" },
+    { value: "em_andamento", label: "Em andamento" },
+    { value: "aguardando_embarque", label: "Aguardando embarque" },
+    { value: "validacao_testes", label: "Validação de testes" },
+    { value: "bloqueado", label: "Bloqueado" },
+    { value: "review", label: "Review" },
+    { value: "concluido", label: "Concluído" },
 ];
 
 interface ProjetoFormState {
-  nome: string;
-  descricao: string;
-  clienteAssociado: string | null;
+    clienteId: number | null;
+    dataPrazo: string;
+    status: StatusProjeto;
 }
 
 const INITIAL_FORM_STATE: ProjetoFormState = {
-  nome: "",
-  descricao: "",
-  clienteAssociado: null,
+    clienteId: null,
+    dataPrazo: "",
+    status: "pendente",
 };
 
-interface ProjetoPayload extends ProjetoFormState {
-  departamentos: string[];
-}
+function Projetos() {
+    const [form, setForm] = useState<ProjetoFormState>(INITIAL_FORM_STATE);
+    const [departamentoAtual, setDepartamentoAtual] = useState<number | null>(null);
+    const [departamentosSelecionados, setDepartamentosSelecionados] = useState<number[]>([]);
+    const [clientes, setClientes] = useState<Cliente[]>([]);
+    const [departamentos, setDepartamentos] = useState<Departamento[]>([]);
+    const [projetos, setProjetos] = useState<Projeto[]>([]);
+    const [carregando, setCarregando] = useState(true);
+    const [salvando, setSalvando] = useState(false);
+    const [mensagem, setMensagem] = useState<string | null>(null);
+    const [erro, setErro] = useState<string | null>(null);
 
-export default function Projetos() {
-  const [form, setForm] = useState<ProjetoFormState>(INITIAL_FORM_STATE);
+    useEffect(() => {
+        Promise.all([clienteService.listar(), departamentoService.listar(), projetoService.listar()])
+            .then(([clientesApi, departamentosApi, projetosApi]) => {
+                setClientes(clientesApi);
+                setDepartamentos(departamentosApi);
+                setProjetos(projetosApi);
+            })
+            .catch((error: unknown) => setErro(error instanceof ApiError ? error.message : "Não foi possível carregar os dados do projeto."))
+            .finally(() => setCarregando(false));
+    }, []);
 
-  // Departamento pendente no select, antes de ser confirmado.
-  const [departamentoAtual, setDepartamentoAtual] = useState<string | null>(null);
-  // Departamentos já confirmados (as "tags" Departamento X / Departamento Y do print).
-  const [departamentos, setDepartamentos] = useState<SelectOption[]>([]);
+    const clienteOptions: SelectOption[] = clientes.map((cliente) => ({ value: cliente.id, label: `#${cliente.id} — ${cliente.nome}` }));
+    const departamentoOptions: SelectOption[] = departamentos.map((departamento) => ({ value: departamento.id, label: `#${departamento.id} — ${departamento.nome}` }));
 
-  function updateField<K extends keyof ProjetoFormState>(
-    field: K,
-    value: ProjetoFormState[K]
-  ) {
-    setForm((prev) => ({ ...prev, [field]: value }));
-  }
-
-  function handleConfirmDepartamento() {
-    if (!departamentoAtual) return;
-
-    const jaAdicionado = departamentos.some((dep) => dep.value === departamentoAtual);
-    if (jaAdicionado) {
-      setDepartamentoAtual(null);
-      return;
+    function adicionarDepartamento(): void {
+        if (!departamentoAtual || departamentosSelecionados.includes(departamentoAtual)) {
+            setDepartamentoAtual(null);
+            return;
+        }
+        setDepartamentosSelecionados((prev) => [...prev, departamentoAtual]);
+        setDepartamentoAtual(null);
     }
 
-    const departamentoSelecionado = DEPARTAMENTOS.find(
-      (dep) => dep.value === departamentoAtual
-    );
-    if (!departamentoSelecionado) return;
+    async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+        event.preventDefault();
+        if (!form.clienteId || departamentosSelecionados.length === 0) {
+            setErro("Selecione um cliente e pelo menos um departamento.");
+            return;
+        }
 
-    setDepartamentos((prev) => [...prev, departamentoSelecionado]);
-    setDepartamentoAtual(null);
-  }
+        setSalvando(true);
+        setErro(null);
+        setMensagem(null);
 
-  function handleRemoveDepartamento(value: string) {
-    setDepartamentos((prev) => prev.filter((dep) => dep.value !== value));
-  }
+        try {
+            const criado = await projetoService.criar({
+                cliente_id: form.clienteId,
+                data_prazo: form.dataPrazo ? new Date(`${form.dataPrazo}T00:00:00`).toISOString() : null,
+                status: form.status,
+                departamentos: departamentosSelecionados,
+            });
+            setProjetos((prev) => [...prev, criado].sort((a, b) => a.id - b.id));
+            setForm(INITIAL_FORM_STATE);
+            setDepartamentosSelecionados([]);
+            setMensagem(`Projeto #${criado.id} cadastrado com sucesso.`);
+        } catch (error) {
+            setErro(error instanceof ApiError ? error.message : "Não foi possível cadastrar o projeto.");
+        } finally {
+            setSalvando(false);
+        }
+    }
 
-  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+    return (
+        <div className="layout">
+            <main className="main">
+                <div className="container">
+                    <h1 className="form-title">Cadastrar projeto</h1>
+                    {mensagem && <div className="form-feedback success">{mensagem}</div>}
+                    {erro && <div className="form-feedback error">{erro}</div>}
 
-    const payload: ProjetoPayload = {
-      ...form,
-      departamentos: departamentos.map((dep) => dep.value),
-    };
+                    <form className="form-card" onSubmit={handleSubmit}>
+                        <div className="form-grid">
+                            <div className="form-field">
+                                <label>Cliente</label>
+                                <CustomSelect
+                                    options={clienteOptions}
+                                    value={form.clienteId}
+                                    onChange={(value) => setForm((prev) => ({ ...prev, clienteId: Number(value) }))}
+                                    placeholder={carregando ? "Carregando..." : "Selecione o cliente"}
+                                />
+                            </div>
 
-    // TODO: integrar com a API de cadastro de projetos.
-    console.log("Projeto a salvar:", payload);
-  }
+                            <div className="form-field">
+                                <label>Status</label>
+                                <CustomSelect
+                                    options={STATUS}
+                                    value={form.status}
+                                    onChange={(value) => setForm((prev) => ({ ...prev, status: String(value) as StatusProjeto }))}
+                                    placeholder="Selecione o status"
+                                />
+                            </div>
 
-  function handleCancel() {
-    setForm(INITIAL_FORM_STATE);
-    setDepartamentos([]);
-    setDepartamentoAtual(null);
-  }
+                            <div className="form-field">
+                                <label htmlFor="data-prazo">Data de prazo</label>
+                                <input
+                                    id="data-prazo"
+                                    type="date"
+                                    className="form-input"
+                                    value={form.dataPrazo}
+                                    onChange={(event) => setForm((prev) => ({ ...prev, dataPrazo: event.target.value }))}
+                                />
+                            </div>
 
-  return (
-    <div className="layout">
-      <div className="overlay"></div>
+                            <div className="form-field">
+                                <label>Departamento</label>
+                                <div className="department-group">
+                                    <CustomSelect
+                                        options={departamentoOptions}
+                                        value={departamentoAtual}
+                                        onChange={(value) => setDepartamentoAtual(Number(value))}
+                                        placeholder="Selecione um departamento"
+                                    />
+                                    <button type="button" className="department-confirm" onClick={adicionarDepartamento} aria-label="Adicionar departamento">
+                                        <i className="fa-solid fa-plus"></i>
+                                    </button>
+                                </div>
+                                <div className="department-tags">
+                                    {departamentosSelecionados.map((id) => {
+                                        const departamento = departamentos.find((item) => item.id === id);
+                                        return (
+                                            <div className="department-tag" key={id}>
+                                                {departamento ? departamento.nome : `#${id}`}
+                                                <button type="button" onClick={() => setDepartamentosSelecionados((prev) => prev.filter((item) => item !== id))} aria-label={`Remover ${departamento?.nome ?? id}`}>
+                                                    <i className="fa-solid fa-xmark"></i>
+                                                </button>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        </div>
 
-      <main className="main">
-        <div className="container">
-          <h1 className="form-title">Cadastrar Projeto</h1>
+                        <p className="form-hint">
+                            O backend não possui coluna de nome/descrição para projeto. A tela usa somente <code>cliente_id</code>, <code>departamentos</code>, <code>data_prazo</code> e <code>status</code> do contrato real.
+                        </p>
 
-          <form className="form-card" onSubmit={handleSubmit}>
-            <div className="form-columns">
-              <div className="form-column">
-                <div className="form-field">
-                  <label htmlFor="nome-projeto">Nome do Projeto</label>
-                  <input
-                    id="nome-projeto"
-                    type="text"
-                    className="form-input"
-                    placeholder="Defina um nome para o projeto"
-                    value={form.nome}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                      updateField("nome", e.target.value)
-                    }
-                  />
-                </div>
+                        <div className="form-actions">
+                            <button type="submit" className="btn-primary" disabled={salvando || carregando}>
+                                {salvando ? "Salvando..." : "Salvar projeto"}
+                            </button>
+                            <button type="button" className="btn-secondary" onClick={() => { setForm(INITIAL_FORM_STATE); setDepartamentosSelecionados([]); setDepartamentoAtual(null); }} disabled={salvando}>
+                                Cancelar
+                            </button>
+                        </div>
+                    </form>
 
-                <div className="form-field">
-                  <label htmlFor="descricao-projeto">Descrição</label>
-                  <textarea
-                    id="descricao-projeto"
-                    className="form-input form-textarea form-textarea-lg"
-                    placeholder="Descreva o Projeto"
-                    value={form.descricao}
-                    onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
-                      updateField("descricao", e.target.value)
-                    }
-                  />
-                </div>
-              </div>
-
-              <div className="form-column">
-                <div className="form-field">
-                  <label>Departamento(s) envolvido(s)</label>
-                  <div className="department-group">
-                    <CustomSelect
-                      options={DEPARTAMENTOS}
-                      value={departamentoAtual}
-                      onChange={setDepartamentoAtual}
-                      placeholder="Selecione o departamento"
-                    />
-                    <button
-                      type="button"
-                      className="department-confirm"
-                      onClick={handleConfirmDepartamento}
-                      aria-label="Adicionar departamento"
-                    >
-                      <i className="fa-solid fa-check"></i>
-                    </button>
-                  </div>
-
-                  {departamentos.length > 0 && (
-                    <div className="department-tags">
-                      {departamentos.map((dep) => (
-                        <span className="department-tag" key={dep.value}>
-                          {dep.label}
-                          <button
-                            type="button"
-                            onClick={() => handleRemoveDepartamento(dep.value)}
-                            aria-label={`Remover ${dep.label}`}
-                          >
-                            <i className="fa-solid fa-xmark"></i>
-                          </button>
-                        </span>
-                      ))}
+                    <div className="form-card" style={{ marginTop: 20 }}>
+                        <strong style={{ color: "#fff" }}>Projetos carregados da API</strong>
+                        {projetos.length === 0 ? (
+                            <p className="form-hint">Nenhum projeto retornado pelo backend.</p>
+                        ) : (
+                            projetos.map((projeto) => (
+                                <div key={projeto.id} className="form-hint">
+                                    #{projeto.id} — cliente #{projeto.cliente_id} — {projeto.status} — departamentos: {projeto.departamentos.join(", ")}
+                                </div>
+                            ))
+                        )}
                     </div>
-                  )}
                 </div>
-
-                <div className="form-field">
-                  <label>Cliente associado</label>
-                  <CustomSelect
-                    options={CLIENTES}
-                    value={form.clienteAssociado}
-                    onChange={(value) => updateField("clienteAssociado", value)}
-                    placeholder="Selecione o cliente"
-                  />
-                </div>
-
-                <div className="form-actions">
-                  <button type="submit" className="btn-primary">
-                    Salvar Projeto
-                  </button>
-                  <button type="button" className="btn-secondary" onClick={handleCancel}>
-                    Cancelar
-                  </button>
-                </div>
-              </div>
-            </div>
-          </form>
+            </main>
+            <aside className="details" />
         </div>
-      </main>
-    </div>
-  );
+    );
 }
+
+export default Projetos;

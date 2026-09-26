@@ -1,231 +1,190 @@
-import { useState } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import "../styles/variaveis.css";
 import "../styles/global.css";
 import "../styles/layout.css";
 import "../styles/sidebar.css";
-import "../styles/filters.css";
-import "../styles/cards.css";
-import "../styles/details.css";
 import "../styles/darkmode.css";
-import "../styles/forms.css"
+import "../styles/forms.css";
 import type { SelectOption } from "../components/CustomSelect";
 import CustomSelect from "../components/CustomSelect";
-
-const CLIENTES: SelectOption[] = [
-    { value: "cliente-1", label: "Cliente A" },
-    { value: "cliente-2", label: "Cliente B" },
-];
-
-const DEPARTAMENTOS: SelectOption[] = [
-    { value: "dep-x", label: "Departamento X" },
-    { value: "dep-y", label: "Departamento Y" },
-    { value: "dep-z", label: "Departamento Z" },
-];
-
-const PROJETOS: SelectOption[] = [
-    { value: "projeto-1", label: "Projeto Alpha" },
-    { value: "projeto-2", label: "Projeto Beta" },
-];
-
-const RESPONSAVEIS: SelectOption[] = [
-    { value: "user-1", label: "João Silva" },
-    { value: "user-2", label: "Maria Souza" },
-];
-
-const OS_ANTERIORES: SelectOption[] = [
-    { value: "os-101", label: "O.S #101" },
-    { value: "os-102", label: "O.S #102" },
-];
+import { ApiError } from "../services/api";
+import { clienteService } from "../services/cliente";
+import { departamentoService } from "../services/departamento";
+import { projetoService } from "../services/projeto";
+import { ordemServicoService } from "../services/ordemServico";
+import type { Cliente, Departamento, Projeto, TipoOrdemServico } from "../types/api";
 
 const TIPOS: SelectOption[] = [
-    { value: "corretiva", label: "Corretiva" },
-    { value: "preventiva", label: "Preventiva" },
-    { value: "melhoria", label: "Melhoria" },
+    { value: "instalacao", label: "Instalação" },
+    { value: "manutencao", label: "Manutenção" },
 ];
 
+// TODO: confirmar com o schema (enum nivel_criticidade) se os values batem exatamente.
 const CRITICIDADES: SelectOption[] = [
-    { value: "1", label: "Alta" },
-    { value: "2", label: "Media" },
-    { value: "3", label: "Baixa" },
+    { value: "baixo", label: "Baixo" },
+    { value: "medio", label: "Médio" },
+    { value: "alto", label: "Alto" },
+    { value: "muito_alto", label: "Muito alto" },
+    { value: "urgente", label: "Urgente" },
 ];
-
-interface OSFormState {
-    nome: string;
-    cliente: string | null;
-    projeto: string | null;
-    responsavel: string | null;
-    departamento: string | null;
-    osAnterior: string | null;
-    tipo: string | null;
-    criticidade: string | null;
-    descricao: string;
-}
-
-const INITIAL_FORM_STATE: OSFormState = {
-    nome: "",
-    cliente: null,
-    projeto: null,
-    responsavel: null,
-    departamento: null,
-    osAnterior: null,
-    tipo: null,
-    criticidade: null,
-    descricao: "",
-};
 
 function Ordens() {
-    const [form, setForm] = useState<OSFormState>(INITIAL_FORM_STATE);
+    const [cliente, setCliente] = useState<number | null>(null);
+    const [departamento, setDepartamento] = useState<number | null>(null);
+    const [projeto, setProjeto] = useState<number | null>(null);
+    const [tipo, setTipo] = useState<TipoOrdemServico | null>(null);
+    const [criticidade, setCriticidade] = useState<string | null>(null);
+    const [descricao, setDescricao] = useState("");
+    const [clientes, setClientes] = useState<Cliente[]>([]);
+    const [departamentos, setDepartamentos] = useState<Departamento[]>([]);
+    const [projetos, setProjetos] = useState<Projeto[]>([]);
+    const [carregando, setCarregando] = useState(true);
+    const [salvando, setSalvando] = useState(false);
+    const [mensagem, setMensagem] = useState<string | null>(null);
+    const [erro, setErro] = useState<string | null>(null);
 
-    // Departamento pendente no select, antes de ser confirmado.
-    const [departamentoAtual, setDepartamentoAtual] = useState<string | null>(null);
-    // Departamentos já confirmados (as "tags" Departamento X / Departamento Y do print).
-    const [departamentos, setDepartamentos] = useState<SelectOption[]>([]);
+    useEffect(() => {
+        Promise.all([
+            clienteService.listar(),
+            departamentoService.listar(),
+            projetoService.listar(),
+        ])
+            .then(([clientesApi, departamentosApi, projetosApi]) => {
+                setClientes(clientesApi);
+                setDepartamentos(departamentosApi);
+                setProjetos(projetosApi);
+            })
+            .catch((error: unknown) => setErro(error instanceof ApiError ? error.message : "Não foi possível carregar os dados necessários."))
+            .finally(() => setCarregando(false));
+    }, []);
 
-    function updateField<K extends keyof OSFormState>(field: K, value: OSFormState[K]) {
-        setForm((prev) => ({ ...prev, [field]: value }));
-    }
+    const clienteOptions: SelectOption[] = clientes.map((item) => ({ value: item.id, label: `#${item.id} — ${item.nome}` }));
+    const departamentoOptions: SelectOption[] = departamentos.map((item) => ({ value: item.id, label: `#${item.id} — ${item.nome}` }));
+    const projetoOptions: SelectOption[] = projetos.map((item) => ({ value: item.id, label: `#${item.id} — cliente #${item.cliente_id}` }));
 
-    function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    async function handleSubmit(event: FormEvent<HTMLFormElement>) {
         event.preventDefault();
+        if (!cliente || !departamento || !tipo || !descricao.trim()) {
+            setErro("Informe tipo, descrição, cliente e departamento.");
+            return;
+        }
 
-        const payload: OSFormState = {
-            ...form
-        };
-        // TODO: integrar com a API de cadastro de ordens de serviço.
-        console.log("Ordem de serviço a enviar:", payload);
+        setSalvando(true);
+        setErro(null);
+        setMensagem(null);
+
+        try {
+            const criada = await ordemServicoService.criar({
+                tipo,
+                descricao: descricao.trim(),
+                cliente_id: cliente,
+                departamento_id: departamento,
+                projeto_id: projeto,
+                anterior_id: null,
+                criticidade: criticidade,
+            });
+            setDescricao("");
+            setCriticidade(null);
+            setMensagem(`Ordem de serviço #${criada.id} enviada com sucesso.`);
+        } catch (error) {
+            setErro(error instanceof ApiError ? error.message : "Não foi possível criar a ordem de serviço.");
+        } finally {
+            setSalvando(false);
+        }
     }
 
-    function handleCancel() {
-        setForm(INITIAL_FORM_STATE);
-        setDepartamentos([]);
-        setDepartamentoAtual(null);
-    }
     return (
-        <div className={`layout`}>
-
+        <div className="layout">
             <main className="main">
                 <div className="container">
-                    <h1 className="form-title">Cadastrar Ordem de Serviço</h1>
+                    <h1 className="form-title">Cadastrar ordem de serviço</h1>
+                    {mensagem && <div className="form-feedback success">{mensagem}</div>}
+                    {erro && <div className="form-feedback error">{erro}</div>}
+
                     <form className="form-card" onSubmit={handleSubmit}>
                         <div className="form-grid">
                             <div className="form-field">
-                                <label htmlFor="nome">Nome</label>
-                                <input
-                                    id="nome"
-                                    type="text"
-                                    className="form-input"
-                                    placeholder="Nome da O.S"
-                                    value={form.nome}
-                                    onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                                        updateField("nome", e.target.value)
-                                    }
+                                <label>Tipo</label>
+                                <CustomSelect
+                                    options={TIPOS}
+                                    value={tipo}
+                                    onChange={(value) => setTipo(String(value) as TipoOrdemServico)}
+                                    placeholder="Selecione o tipo"
                                 />
                             </div>
 
                             <div className="form-field">
                                 <label>Cliente</label>
                                 <CustomSelect
-                                    options={CLIENTES}
-                                    value={form.cliente}
-                                    onChange={(value) => updateField("cliente", value)}
-                                    placeholder="Selecione o cliente"
+                                    options={clienteOptions}
+                                    value={cliente}
+                                    onChange={(value) => setCliente(Number(value))}
+                                    placeholder={carregando ? "Carregando..." : "Selecione o cliente"}
                                 />
                             </div>
 
                             <div className="form-field">
                                 <label>Departamento</label>
                                 <CustomSelect
-                                    options={DEPARTAMENTOS}
-                                    value={form.departamento}
-                                    onChange={(value) => updateField("departamento", value)}
-                                    placeholder="Selecione o departamento"
+                                    options={departamentoOptions}
+                                    value={departamento}
+                                    onChange={(value) => setDepartamento(Number(value))}
+                                    placeholder={carregando ? "Carregando..." : "Selecione o departamento"}
                                 />
                             </div>
 
                             <div className="form-field">
                                 <label>Projeto</label>
                                 <CustomSelect
-                                    options={PROJETOS}
-                                    value={form.projeto}
-                                    onChange={(value) => updateField("projeto", value)}
-                                    placeholder="Selecione um projeto (opcional)"
+                                    options={projetoOptions}
+                                    value={projeto}
+                                    onChange={(value) => setProjeto(Number(value))}
+                                    placeholder="Nenhum projeto / selecione"
                                 />
                             </div>
 
                             <div className="form-field">
-                                <label>Responsável</label>
-                                <CustomSelect
-                                    options={RESPONSAVEIS}
-                                    value={form.responsavel}
-                                    onChange={(value) => updateField("responsavel", value)}
-                                    placeholder="Selecione a pessoa responsável"
-                                />
-                            </div>
-
-                            <div className="form-field">
-                                <label>O.S anterior</label>
-                                <CustomSelect
-                                    options={OS_ANTERIORES}
-                                    value={form.osAnterior}
-                                    onChange={(value) => updateField("osAnterior", value)}
-                                    placeholder="Selecione alguma O.S com relação"
-                                />
-                            </div>
-
-                            <div className="form-field">
-                                <label>Tipo</label>
-                                <CustomSelect
-                                    options={TIPOS}
-                                    value={form.tipo}
-                                    onChange={(value) => updateField("tipo", value)}
-                                    placeholder="Selecione o tipo"
-                                />
-                            </div>
-
-                            <div className="form-field">
-                                <label>criticidade</label>
+                                <label>Criticidade</label>
                                 <CustomSelect
                                     options={CRITICIDADES}
-                                    value={form.criticidade}
-                                    onChange={(value) => updateField("criticidade", value)}
+                                    value={criticidade}
+                                    onChange={(value) => setCriticidade(String(value))}
                                     placeholder="Selecione a criticidade"
                                 />
                             </div>
 
                             <div className="form-field full-width">
-                                <label htmlFor="descricao">Descreva a solicitação</label>
+                                <label htmlFor="descricao">Descrição</label>
                                 <textarea
                                     id="descricao"
                                     className="form-input form-textarea"
                                     placeholder="Descreva a solicitação"
-                                    value={form.descricao}
-                                    onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
-                                        updateField("descricao", e.target.value)
-                                    }
+                                    value={descricao}
+                                    onChange={(event) => setDescricao(event.target.value)}
+                                    maxLength={1000}
+                                    required
                                 />
                             </div>
                         </div>
+
+                        <p className="form-hint">
+                            O solicitante é definido pelo usuário autenticado no backend. A tela não envia <code>solicitante_id</code> manualmente. Não existe GET de O.S nem rota de relatórios no backend atual, portanto não são inventados selects ou listagens de O.S anteriores.
+                        </p>
+
                         <div className="form-actions">
-                            <button type="submit" className="btn-primary">
-                                Enviar ordem de serviço
+                            <button type="submit" className="btn-primary" disabled={salvando || carregando}>
+                                {salvando ? "Enviando..." : "Enviar ordem de serviço"}
                             </button>
-                            <button type="button" className="btn-secondary" onClick={handleCancel}>
+                            <button type="button" className="btn-secondary" onClick={() => { setCliente(null); setDepartamento(null); setProjeto(null); setTipo(null); setCriticidade(null); setDescricao(""); }} disabled={salvando}>
                                 Cancelar
                             </button>
                         </div>
                     </form>
                 </div>
-
             </main>
-
-
-            <aside className="details">
-
-            </aside>
-
+            <aside className="details" />
         </div>
     );
-
 }
 
 export default Ordens;
