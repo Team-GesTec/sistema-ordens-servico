@@ -114,15 +114,23 @@ function Home() {
                     ) : (
                         <div className="cards">
                             {ordensFiltradas.map((os) => (
-                                <div key={os.id} className="card">
+                                <div
+                                    key={os.id}
+                                    className={`card ${os.criticidade}`}
+                                >
                                     <span className="card-title">
                                         #{os.id} — {TIPO_LABELS[os.tipo]}
                                         <br />
-                                        {os.descricao.length > 80 ? `${os.descricao.slice(0, 80)}...` : os.descricao}
+                                        {os.descricao.length > 80
+                                            ? `${os.descricao.slice(0, 80)}...`
+                                            : os.descricao}
                                     </span>
+
                                     <span className="card-status">
                                         {STATUS_LABELS[os.status]}
-                                        {os.criticidade ? ` · ${CRITICIDADE_LABELS[os.criticidade]}` : ""}
+                                        {os.criticidade
+                                            ? ` · ${CRITICIDADE_LABELS[os.criticidade]}`
+                                            : ""}
                                     </span>
                                 </div>
                             ))}

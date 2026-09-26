@@ -91,23 +91,25 @@
 
 /* Prioridades */
 
-.card.prioridade-baixa {
+/* Criticidade */
+
+.card.baixo {
     border-left-color: #ffffff;
 }
 
-.card.prioridade-media {
+.card.medio {
     border-left-color: #ffd438;
 }
 
-.card.prioridade-alta {
+.card.alto {
     border-left-color: #ffc165;
 }
 
-.card.prioridade-muito-alta {
+.card.muito_alto {
     border-left-color: #ff761b;
 }
 
-.card.prioridade-urgente {
+.card.urgente {
     border-left-color: #ff0000;
 }
 
