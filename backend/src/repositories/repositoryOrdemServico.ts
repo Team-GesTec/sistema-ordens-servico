@@ -8,6 +8,11 @@ import type { OrdemServico, DadosCriacaoOrdemServico } from '../models/modelOrde
 
 // Até o momento, em referenciaInvalida, o banco so informa que uma FK falhou, sem especificar qual
 export class RepositoryOrdemServico {
+    /** Lista todas as O.S., mais recentes primeiro. */
+    async listar(): Promise<OrdemServico[]> {
+        return prisma.ordens_servico.findMany({ orderBy: { data_criacao: 'desc' } });
+    }
+
     async criar(dados: DadosCriacaoOrdemServico): Promise<OrdemServico> {
         try {
             const criada = await prisma.ordens_servico.create({ data: dados });

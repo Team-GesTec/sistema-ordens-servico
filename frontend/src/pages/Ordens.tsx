@@ -166,11 +166,6 @@ function Ordens() {
                                 />
                             </div>
                         </div>
-
-                        <p className="form-hint">
-                            O solicitante é definido pelo usuário autenticado no backend. A tela não envia <code>solicitante_id</code> manualmente. Não existe GET de O.S nem rota de relatórios no backend atual, portanto não são inventados selects ou listagens de O.S anteriores.
-                        </p>
-
                         <div className="form-actions">
                             <button type="submit" className="btn-primary" disabled={salvando || carregando}>
                                 {salvando ? "Enviando..." : "Enviar ordem de serviço"}

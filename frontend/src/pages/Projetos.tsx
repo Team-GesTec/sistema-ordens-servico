@@ -168,11 +168,6 @@ function Projetos() {
                                 </div>
                             </div>
                         </div>
-
-                        <p className="form-hint">
-                            O backend não possui coluna de nome/descrição para projeto. A tela usa somente <code>cliente_id</code>, <code>departamentos</code>, <code>data_prazo</code> e <code>status</code> do contrato real.
-                        </p>
-
                         <div className="form-actions">
                             <button type="submit" className="btn-primary" disabled={salvando || carregando}>
                                 {salvando ? "Salvando..." : "Salvar projeto"}

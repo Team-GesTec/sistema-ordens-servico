@@ -12,6 +12,9 @@ const router = Router();
 /** Gestor e técnico podem criar uma O.S. */
 const gestorOuTecnico = autorizar('gestor', 'tecnico');
 
+// GET ALL — qualquer usuário autenticado (o `autenticar` global já é aplicado no app.ts)
+router.get('/', (req: Request, res: Response) => controllerOrdemServico.listarTodas(req, res));
+
 router.post('/', gestorOuTecnico, (req: Request, res: Response) => controllerOrdemServico.criar(req, res));
 
 export default router;

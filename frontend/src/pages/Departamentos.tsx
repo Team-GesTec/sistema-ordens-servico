@@ -63,7 +63,6 @@ function Departamentos() {
                                 required
                             />
                         </div>
-                        <p className="form-hint">O contrato aceita <code>responsavel_id</code> nulo; a tela mantém o campo sem inventar um responsável.</p>
                         <div className="form-actions">
                             <button type="submit" className="btn-primary" disabled={salvando}>
                                 {salvando ? "Salvando..." : "Salvar departamento"}

@@ -33,6 +33,11 @@ export class ServiceOrdemServico {
         this.repositorio = repositorio;
     }
 
+    /** Lista todas as O.S. cadastradas, sem filtro (por enquanto). */
+    async listar(): Promise<OrdemServico[]> {
+        return this.repositorio.listar();
+    }
+
     /**
      * Valida o corpo e abre uma O.S.
      * @param corpo O `req.body` recebido.
@@ -64,7 +69,7 @@ export class ServiceOrdemServico {
             solicitante_id: solicitanteId,
             projeto_id: projetoId,
             anterior_id: anteriorId,
-            criticidade_id: criticidadeId
+            criticidade: criticidadeId
         };
 
         return this.repositorio.criar(novaOS);

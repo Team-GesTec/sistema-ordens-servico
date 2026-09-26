@@ -140,10 +140,6 @@ function Clientes() {
                             />
                         </div>
 
-                        <p className="form-hint">
-                            A API exige <code>locais_operacionais</code>; nesta tela ele é enviado como lista vazia, sem inventar dados operacionais.
-                        </p>
-
                         <div className="form-actions">
                             <button type="submit" className="btn-primary" disabled={salvando || carregando}>
                                 {salvando ? "Salvando..." : "Salvar cliente"}

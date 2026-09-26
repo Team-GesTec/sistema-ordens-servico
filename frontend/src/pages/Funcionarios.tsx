@@ -126,7 +126,6 @@ function Funcionarios() {
                                     onChange={(event) => updateField("usuario", event.target.value)}
                                     required
                                 />
-                                <span className="form-hint">Obrigatório pela API; aceita letras, números e . _ - @.</span>
                             </div>
 
                             <div className="form-field">
@@ -161,7 +160,6 @@ function Funcionarios() {
                                     minLength={8}
                                     required
                                 />
-                                <span className="form-hint">A API exige senha com no mínimo 8 caracteres.</span>
                             </div>
                         </div>
 
