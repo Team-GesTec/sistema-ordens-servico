@@ -24,6 +24,7 @@ import {
 } from '../../utils/validacao';
 
 const TIPOS_ORDEM_SERVICO = ['instalacao', 'manutencao'] as const;
+const NIVEIS_CRITICIDADE = ['baixo', 'medio', 'alto', 'muito_alto', 'urgente'] as const;
 const TEXTO_MAXIMO_DESCRICAO = 1000;
 
 export class ServiceOrdemServico {
@@ -53,7 +54,10 @@ export class ServiceOrdemServico {
         const departamentoId = exigirInteiroPositivo(dados.departamento_id, 'departamento_id');
         const projetoId = inteiroPositivoOpcional(dados.projeto_id, 'projeto_id');
         const anteriorId = inteiroPositivoOpcional(dados.anterior_id, 'anterior_id');
-        const criticidadeId = inteiroPositivoOpcional(dados.criticidade_id, 'criticidade_id');
+        const criticidade =
+            dados.criticidade === undefined || dados.criticidade === null
+                ? undefined
+                : exigirEnum(dados.criticidade, NIVEIS_CRITICIDADE, 'criticidade');
         if (anteriorId !== null) {
             const anterior = await this.repositorio.buscarPorId(anteriorId);
             if (!anterior) {
@@ -69,7 +73,7 @@ export class ServiceOrdemServico {
             solicitante_id: solicitanteId,
             projeto_id: projetoId,
             anterior_id: anteriorId,
-            criticidade: criticidadeId
+            criticidade,
         };
 
         return this.repositorio.criar(novaOS);
