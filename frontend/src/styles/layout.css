@@ -10,7 +10,7 @@
 }
 
 .layout.details-open {
-    grid-template-columns: minmax(0, 1fr) 20%;
+    grid-template-columns: minmax(0, 1fr) 280px;
 }
 
 .layout.details-open .container {
