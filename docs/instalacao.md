@@ -64,7 +64,7 @@ A porta 5432 é a padrão do Postgres. Se conectar e mostrar `meu_banco=>`, a UR
 Para baixar o projeto, execute os comandos abaixo no terminal.
 
 ```bash
-git clone -b feature/Transversal https://github.com/Team-GesTec/sistema-ordens-servico.git
+git clone -b feature/transversal https://github.com/Team-GesTec/sistema-ordens-servico.git
 cd sistema-ordens-servico/
 ```
 
@@ -149,7 +149,7 @@ npx prisma migrate reset
 
 Esse comando apaga o banco configurado no `.env`, recria do zero e roda **todas** as migrations em ordem. Ele pede confirmação — digite `y`.
 
-> ⚠️ Se aparecer o erro `P3006`/`42710` (`type "nivel_criticidade" already exists`), significa que a migration `20260924_fix` tenta criar um tipo ENUM que a `20260914_init` já criou. Nesse caso, edite o arquivo `prisma/migrations/20260924_fix/migration.sql` e remova/comente a linha `CREATE TYPE nivel_criticidade AS ENUM (...)` antes de rodar o `migrate reset` novamente.
+> ⚠️ Se aparecer o erro `P3006`/`42710` (`type "..." already exists`), normalmente é sinal de que o banco já tem tipos ENUM criados manualmente ou por uma tentativa anterior de migration que não foi revertida corretamente. Nesse caso, confirme que o banco está limpo (rode `npx prisma migrate reset` a partir de um banco vazio) ou remova manualmente os tipos conflitantes antes de rodar o comando novamente. A migration atual do projeto é a `20260924_fix`, que já contém o schema completo.
 
 Execute a seed inicial (caso não rode automaticamente pelo `migrate reset`):
 ```bash

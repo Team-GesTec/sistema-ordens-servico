@@ -60,7 +60,7 @@ O SGOS resolve essa dor ao oferecer um agrupador central de projetos, ordens de 
 - **Frontend:** React.js / TypeScript / Tailwind CSS
 - **Backend:** Node.js / TypeScript / Express.js
 - **Banco de Dados:** PostgreSQL
-- **Documentação de API:** Swagger (OpenAPI 3.0)
+- **Documentação de API:** Swagger (OpenAPI 3.0) — *planejado para a Sprint 3 (US#4.4), ainda não implementado*
 - **Autenticação:** JSON Web Token (JWT) e bcrypt
 
 ---
@@ -81,9 +81,6 @@ sistema-ordens-servico/
 │   │   prisma.config.ts
 │   │   tsconfig.json
 │   │   
-│   ├───controllers
-│   │       .gitkeep
-│   │       
 │   ├───features
 │   │   ├───auth
 │   │   │       login.feature
@@ -95,30 +92,87 @@ sistema-ordens-servico/
 │   │           api.ts
 │   │           world.ts
 │   │           
-│   ├───models
-│   │       .gitkeep
+│   ├───middlewares
+│   │       authMiddleware.ts
+│   │       errorMiddleware.ts
 │   │       
 │   ├───prisma
 │   │   │   client.ts
 │   │   │   schema.prisma
+│   │   │   seed.ts
 │   │   │   
 │   │   └───migrations
-│   │       └───20260914_init
+│   │       └───20260924_fix
 │   │               migration.sql
 │   │               
-│   ├───repositories
-│   │       .gitkeep
+│   ├───src
+│   │   │   app.ts
+│   │   │   server.ts
+│   │   │   
+│   │   ├───cache
+│   │   │       EntityCache.ts
+│   │   │       clienteCache.ts
+│   │   │       departamentoCache.ts
+│   │   │       funcionarioCache.ts
+│   │   │       projetoCache.ts
+│   │   │       
+│   │   ├───config
+│   │   │       env.ts
+│   │   │       
+│   │   ├───controllers
+│   │   │       controllerAuth.ts
+│   │   │       controllerCliente.ts
+│   │   │       controllerDepartamento.ts
+│   │   │       controllerFuncionario.ts
+│   │   │       controllerOrdemServico.ts
+│   │   │       controllerProjeto.ts
+│   │   │       
+│   │   ├───errors
+│   │   │       AppError.ts
+│   │   │       tratarErroPrisma.ts
+│   │   │       
+│   │   ├───models
+│   │   │       modelAuth.ts
+│   │   │       modelCliente.ts
+│   │   │       modelDepartamento.ts
+│   │   │       modelFuncionario.ts
+│   │   │       modelOrdemServico.ts
+│   │   │       modelProjeto.ts
+│   │   │       
+│   │   ├───repositories
+│   │   │       repositoryCliente.ts
+│   │   │       repositoryDepartamento.ts
+│   │   │       repositoryFuncionario.ts
+│   │   │       repositoryOrdemServico.ts
+│   │   │       repositoryProjeto.ts
+│   │   │       
+│   │   ├───routes
+│   │   │       routeAuth.ts
+│   │   │       routeCliente.ts
+│   │   │       routeDepartamento.ts
+│   │   │       routeFuncionario.ts
+│   │   │       routeOrdemServico.ts
+│   │   │       routeProjeto.ts
+│   │   │       
+│   │   └───services
+│   │           serviceAuth.ts
+│   │           serviceCliente.ts
+│   │           serviceDepartamento.ts
+│   │           serviceFuncionario.ts
+│   │           serviceOrdemServico.ts
+│   │           serviceProjeto.ts
+│   │           
+│   ├───types
+│   │       express.d.ts
 │   │       
-│   ├───routes
-│   │       .gitkeep
-│   │       
-│   └───src
-│           app.ts
-│           server.ts
+│   └───utils
+│           senha.ts
+│           validacao.ts
 │           
 ├───docs
 │       checklist-dor-dod.md
-│       manual-instalacao.md
+│       instalacao.md
+│       Padroes-e-Utilizacao-ReactxTS.md
 │       
 └───frontend
     │   eslint.config.js
@@ -147,19 +201,55 @@ sistema-ordens-servico/
         │       vite.svg
         │       
         ├───components
-        │       .gitkeep
+        │       CustomSelect.tsx
+        │       PrivateRoutes.tsx
+        │       Sidebar.tsx
         │       
         ├───images
-        │       .gitkeep
+        │       AZUL.CLARO_BRANCO.png
+        │       AZUL.CLARO_BRANCO_SemNome.png
+        │       PRETO_BRANCO.png
+        │       SemNome_Branca.AzulClaro.png
+        │       SemNome_Preta.AzulClaro.png
+        │       logo_darkmode.png
+        │       logo_gestec.png
+        │       
+        ├───layouts
+        │       MainLayout.tsx
         │       
         ├───pages
-        │       .gitkeep
+        │       Clientes.tsx
+        │       Departamentos.tsx
+        │       Funcionarios.tsx
+        │       Home.tsx
+        │       Login.tsx
+        │       Ordens.tsx
+        │       Projetos.tsx
+        │       Relatorios.tsx
         │       
         ├───services
-        │       .gitkeep
+        │       api.ts
+        │       auth.ts
+        │       cliente.ts
+        │       departamento.ts
+        │       funcionario.ts
+        │       ordemServico.ts
+        │       projeto.ts
         │       
-        └───styles
-                .gitkeep
+        ├───styles
+        │       cards.css
+        │       darkmode.css
+        │       details.css
+        │       filters.css
+        │       forms.css
+        │       global.css
+        │       layout.css
+        │       login.css
+        │       sidebar.css
+        │       variaveis.css
+        │       
+        └───types
+                api.ts
                 
 ```
 
@@ -167,7 +257,7 @@ sistema-ordens-servico/
 
 ## Como Executar, Usar e Testar o Projeto
 
-> Este é um resumo rápido. Para o passo a passo completo, consulte o [Manual de Instalação](./docs/manual-instalacao.md).
+> Este é um resumo rápido. Para o passo a passo completo, consulte o [Manual de Instalação](./docs/instalacao.md).
 
 ### 1. Clonar o Repositório
 
@@ -196,13 +286,14 @@ Preencha as variáveis de ambiente no `.env` com as informações do banco Postg
 >
 > As variáves necessárias estão disponíveis no arquivo `.env.example`.
 
-Com o banco configurado, execute as migrations do Prisma:
+Com o banco configurado, gere o client do Prisma e execute as migrations:
 
 ```bash
-npm run migrate
+npx prisma generate
+npx prisma migrate reset
 ```
 
-> Sempre que o `schema.prisma` mudar, rode essa migration novamente antes de continuar o desenvolvimento — nenhuma alteração de tabela deve ser feita diretamente no banco.
+> Sempre que o `schema.prisma` mudar, rode as migrations novamente antes de continuar o desenvolvimento — nenhuma alteração de tabela deve ser feita diretamente no banco. Veja o [Manual de Instalação](./docs/instalacao.md) para detalhes e solução de problemas comuns.
 
 Por fim, inicie o servidor em modo de desenvolvimento:
 
@@ -215,15 +306,28 @@ npm run dev
 ```bash
 cd ../frontend
 npm install
+```
+
+Crie o arquivo `.env` com a URL do backend:
+
+```bash
+echo "VITE_API_URL=http://localhost:3000" > .env
+```
+
+> Sem essa variável, o frontend não consegue localizar a API e o login falha silenciosamente.
+
+```bash
 npm run dev
 ```
 
 ### 4. Execução dos Testes Automatizados
 
 ```bash
-# No diretório backend ou frontend
+# No diretório backend
 npm run test
 ```
+
+> No momento, apenas o **backend** possui suíte de testes automatizados (Cucumber/BDD). O `frontend` ainda não tem script de teste configurado no `package.json`.
 
 ---
 
@@ -239,7 +343,8 @@ O fluxo de trabalho no GitHub, a estratégia de branches e o padrão de commits 
 - DoR e DoD por Sprint — *Em progresso*
 - [Estratégia de Branch e Padrão de Commits](./CONTRIBUTING.md)
 - Manual do Usuário — *Em progresso*
-- [Manual de Instalação](./docs/manual-instalacao.md)
+- [Manual de Instalação](./docs/instalacao.md)
+- [Padrões e Utilização React x TypeScript](./docs/Padroes-e-Utilizacao-ReactxTS.md)
 
 ---
 

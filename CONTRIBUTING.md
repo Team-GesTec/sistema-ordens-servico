@@ -16,23 +16,26 @@ Este documento define o fluxo de trabalho no GitHub, a estratégia de branches e
 
 O fluxo abaixo deve ser **usado no dia a dia**, não apenas documentado:
 
-- `main` é a branch estável — nunca fazer commit direto nela.
+- `main` é a branch estável — nunca fazer commit direto nela. Só recebe merge da `feature/Transversal`, depois de testada e validada.
 - Toda mudança entra por **Pull Request**.
 - Revisão obrigatória por **outro membro** do time.
 - Ninguém aprova o próprio PR.
-- Depois do merge, a branch é deletada.
+- O merge acontece em etapas: branch de US → branch de integração da camada (`feature/<camada>/Transversal`) → branch de integração geral (`feature/Transversal`) → `main`. Veja o detalhamento em [Estratégia de branches](#estratégia-de-branches).
+- Depois do merge, a branch de US/correção é deletada. As branches de integração (`feature/backend/Transversal`, `feature/frontend/Transversal`, `feature/Transversal`) continuam ativas até o fim da etapa de integração correspondente.
 
 ---
 
 ## Estratégia de branches
 
-Toda branch nova nasce de uma `main` atualizada.
+Toda branch de US ou correção nasce de uma `main` atualizada. O merge, porém, **não vai direto para a `main`** — passa por duas etapas de integração antes disso.
 
 | Tipo de branch | Convenção de nome | Uso |
 | --- | --- | --- |
-| Estável | `main` | Único branch de produção/entrega. Nunca recebe commit direto. |
-| Funcionalidade | `feature/<camada>/US<id>-descricao-curta` | Novas funcionalidades, associadas a uma User Story do backlog. |
-| Correção | `fix/<camada>/US<id>-descricao-curta` | Correções de bugs em uma User Story já entregue. |
+| Estável | `main` | Branch de produção/entrega. Só recebe merge da `feature/Transversal`, já testada e validada. Nunca recebe commit direto. |
+| Integração geral | `feature/Transversal` | Agrega o trabalho já concluído de `feature/backend/Transversal` e `feature/frontend/Transversal`. É nela que o sistema completo (back + front) é testado e validado, antes de ir para a `main`. |
+| Integração por camada | `feature/<camada>/Transversal` | Agrega as branches de US já concluídas de uma camada (ex.: `feature/backend/Transversal` recebe todas as US finalizadas do backend). Quando todas as US daquela camada estão prontas, essa branch é enviada para `feature/Transversal`. |
+| Funcionalidade | `feature/<camada>/US<id>-descricao-curta` | Branch individual de uma User Story, criada a partir da `main` atualizada. Ao concluir o trabalho, é mesclada em `feature/<camada>/Transversal` — não direto na `main`. |
+| Correção | `fix/<camada>/US<id>-descricao-curta` | Correções de bugs em uma User Story já entregue. Segue o mesmo caminho de merge da branch de funcionalidade. |
 
 `<camada>` indica em qual parte do monorepo a mudança acontece: `frontend`, `backend` ou `docs`. Quando a mudança mexe nas duas camadas ao mesmo tempo, usa-se `fullstack`.
 
@@ -69,14 +72,35 @@ Exemplo:
 feature/docs/transversal-guia-contribuicao
 ```
 
-**Fluxo de uma branch:**
+> ⚠️ **Não confundir** essa branch de mudança avulsa (`feature/<camada>/transversal-descricao-curta`, minúsculo e com descrição) com as branches de **integração** (`feature/backend/Transversal`, `feature/frontend/Transversal`, `feature/Transversal`, com "Transversal" maiúsculo e sem descrição). Ambas seguem o mesmo destino de merge: a branch de mudança avulsa também é mesclada na `feature/<camada>/Transversal` correspondente.
 
-1. Criar a branch a partir da `main` atualizada.
+**Fluxo de integração (das US até a `main`):**
+
+```text
+feature/backend/US2.1-...       ─┐
+feature/backend/US1.1-...        ├─▶ feature/backend/Transversal  ─┐
+feature/backend/US4.2-...       ─┘                                 │
+                                                                     ├─▶ feature/Transversal ─▶ main
+feature/frontend/US2.1-...      ─┐                                 │
+feature/frontend/US1.2-...       ├─▶ feature/frontend/Transversal ─┘
+feature/frontend/US4.1-...      ─┘
+```
+
+**Fluxo de uma branch de US ou correção:**
+
+1. Criar a branch a partir da `main` atualizada — uma para o backend (`feature/backend/US<id>-...`) e, quando a US envolve as duas camadas, outra para o frontend (`feature/frontend/US<id>-...`).
 2. Implementar a mudança (`feature/<camada>/...` ou `fix/<camada>/...`).
 3. Abrir um Pull Request com descrição do que foi implementado e como testar.
 4. Obter pelo menos uma revisão de outro integrante.
-5. Fazer o merge na `main`.
-6. Deletar a branch após o merge.
+5. Fazer o merge na branch de integração da camada correspondente (`feature/backend/Transversal` ou `feature/frontend/Transversal`) — **nunca direto na `main`**.
+6. Deletar a branch de US/correção após o merge.
+
+**Fluxo de integração (etapas seguintes, fora do ciclo de uma US individual):**
+
+7. Quando todas as US de uma camada estiverem concluídas e mescladas em sua `feature/<camada>/Transversal`, essa branch fica pronta para a integração geral.
+8. Assim que backend e frontend estiverem prontos, `feature/backend/Transversal` e `feature/frontend/Transversal` são mescladas em `feature/Transversal`.
+9. Em `feature/Transversal`, o sistema completo (back + front) é testado e validado.
+10. Só depois da validação, `feature/Transversal` é mesclada na `main` por Pull Request revisado.
 
 ---
 
@@ -109,7 +133,6 @@ docs (US#4.4): atualiza guia de padrão de commits
 refactor (Transversal): reorganiza camada de repositories
 ```
 
-> ⚠️ **Isso vale nota.** Os commits devem seguir esse padrão em **100% do histórico** — está diretamente ligado ao critério **G.3** da avaliação do projeto.
 
 ---
 
@@ -125,7 +148,7 @@ Regras:
 
 - Revisão obrigatória por outro membro do time.
 - Ninguém aprova o próprio PR.
-- Só é mesclado na `main` depois de aprovado.
+- Só é mesclado depois de aprovado, na branch de destino correta da etapa: `feature/<camada>/Transversal` (branch de US/correção), `feature/Transversal` (branches de camada já concluídas) ou `main` (somente a partir de `feature/Transversal`, já testada e validada).
 
 ---
 
@@ -137,6 +160,7 @@ Antes de abrir um PR, confirme:
 - [ ] Todos os commits seguem o padrão `<tipo> (US#<id> ou Transversal): <descrição>`.
 - [ ] O código está na pasta correta (`frontend/`, `backend/` ou `docs/`, conforme a estrutura de monorepo).
 - [ ] A descrição do PR explica o que foi feito e como testar.
+- [ ] O PR aponta para a branch de destino correta da etapa (`feature/<camada>/Transversal`, não direto na `main`).
 - [ ] Nenhum commit foi feito diretamente na `main`.
 
 ---
