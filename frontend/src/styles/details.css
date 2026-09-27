@@ -2,8 +2,7 @@
     min-height: 100vh;
     min-width: 0;
 
-    overflow-x: hidden;
-    overflow-y: auto;
+    overflow: hidden;
 
     background:
         linear-gradient(
@@ -15,7 +14,7 @@
 
     border-left: 1px solid #9ccfe5;
 
-    padding: 22px 16px;
+    padding: 2%;
 
     opacity: 0;
 
@@ -26,32 +25,6 @@
     opacity: 1;
 }
 
-.details::-webkit-scrollbar {
-    width: 5px;
-}
-
-.details::-webkit-scrollbar-track {
-    background: transparent;
-}
-
-.details::-webkit-scrollbar-thumb {
-    background: rgba(0, 0, 0, 0.22);
-    border-radius: 10px;
-}
-
-.details-content {
-    width: 100%;
-
-    display: flex;
-    flex-direction: column;
-
-    gap: 18px;
-}
-
-
-/* =========================
-   CABEÇALHO
-========================= */
 
 .details-header {
     display: flex;
@@ -138,7 +111,6 @@
 
 /* =========================
    BADGES (STATUS / CRITICIDADE)
-========================= */
 
 .details-badges {
     display: flex;
@@ -191,7 +163,6 @@
 
 /* =========================
    SEÇÕES DE INFORMAÇÃO
-========================= */
 
 .details-info {
     display: flex;
@@ -218,140 +189,104 @@
     letter-spacing: 0.6px;
 
     opacity: 0.75;
+.details-content {
+    width: 100%;
+}
+
+.details-header {
+    height: 40px;
+
+    display: flex;
+
+    justify-content: space-around;
+    align-items: center;
+
+    padding: 2%;
+
+    border-bottom: 1px solid #9bbfd0;
+
+    font-size: 12px;
+}
+
+.details-info {
+    padding: 1%;
+
+    font-size: 12px;
+}
+
+.details-close {
+    width: 20%;
+
+    margin-left: 2%;
+
+    align-self: flex-end;
+
+    border: none;
+
+    border-radius: 10px;
+}
+
+.info-row {
+    margin-bottom: 1%;
 }
 
 .info-grid {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
 
-    gap: 8px;
+    grid-template-columns:
+        repeat(3, 1fr);
+
+    gap: 7px;
+
+    margin-bottom: 15px;
 }
 
-
-.info-item {
+.info-grid div,
+.info-field {
     display: flex;
-    align-items: center;
+    flex-direction: column;
 
-    gap: 8px;
-
-    min-width: 0;
-
-    padding: 8px;
-
-    border-radius: 10px;
-
-    background: rgba(255, 255, 255, 0.45);
-    border: 1px solid rgba(255, 255, 255, 0.55);
-
-    transition: background 0.2s ease;
+    gap: 5px;
 }
 
-.info-item:hover {
-    background: rgba(255, 255, 255, 0.6);
+.info-grid span,
+.info-field span {
+    font-size: 12px;
 }
 
-.info-item-full {
-    width: 100%;
+.info-grid strong,
+.info-field strong {
+    font-weight: normal;
+
+    font-size: 12px;
 }
 
-.info-icon {
-    flex-shrink: 0;
-
-    width: 26px;
-    height: 26px;
-
-    display: flex;
-    align-items: center;
-    justify-content: center;
-
-    border-radius: 8px;
-
-    background: rgba(21, 137, 202, 0.18);
-
-    color: #0b6ea8;
-
-    font-size: 11px;
-}
-
-.info-text {
-    min-width: 0;
-    overflow: hidden;
-}
-
-.info-text strong {
-    display: block;
-    min-width: 0;
-    overflow: hidden;
-    white-space: nowrap;
-    text-overflow: ellipsis;
-}
-
-.info-text span {
-    color: #365c6e;
-
-    font-size: 10px;
-    font-weight: 600;
-
-    text-transform: uppercase;
-    letter-spacing: 0.3px;
-}
-
-
-
-.info-description {
-    margin: 0;
-
-    padding: 10px 12px;
-
-    border-radius: 10px;
-    border-left: 3px solid #1589CA;
-
-    background: rgba(255, 255, 255, 0.45);
-
-    color: #0c3f57;
-
-    font-size: 12.5px;
-    line-height: 1.55;
-
-    white-space: pre-wrap;
-    overflow-wrap: break-word;
+.info-field {
+    margin-bottom: 13px;
 }
 
 
 /* Tablet */
 
-@media (max-width: 1300px) {
+@media (max-width: 1100px) {
 
     .layout.details-open {
         grid-template-columns:
-            minmax(0, 1fr) 210px;
+            minmax(0, 1fr) 140px;
     }
 }
 
-@media (max-width: 1000px) {
+@media (max-width: 850px) {
 
     .layout.details-open {
         grid-template-columns:
-            minmax(0, 1fr) 180px;
-    }
-
-    .info-grid {
-        grid-template-columns: 1fr;
-    }
-
-    .details-header-info h2 {
-        font-size: 16px;
+            minmax(0, 1fr) 125px;
     }
 }
 
-@media (max-width: 800px) {
+@media (max-width: 650px) {
 
     .details {
         display: none;
-    }
-
-    .layout.details-open {
-        grid-template-columns:
-            minmax(0, 1fr);
     }
 }
