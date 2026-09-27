@@ -13,9 +13,7 @@ Checklist que uma User Story precisa cumprir **antes de entrar em uma Sprint**.
 ### Sobre a User Story
 
 - [ ] Título claro
-- [ ] Critérios de aceitação escritos
 - [ ] Padronização de código combinada
-- [ ] Comentários/docstrings esperados
 - [ ] Regras de negócio claras
 - [ ] Estimativa feita pelo time via Planning Poker
 - [ ] Nenhuma dependência bloqueadora
@@ -37,7 +35,6 @@ O trabalho só é considerado concluído quando atende a este acordo — **entre
 - [ ] Código versionado no Git, na branch correta
 - [ ] Pull Request aberto, com descrição do que foi implementado
 - [ ] Code review feito por outro membro — nunca autoaprovado
-- [ ] Sem código comentado abandonado
 - [ ] Testes nas rotas principais
 - [ ] Documentação atualizada, com README da funcionalidade quando aplicável
 - [ ] Swagger atualizado quando aplicável
@@ -52,4 +49,4 @@ O trabalho só é considerado concluído quando atende a este acordo — **entre
 
 - Antes de puxar uma US para a Sprint, o time (não só quem vai implementar) confere a checklist de **DoR** em conjunto.
 - Antes de marcar uma US como concluída no board, quem implementou confere a checklist de **DoD** e o revisor confirma no Pull Request.
-- Para acompanhar isso Sprint a Sprint, veja [DoR e DoD por Sprint](./dor-dod-por-sprint.md).
+- Para acompanhar isso Sprint a Sprint, veja o documento DoR e DoD por Sprint *(ainda não publicado — em progresso)*.
