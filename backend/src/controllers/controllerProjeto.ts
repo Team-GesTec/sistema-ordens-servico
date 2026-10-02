@@ -7,7 +7,7 @@
  */
 import type { Request, Response } from 'express';
 import { serviceProjeto } from '../services/serviceProjeto';
-import { lerId } from '../../utils/validacao';
+import { lerId } from '../utils/validacao';
 
 export class ControllerProjeto {
     /** GET /projeto — lista todos os projetos. */

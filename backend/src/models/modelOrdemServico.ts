@@ -1,6 +1,6 @@
 /** SLA Opcional por enquanto: o SLA só entra na Sprint 2 (US#3.1). */
 
-import type { ordens_servico } from '../../prisma/generated/client';
+import type { ordens_servico } from '../prisma/generated/client';
 
 export type OrdemServico = ordens_servico;
 

@@ -11,7 +11,7 @@
  */
 import { criarApp } from './app';
 import { env } from './config/env';
-import { prisma } from '../prisma/client';
+import { prisma } from './prisma/client';
 
 /** Tempo máximo (ms) para o desligamento gracioso antes de forçar a saída. */
 const TEMPO_LIMITE_DESLIGAMENTO = 10_000;

@@ -5,7 +5,7 @@
 
 import { Router, type Request, type Response } from 'express';
 import { controllerOrdemServico } from '../controllers/controllerOrdemServico';
-import { autorizar } from '../../middlewares/authMiddleware';
+import { autorizar } from '../middlewares/authMiddleware';
 
 const router = Router();
 

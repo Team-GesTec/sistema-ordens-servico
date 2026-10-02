@@ -12,7 +12,7 @@
  */
 import { Router, type Request, type Response } from 'express';
 import { controller } from '../controllers/controllerFuncionario';
-import { autorizar } from '../../middlewares/authMiddleware';
+import { autorizar } from '../middlewares/authMiddleware';
 
 const router = Router();
 

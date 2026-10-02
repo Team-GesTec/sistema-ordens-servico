@@ -7,7 +7,7 @@
  */
 import { Router, type Request, type Response } from 'express';
 import { controller } from '../controllers/controllerAuth';
-import { autenticar } from '../../middlewares/authMiddleware';
+import { autenticar } from '../middlewares/authMiddleware';
 
 const router = Router();
 

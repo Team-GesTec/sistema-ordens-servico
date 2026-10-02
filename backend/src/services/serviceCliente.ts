@@ -26,7 +26,7 @@ import {
     exigirEnum,
     textoOpcional,
     type CorpoRequisicao,
-} from '../../utils/validacao';
+} from '../utils/validacao';
 
 /** Tamanho máximo aceito para os textos de cliente. */
 const TEXTO_MAXIMO = 255;

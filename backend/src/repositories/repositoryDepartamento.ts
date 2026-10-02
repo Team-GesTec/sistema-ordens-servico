@@ -4,7 +4,7 @@
  * Acesso a dados de Departamento: ÚNICO lugar que fala com `prisma.departamentos`.
  * Leituras passam pelo cache; escritas vão ao banco e, confirmadas, atualizam o cache.
  */
-import { prisma } from '../../prisma/client';
+import { prisma } from '../prisma/client';
 import { departamentoCache } from '../cache/departamentoCache';
 import { traduzirErroPrisma } from '../errors/tratarErroPrisma';
 import type {
