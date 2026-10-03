@@ -360,5 +360,5 @@ O fluxo de trabalho no GitHub, a estratégia de branches e o padrão de commits 
 | Marina Duque de Holanda Cavalcanti | Desenvolvedora | <img src="https://github.com/ninaduquehc.png" width="50"> | [GitHub](https://github.com/ninaduquehc) | [LinkedIn](https://www.linkedin.com/in/marina-cavalcanti-53b3503b8/) |
 | Pamela Emily Iwabuchi Maciel | Desenvolvedora | <img src="https://github.com/pamelaiwabuchi.png" width="50"> | [GitHub](https://github.com/pamelaiwabuchi) | [LinkedIn](https://www.linkedin.com/in/pamela-iwabuchi/) |
 | Pedro Pereira Rodrigues| Desenvolvedor | <img src="https://github.com/pedroprdgs.png" width="50"> | [GitHub](https://github.com/pedroprdgs) | [LinkedIn](https://linkedin.com/in/pedroprdgs) |
-| Rafael Silva Mioni Coltro | Desenvolvedor | <img src="https://github.com/RafaelMioniC.png" width="50"> | [GitHub](https://github.com/RafaelMioniC) | [LinkedIn](#) |
-| Vitor Assis Hasman Diniz | Desenvolvedor | <img src="https://github.com/VitorAssisHasmanDiniz.png" width="50"> | [GitHub](https://github.com/VitorAssisHasmanDiniz) | [LinkedIn](#) |
+| Rafael Silva Mioni Coltro | Desenvolvedor | <img src="https://github.com/RafaelMioniC.png" width="50"> | [GitHub](https://github.com/RafaelMioniC) | [LinkedIn](https://www.linkedin.com/in/rafael-mioni-6173a043a/) |
+| Vitor Assis Hasman Diniz | Desenvolvedor | <img src="https://github.com/VitorAssisHasmanDiniz.png" width="50"> | [GitHub](https://github.com/VitorAssisHasmanDiniz) | [LinkedIn](https://www.linkedin.com/in/vitor-diniz-8ba199358/) |
