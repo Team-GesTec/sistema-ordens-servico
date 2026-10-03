@@ -9,7 +9,7 @@
  * camada de repository prevista na arquitetura do projeto.
  * ALTERAÇÃ0 (21/09/2026): adiciona locais_operacionais em dados recebidos no método criar().
  */
-import { prisma } from '../../prisma/client';
+import { prisma } from '../prisma/client';
 import { clienteCache } from '../cache/clienteCache';
 import { traduzirErroPrisma } from '../errors/tratarErroPrisma';
 import type { Cliente, DadosAtualizacaoCliente, DadosCriacaoCliente } from '../models/modelCliente';

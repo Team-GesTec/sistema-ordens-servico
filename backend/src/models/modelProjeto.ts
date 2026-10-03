@@ -10,8 +10,8 @@
  * O campo `nomeProjeto` foi REMOVIDO porque a tabela `projetos` não tem coluna de nome — para
  * voltar a tê-lo, o time precisa decidir e criar uma migration adicionando a coluna.
  */
-import type { projetos } from '../../prisma/generated/client';
-import { status_enum } from '../../prisma/generated/enums';
+import type { projetos } from '../prisma/generated/client';
+import { status_enum } from '../prisma/generated/enums';
 
 /** Status válidos (espelho do enum `status_projeto`). */
 export const STATUS_PROJETO = Object.values(status_enum);

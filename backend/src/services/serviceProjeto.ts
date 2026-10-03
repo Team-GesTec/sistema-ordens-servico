@@ -30,7 +30,7 @@ import {
     exigirListaDeIds,
     lerCorpo,
     type CorpoRequisicao,
-} from '../../utils/validacao';
+} from '../utils/validacao';
 
 export class ServiceProjeto {
     private readonly projetos: RepositoryProjeto;

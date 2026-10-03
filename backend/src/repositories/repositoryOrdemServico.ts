@@ -2,7 +2,7 @@
  * Único lugar que fala com prisma.ordens_servico. Sem cache por enquanto.
  */
 
-import { prisma } from '../../prisma/client';
+import { prisma } from '../prisma/client';
 import { traduzirErroPrisma } from '../errors/tratarErroPrisma';
 import type { OrdemServico, DadosCriacaoOrdemServico } from '../models/modelOrdemServico';
 

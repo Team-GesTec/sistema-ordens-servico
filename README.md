@@ -286,11 +286,12 @@ Preencha as variáveis de ambiente no `.env` com as informações do banco Postg
 >
 > As variáves necessárias estão disponíveis no arquivo `.env.example`.
 
-Com o banco configurado, gere o client do Prisma e execute as migrations:
+Com o banco configurado, gere o client do Prisma, execute as migrations e adicione as credenciais necessárias:
 
 ```bash
 npx prisma generate
 npx prisma migrate reset
+npm run db:seed
 ```
 
 > Sempre que o `schema.prisma` mudar, rode as migrations novamente antes de continuar o desenvolvimento — nenhuma alteração de tabela deve ser feita diretamente no banco. Veja o [Manual de Instalação](./docs/instalacao.md) para detalhes e solução de problemas comuns.
