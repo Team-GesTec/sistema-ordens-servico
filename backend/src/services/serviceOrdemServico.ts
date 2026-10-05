@@ -21,7 +21,7 @@ import {
     exigirTexto,
     inteiroPositivoOpcional,
     lerCorpo,
-} from '../../utils/validacao';
+} from '../utils/validacao';
 
 const TIPOS_ORDEM_SERVICO = ['instalacao', 'manutencao'] as const;
 const NIVEIS_CRITICIDADE = ['baixo', 'medio', 'alto', 'muito_alto', 'urgente'] as const;
@@ -56,7 +56,7 @@ export class ServiceOrdemServico {
         const anteriorId = inteiroPositivoOpcional(dados.anterior_id, 'anterior_id');
         const criticidade =
             dados.criticidade === undefined || dados.criticidade === null
-                ? undefined
+                ? NIVEIS_CRITICIDADE[1]
                 : exigirEnum(dados.criticidade, NIVEIS_CRITICIDADE, 'criticidade');
         if (anteriorId !== null) {
             const anterior = await this.repositorio.buscarPorId(anteriorId);

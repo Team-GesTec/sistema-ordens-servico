@@ -19,8 +19,8 @@
 import express, { type Express, type Request, type Response } from 'express';
 import cors, { type CorsOptions } from 'cors';
 import { env } from './config/env';
-import { autenticar } from '../middlewares/authMiddleware';
-import { rotaNaoEncontrada, tratarErros } from '../middlewares/errorMiddleware';
+import { autenticar } from './middlewares/authMiddleware';
+import { rotaNaoEncontrada, tratarErros } from './middlewares/errorMiddleware';
 import authRoutes from './routes/routeAuth';
 import clienteRoutes from './routes/routeCliente';
 import departamentoRoutes from './routes/routeDepartamento';

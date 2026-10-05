@@ -5,7 +5,7 @@
 
 import type { Request, Response } from 'express';
 import { serviceOrdemServico } from '../services/serviceOrdemServico';
-import { usuarioAutenticado } from '../../middlewares/authMiddleware';
+import { usuarioAutenticado } from '../middlewares/authMiddleware';
 
 export class ControllerOrdemServico {
     /** GET /ordens-servico — lista todas as O.S. cadastradas. */
