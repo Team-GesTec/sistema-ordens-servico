@@ -28,7 +28,7 @@ O SGOS resolve essa dor ao oferecer um agrupador central de projetos, ordens de 
 | 10 | EP02 - Gestão do Ciclo de Vida da O.S. | Média | **US#2.3** Como líder de área, quero atribuir um responsável técnico específico a uma O.S. do meu setor, para definir a responsabilidade pela execução. | 3 | 2 |
 | 11 | EP03 - Controle de SLA, Priorização e Alertas | Média | **US#3.1** Como gestor de projetos, quero que o sistema calcule a data limite de SLA automaticamente para demandas padrão e permita a sobreposição manual de prazos, para ajustar datas a paradas operacionais e regras contratuais. | 5 | 2 |
 | 12 | EP02 - Gestão do Ciclo de Vida da O.S. | Média | **US#2.6**  Como colaborador, quero anexar fotos, laudos e documentos à O.S. com limite de tamanho por arquivo (50MB), para comprovar a execução do serviço ou detalhar o problema operacional. | 3 | 2 |
-| 13 | EP02 - Gestão do Ciclo de Vida da O.S. | Baixa | **US#2.5** Como responsável técnico, quero consultar minha fila de O.S. atribuídas com filtro por status e prioridade, para organizar os atendimentos do dia. | 3 | 2 |
+| 13 | EP02 - Gestão do Ciclo de Vida da O.S. | Baixa | **US#2.5** Como responsável técnico, quero consultar minha fila de O.S. atribuídas com filtro por status e criticidade, para organizar os atendimentos do dia. | 3 | 2 |
 | 14 | EP04 - Auditoria de Ações e Documentação | Alta | **US#4.3** Como gestor de projetos, quero consultar o histórico de alterações da O.S. (quem alterou, o quê e quando), para atender às exigências de rastreabilidade. | 8 | 3 |
 | 15 | EP04 - Auditoria de Ações e Documentação | Média | **US#4.4** Como desenvolvedor ou avaliador, quero acessar a documentação interativa da API via Swagger, para validar as integrações e contratos das rotas. | 8 | 3 |
 | 16 | EP03 - Controle de SLA, Priorização e Alertas | Média | **US#3.3** Como envolvido na O.S., quero receber notificações no sistema (in-app) e por e-mail sobre alterações de status, prioridade e nova atribuição, para acompanhar a evolução do atendimento em tempo real. | 5 | 3 |
@@ -50,9 +50,9 @@ O SGOS resolve essa dor ao oferecer um agrupador central de projetos, ordens de 
 
 | Período da Sprint | Meta (User Stories) | Link para Documentação da Sprint | Link para Vídeo no Youtube do Incremento Entregue |
 | --- | --- | --- | --- |
-| Sprint 1: 01/09/2026 - 25/09/2026 | US#4.1, US#2.1, US#1.2 | [Documentação da Sprint 1](./docs/Sprint%201/README.md) | [Demonstração da Sprint 1 - YouTube](#) |
-| Sprint 2: 28/09/2026 - 23/10/2026 | *Em progresso* | [Documentação da Sprint 2](#) | [Demonstração da Sprint 2 - YouTube](#) |
-| Sprint 3: 26/10/2026 - 20/11/2026 | *Em progresso* | [Documentação da Sprint 3](#) | [Demonstração da Sprint 3 - YouTube](#) |
+| Sprint 1: 01/09/2026 - 25/09/2026 | US#4.1, US#2.1, US#1.2 | [Documentação da Sprint 1](./docs/Sprint%201/docssprint1.md) | [Demonstração da Sprint 1 - YouTube](#) |
+| Sprint 2: 28/09/2026 - 23/10/2026 | *Em progresso* | [Documentação da Sprint 2](./docs/Sprint%202/docssprint2.md) | [Demonstração da Sprint 2 - YouTube](#) |
+| Sprint 3: 26/10/2026 - 20/11/2026 | *Em progresso* | [Documentação da Sprint 3](./docs/Sprint%203/docssprint3.md) | [Demonstração da Sprint 3 - YouTube](#) |
 
 ---
 
