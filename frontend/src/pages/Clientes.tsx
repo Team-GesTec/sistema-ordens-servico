@@ -1,3 +1,5 @@
+// Página de clientes: formulário de cadastro (nome, razão social e ramo de atuação) e listagem dos clientes retornados pela API.
+
 import { useEffect, useState, type FormEvent } from "react";
 import "../styles/variaveis.css";
 import "../styles/global.css";
@@ -8,28 +10,18 @@ import "../styles/cards.css";
 import "../styles/details.css";
 import "../styles/darkmode.css";
 import "../styles/forms.css";
-import type { SelectOption } from "../components/CustomSelect";
-import CustomSelect from "../components/CustomSelect";
 import { ApiError } from "../services/api";
 import { clienteService } from "../services/cliente";
 import type { Cliente } from "../types/api";
 
-const CATEGORIAS: SelectOption[] = [
-    { value: "Pessoa Física", label: "Pessoa Física" },
-    { value: "Pessoa Jurídica", label: "Pessoa Jurídica" },
-    { value: "Governo", label: "Governo" },
-];
-
 interface ClienteFormState {
     nome: string;
-    categoria: string | null;
     razaoSocial: string;
     ramoAtuacao: string;
 }
 
 const INITIAL_FORM_STATE: ClienteFormState = {
     nome: "",
-    categoria: null,
     razaoSocial: "",
     ramoAtuacao: "",
 };
@@ -57,10 +49,6 @@ function Clientes() {
 
     async function handleSubmit(event: FormEvent<HTMLFormElement>) {
         event.preventDefault();
-        if (!form.categoria) {
-            setErro("Selecione uma categoria.");
-            return;
-        }
 
         setSalvando(true);
         setMensagem(null);
@@ -69,7 +57,6 @@ function Clientes() {
         try {
             const criado = await clienteService.criar({
                 nome: form.nome.trim(),
-                categoria: form.categoria,
                 razao_social: form.razaoSocial.trim() || null,
                 ramo_atuacao: form.ramoAtuacao.trim() || null,
                 locais_operacionais: [],
@@ -103,16 +90,6 @@ function Clientes() {
                                 value={form.nome}
                                 onChange={(event) => updateField("nome", event.target.value)}
                                 required
-                            />
-                        </div>
-
-                        <div className="form-field">
-                            <label>Categoria</label>
-                            <CustomSelect
-                                options={CATEGORIAS}
-                                value={form.categoria}
-                                onChange={(value) => updateField("categoria", String(value))}
-                                placeholder="Selecione uma categoria"
                             />
                         </div>
 
@@ -159,7 +136,7 @@ function Clientes() {
                         ) : (
                             clientes.map((cliente) => (
                                 <div key={cliente.id} className="form-hint">
-                                    #{cliente.id} — {cliente.nome} — {cliente.categoria}
+                                    #{cliente.id} — {cliente.nome}
                                 </div>
                             ))
                         )}

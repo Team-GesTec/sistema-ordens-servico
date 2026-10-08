@@ -1,3 +1,5 @@
+// Tipos TypeScript dos dados trocados entre o frontend e a API do backend (entidades e payloads de requisição).
+
 export type PerfilFuncionario = "gestor" | "analista" | "tecnico";
 
 export type StatusProjeto =
@@ -33,7 +35,6 @@ export interface LoginResponse {
 export interface Cliente {
     id: number;
     nome: string;
-    categoria: string;
     razao_social: string | null;
     ramo_atuacao: string | null;
 }
@@ -45,7 +46,6 @@ export interface LocalOperacionalInput {
 
 export interface ClienteInput {
     nome: string;
-    categoria: string;
     razao_social: string | null;
     ramo_atuacao: string | null;
     locais_operacionais: LocalOperacionalInput[];
