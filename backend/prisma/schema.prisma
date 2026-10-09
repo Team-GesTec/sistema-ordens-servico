@@ -85,32 +85,18 @@ model locais_operacionais {
   clientes   clientes               @relation(fields: [cliente_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
 }
 
-model ordens_servico {
-  id                                                       Int                @id @default(autoincrement())
-  departamento_id                                          Int
-  cliente_id                                               Int
-  solicitante_id                                           Int
-  responsavel_id                                           Int?
-  projeto_id                                               Int?
-  anterior_id                                              Int?
-  parecer_tecnico                                          String?
-  tipo                                                     tipo_ordem_servico @default(instalacao)
-  criticidade                                              nivel_criticidade  @default(medio)
-  prazo_horas                                              Int                @default(120)
-  descricao                                                String
-  status                                                   status_enum        @default(pendente)
-  data_criacao                                             DateTime           @default(now()) @db.Timestamptz(6)
-  anexos                                                   anexos[]
-  auditoria                                                auditoria[]
-  equipes                                                  equipes[]
-  ordens_servico                                           ordens_servico?    @relation("ordens_servicoToordens_servico", fields: [anterior_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  other_ordens_servico                                     ordens_servico[]   @relation("ordens_servicoToordens_servico")
-  clientes                                                 clientes           @relation(fields: [cliente_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  departamentos                                            departamentos      @relation(fields: [departamento_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  projetos                                                 projetos?          @relation(fields: [projeto_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  funcionarios_ordens_servico_responsavel_idTofuncionarios funcionarios?      @relation("ordens_servico_responsavel_idTofuncionarios", fields: [responsavel_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  funcionarios_ordens_servico_solicitante_idTofuncionarios funcionarios       @relation("ordens_servico_solicitante_idTofuncionarios", fields: [solicitante_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-}
+Alterções necessárias no banco:
+
+
+Na tabela enum status_enum
+remover pendente
+remover review
+renomear: de aguardando_embarque para: aguardando
+
+Na tabela ordens_servico
+adicionar coluna status? (opcional) - aceita somente os enum da tabela status_enum
+adicionar coluna parecer_tecnico? (opcional, aceita string e null)
+
 
 model projetos {
   id                     Int                      @id @default(autoincrement())

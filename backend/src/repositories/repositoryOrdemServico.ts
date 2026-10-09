@@ -4,7 +4,7 @@
 
 import { prisma } from '../../prisma/client';
 import { traduzirErroPrisma } from '../errors/tratarErroPrisma';
-import type { OrdemServico, DadosCriacaoOrdemServico } from '../models/modelOrdemServico';
+import type { OrdemServico, DadosCriacaoOrdemServico, DadosAlteracaoStatus } from '../models/modelOrdemServico';
 
 // Até o momento, em referenciaInvalida, o banco so informa que uma FK falhou, sem especificar qual
 export class RepositoryOrdemServico {
@@ -27,6 +27,17 @@ export class RepositoryOrdemServico {
     // busca uma O.S. por id no banco
     async buscarPorId(id: number): Promise<OrdemServico | null> {
         return prisma.ordens_servico.findUnique({ where: { id } });
+    }
+
+    async atualizarStatus(id:number, dados:DadosAlteracaoStatus): Promise<OrdemServico> {
+        const atualizada = await prisma.ordens_servico.update({
+            where: {id},
+            data: {
+                status: dados.status,
+                parecer_tecnico: dados.parecer_tecnico,
+            }
+        });
+        return atualizada;
     }
 }
 
