@@ -179,7 +179,7 @@ function Projetos() {
                     </form>
 
                     <div className="form-card" style={{ marginTop: 20 }}>
-                        <strong style={{ color: "#fff" }}>Projetos carregados da API</strong>
+                        <strong>Projetos carregados da API</strong>
                         {projetos.length === 0 ? (
                             <p className="form-hint">Nenhum projeto retornado pelo backend.</p>
                         ) : (

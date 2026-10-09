@@ -5,7 +5,6 @@ import "../styles/layout.css";
 import "../styles/sidebar.css";
 import "../styles/filters.css";
 import "../styles/cards.css";
-import "../styles/details.css";
 import "../styles/darkmode.css";
 import "../styles/forms.css";
 import type { SelectOption } from "../components/CustomSelect";
@@ -151,7 +150,7 @@ function Clientes() {
                     </form>
 
                     <div className="form-card" style={{ marginTop: 20 }}>
-                        <strong style={{ color: "#fff" }}>Clientes carregados da API</strong>
+                        <strong>Clientes carregados da API</strong>
                         {carregando ? (
                             <p className="form-hint">Carregando...</p>
                         ) : clientes.length === 0 ? (
