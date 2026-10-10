@@ -17,4 +17,9 @@ router.get('/', (req: Request, res: Response) => controllerOrdemServico.listarTo
 
 router.post('/', gestorOuTecnico, (req: Request, res: Response) => controllerOrdemServico.criar(req, res));
 
+// PATCH status — gestor altera qualquer O.S.; técnico, só as atribuídas a ele (checado no service)
+router.patch('/:id/status', gestorOuTecnico, (req: Request, res: Response) =>
+    controllerOrdemServico.alterarStatus(req, res),
+);
+
 export default router;

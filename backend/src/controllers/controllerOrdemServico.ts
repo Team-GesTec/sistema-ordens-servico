@@ -19,8 +19,14 @@ export class ControllerOrdemServico {
         const novaOS = await serviceOrdemServico.criar(req.body, usuario.id);
         return resp.status(201).json(novaOS);
     }
+
+    /** PATCH /ordens-servico/:id/status — altera o status e registra o parecer (200 com a O.S. atualizada). */
+    public async alterarStatus(req: Request, resp: Response): Promise<Response> {
+        const usuario = usuarioAutenticado(req);
+        const id = Number(req.params.id);
+        const atualizada = await serviceOrdemServico.alterarStatus(id, req.body, usuario);
+        return resp.status(200).json(atualizada);
+    }
 }
-
-
 
 export const controllerOrdemServico = new ControllerOrdemServico();

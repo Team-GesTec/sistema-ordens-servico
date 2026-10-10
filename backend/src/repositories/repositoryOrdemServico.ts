@@ -3,6 +3,7 @@
  */
 
 import { prisma } from '../../prisma/client';
+import type { Prisma } from '../../prisma/generated/client';
 import { traduzirErroPrisma } from '../errors/tratarErroPrisma';
 import type { OrdemServico, DadosCriacaoOrdemServico, DadosAlteracaoStatus } from '../models/modelOrdemServico';
 
@@ -28,14 +29,15 @@ export class RepositoryOrdemServico {
     async buscarPorId(id: number): Promise<OrdemServico | null> {
         return prisma.ordens_servico.findUnique({ where: { id } });
     }
-
-    async atualizarStatus(id:number, dados:DadosAlteracaoStatus): Promise<OrdemServico> {
-        const atualizada = await prisma.ordens_servico.update({
-            where: {id},
-            data: {
-                status: dados.status,
-                parecer_tecnico: dados.parecer_tecnico,
-            }
+    /** Grava o novo status e o parecer técnico de uma O.S. que já existe. */
+    async atualizarStatus(
+        id: number,
+        dados: DadosAlteracaoStatus,
+        conexao: Prisma.TransactionClient = prisma,
+    ): Promise<OrdemServico> {
+        const atualizada = await conexao.ordens_servico.update({
+            where: { id },
+            data: dados,
         });
         return atualizada;
     }
