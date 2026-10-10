@@ -14,9 +14,12 @@ import CustomSelect from "../components/CustomSelect";
 import type { SelectOption } from "../components/CustomSelect";
 
 import { ApiError } from "../services/api";
+import { getStoredUser } from "../services/auth"; // confirmar o nome real do arquivo do authService
+import { funcionarioService } from "../services/funcionario";
 import { ordemServicoService } from "../services/ordemServico";
 
 import type {
+    Funcionario,
     NivelCriticidade,
     OrdemServico,
     StatusOrdemServico,
@@ -78,6 +81,12 @@ function Home() {
     const [parecerTecnico, setParecerTecnico] =
         useState("");
 
+    const [usuarioLogado] = useState<Funcionario | null>(() => getStoredUser());
+    const isGestor = usuarioLogado?.tipo === "gestor";
+    const isTecnico = usuarioLogado?.tipo === "tecnico";
+    const [funcionarios, setFuncionarios] = useState<Funcionario[]>([]);
+    const [tecnicoResponsavel, setTecnicoResponsavel] = useState<number | null>(null);
+
 
     useEffect(() => {
         ordemServicoService
@@ -92,6 +101,26 @@ function Home() {
             )
             .finally(() => setCarregando(false));
     }, []);
+
+    // Só o gestor precisa da lista de funcionários
+    useEffect(() => {
+        if (!isGestor) return;
+        funcionarioService
+            .listar()
+            .then(setFuncionarios)
+            .catch((error: unknown) =>
+                setErro(
+                    error instanceof ApiError
+                        ? error.message
+                        : "Não foi possível carregar os funcionários.",
+                ),
+            );
+    }, [isGestor]);
+
+    const funcionarioOptions: SelectOption[] = funcionarios.map((item) => ({
+        value: item.id,
+        label: `#${item.id} — ${item.nome}`,
+    }));
 
     const ordensFiltradas = useMemo(() => {
         const termo = search.trim().toLowerCase();
@@ -124,6 +153,24 @@ function Home() {
 
     function fecharModal() {
         setOsSelecionada(null);
+        setTecnicoResponsavel(null);
+    }
+
+    function atribuirTecnico(value: string | number) {
+        if (!osSelecionada) {
+            return;
+        }
+
+        setTecnicoResponsavel(Number(value));
+        // TODO: PUT para alterar o técnico responsável da OS osSelecionada.id, usando Number(value) como id do técnico
+    }
+
+    function assumirOS() {
+        if (!osSelecionada || !usuarioLogado) {
+            return;
+        }
+
+        // TODO: PUT para alterar o técnico responsável da OS osSelecionada.id, usando usuarioLogado.id
     }
 
     function alterarStatus(value: string | number) {
@@ -377,6 +424,37 @@ function Home() {
                                     </div>
                                 </div>
                             </div>
+
+                            {isGestor && (
+                                <div className="modal-detalhes">
+                                    <div>
+                                        <span className="modal-label">
+                                            Técnico responsável
+                                        </span>
+
+                                        <CustomSelect
+                                            className="modal-tecnico"
+                                            options={funcionarioOptions}
+                                            value={tecnicoResponsavel}
+                                            onChange={atribuirTecnico}
+                                            placeholder="Selecione o funcionário"
+                                        />
+                                    </div>
+                                </div>
+                            )}
+
+                            {isTecnico && (
+                                <div className="">
+                                    <button
+                                        type="button"
+                                        className="btn-primary modal-tecnico"
+                                        onClick={assumirOS}
+                                    >
+                                        Assumir OS
+                                    </button>
+                                </div>
+                            )}
+
                         </div>
                     </div>
                 </div>
