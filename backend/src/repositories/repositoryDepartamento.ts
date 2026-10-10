@@ -60,8 +60,7 @@ export class RepositoryDepartamento {
         } catch (erro) {
             throw traduzirErroPrisma(erro, {
                 registroNaoEncontrado: 'Departamento não encontrado',
-                referenciaEmUso:
-                    'Não é possível excluir: o departamento ainda tem funcionários, O.S. ou projetos vinculados',
+                referenciaEmUso: 'Não é possível excluir: o departamento ainda tem funcionários, O.S. ou projetos vinculados',
             });
         }
     }

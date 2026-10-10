@@ -31,7 +31,6 @@ export class RepositoryCliente {
             const criado = await prisma.clientes.create({
                 data: {
                     nome: dados.nome,
-                    categoria: dados.categoria,
                     razao_social: dados.razao_social,
                     ramo_atuacao: dados.ramo_atuacao,
                     locais_operacionais: {
@@ -54,7 +53,6 @@ export class RepositoryCliente {
                 where: { id },
                 data: {
                     ...(dados.nome !== undefined && { nome: dados.nome }),
-                    ...(dados.categoria !== undefined && { categoria: dados.categoria }),
                     ...(dados.razao_social !== undefined && { razao_social: dados.razao_social }),
                     ...(dados.ramo_atuacao !== undefined && { ramo_atuacao: dados.ramo_atuacao }),
                     ...(dados.locais_operacionais !== undefined && {
