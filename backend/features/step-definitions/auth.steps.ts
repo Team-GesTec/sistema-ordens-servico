@@ -1,5 +1,5 @@
 import { Given, When, Then } from "@cucumber/cucumber";
-import assert from "node:assert/strict";
+import assert from "assert/strict";
 import { api } from "../support/api";
 import { CustomWorld } from "../support/world";
 

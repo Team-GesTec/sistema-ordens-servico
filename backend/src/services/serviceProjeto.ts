@@ -80,7 +80,8 @@ export class ServiceProjeto {
         const novo: DadosCriacaoProjeto = {
             cliente_id: clienteId,
             departamentos,
-            data_prazo: dataOpcional(dados.data_prazo, 'data_prazo'),
+            data_inicio: dataOpcional(dados.data_inicio, 'data_inicio'),
+            data_fim: dataOpcional(dados.data_fim, 'data_fim'),
             status: dados.status === undefined ? STATUS_PADRAO : exigirEnum(dados.status, STATUS_PROJETO, 'status'),
         };
         await this.garantirClienteExiste(clienteId);
@@ -121,8 +122,11 @@ export class ServiceProjeto {
             await this.garantirDepartamentosExistem(departamentos);
             alteracoes.departamentos = departamentos;
         }
-        if (!parcial || campoPresente(dados, 'data_prazo')) {
-            alteracoes.data_prazo = dataOpcional(dados.data_prazo, 'data_prazo');
+        if (!parcial || campoPresente(dados, 'data_inicio')) {
+            alteracoes.data_inicio = dataOpcional(dados.data_inicio, 'data_inicio');
+        }
+        if (!parcial || campoPresente(dados, 'data_fim')) {
+            alteracoes.data_fim = dataOpcional(dados.data_fim, 'data_fim');
         }
         if (!parcial || campoPresente(dados, 'status')) {
             alteracoes.status = exigirEnum(dados.status, STATUS_PROJETO, 'status');
