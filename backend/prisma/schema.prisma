@@ -9,14 +9,16 @@ datasource db {
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 model anexos {
-  id             Int            @id @default(autoincrement())
-  os_id          Int
-  nome           String         @db.VarChar(255)
+  id             Int             @id @default(autoincrement())
+  os_id          Int?
+  sla_id         Int?
+  nome           String          @db.VarChar(255)
   tipo           tipo_arquivo
   tamanho_bytes  BigInt
   caminho        String
-  data_upload    DateTime       @default(now()) @db.Timestamptz(6)
-  ordens_servico ordens_servico @relation(fields: [os_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  data_upload    DateTime        @default(now()) @db.Timestamptz(6)
+  ordens_servico ordens_servico? @relation(fields: [os_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  slas           slas?           @relation(fields: [sla_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
 }
 
 model auditoria {
@@ -85,24 +87,38 @@ model locais_operacionais {
   clientes   clientes               @relation(fields: [cliente_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
 }
 
-Alterções necessárias no banco:
-
-
-Na tabela enum status_enum
-remover pendente
-remover review
-renomear: de aguardando_embarque para: aguardando
-
-Na tabela ordens_servico
-adicionar coluna status? (opcional) - aceita somente os enum da tabela status_enum
-adicionar coluna parecer_tecnico? (opcional, aceita string e null)
-
+model ordens_servico {
+  id                                                       Int                  @id @default(autoincrement())
+  departamento_id                                          Int
+  cliente_id                                               Int
+  solicitante_id                                           Int
+  responsavel_id                                           Int?
+  projeto_id                                               Int?
+  sla_id                                                   Int?
+  anterior_id                                              Int?
+  parecer_tecnico                                          String?
+  tipo                                                     tipo_ordem_servico   @default(instalacao)
+  descricao                                                String
+  status                                                   status_ordem_servico @default(pendente)
+  data_criacao                                             DateTime             @default(now()) @db.Timestamptz(6)
+  anexos                                                   anexos[]
+  auditoria                                                auditoria[]
+  equipes                                                  equipes[]
+  ordens_servico                                           ordens_servico?      @relation("ordens_servicoToordens_servico", fields: [anterior_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  other_ordens_servico                                     ordens_servico[]     @relation("ordens_servicoToordens_servico")
+  clientes                                                 clientes             @relation(fields: [cliente_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  departamentos                                            departamentos        @relation(fields: [departamento_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  projetos                                                 projetos?            @relation(fields: [projeto_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  funcionarios_ordens_servico_responsavel_idTofuncionarios funcionarios?        @relation("ordens_servico_responsavel_idTofuncionarios", fields: [responsavel_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  slas                                                     slas?                @relation(fields: [sla_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  funcionarios_ordens_servico_solicitante_idTofuncionarios funcionarios         @relation("ordens_servico_solicitante_idTofuncionarios", fields: [solicitante_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
 
 model projetos {
   id                     Int                      @id @default(autoincrement())
   cliente_id             Int
   data_prazo             DateTime?                @db.Timestamptz(6)
-  status                 status_enum              @default(pendente)
+  status                 status_projeto           @default(pendente)
   ordens_servico         ordens_servico[]
   clientes               clientes                 @relation(fields: [cliente_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   projetos_departamentos projetos_departamentos[]
@@ -115,6 +131,16 @@ model projetos_departamentos {
   projetos        projetos      @relation(fields: [projeto_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
   @@id([projeto_id, departamento_id])
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model slas {
+  id             Int               @id @default(autoincrement())
+  descricao      String
+  prazo_horas    Int               @default(120)
+  criticidade    nivel_criticidade @default(medio)
+  anexos         anexos[]
+  ordens_servico ordens_servico[]
 }
 
 enum nivel_criticidade {
@@ -155,7 +181,17 @@ enum tipo_perfil {
   tecnico
 }
 
-enum status_enum {
+enum status_ordem_servico {
+  pendente
+  em_andamento
+  aguardando_embarque
+  validacao_testes
+  bloqueado
+  review
+  concluido
+}
+
+enum status_projeto {
   pendente
   em_andamento
   aguardando_embarque
