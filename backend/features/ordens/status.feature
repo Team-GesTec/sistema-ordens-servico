@@ -76,11 +76,18 @@ Funcionalidade: Alteração de status e parecer técnico (US#2.4)
         Quando altera o status da O.S. para "bloqueado"
         Então a API nega a operação por falta de permissão
 
-    #Desbloquear também é só do gestor
+    # O.S. bloqueada não pode ser desbloqueada (decisão do time: para retomar, criar nova O.S.)
     Cenário: Técnico não desbloqueia nem a própria O.S.
-    Dado que existe uma O.S. bloqueada atribuída ao técnico autenticado
-    Quando altera o status da O.S. para "em_andamento"
-    Então a API nega a operação por falta de permissão
+        Dado que existe uma O.S. bloqueada atribuída ao técnico autenticado
+        Quando altera o status da O.S. para "em_andamento"
+        Então a API rejeita a alteração de status
+
+    Cenário: Gestor também não desbloqueia uma O.S.
+        Dado que existe um gestor autenticado
+        E que existe uma O.S. não concluída sem responsável
+        Quando altera o status da O.S. para "bloqueado"
+        E altera o status da O.S. para "em_andamento"
+        Então a API rejeita a alteração de status
 
     # "Sem token: 401"
     Cenário: Alteração sem estar autenticado

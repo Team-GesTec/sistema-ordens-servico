@@ -15,7 +15,7 @@
  * Regras da alteração de status:
  *  - o novo status deve ser um dos 5 oficiais;
  *  - o Gestor altera qualquer O.S.; o Técnico, só as que estão atribuídas a ele;
- *  - O.S. concluída não tem o status alterado;
+ *  - O.S. concluída ou bloqueada não tem o status alterado;
  *  - o parecer técnico é obrigatório para concluir e opcional nos demais status;
  *  - a alteração e o registro de auditoria são gravados na mesma transação.
  */
@@ -199,18 +199,24 @@ export class ServiceOrdemServico {
             throw AppError.acessoNegado('Apenas o gestor ou o responsável pela O.S. pode alterar o status');
         }
 
-        // bloquear e desbloquear são ações só do gestor
-        const envolveBloqueio = novoStatus ==='bloqueado' || ordem.status === 'bloqueado'
-        if (!ehGestor && envolveBloqueio) {
-            throw AppError.acessoNegado('Apenas o gestor pode bloquear ou desbloquear uma O.S.')
+        // bloquear é ação só do gestor
+        if (!ehGestor && novoStatus === 'bloqueado') {
+            throw  AppError.acessoNegado('Apenas o gestor pode bloquear uma O.S.')
         }
 
         // 4. Checa a trava: O.S. concluída não muda mais
         if (ordem.status === 'concluido') {
             throw AppError.requisicaoInvalida(`A O.S. ${idOS} está concluída e não pode ter o status alterado`);
         }
+        if (ordem.status === 'bloqueado') {
+            throw AppError.requisicaoInvalida(
+                `A O.S. ${idOS} está bloqueada e não pode ser desbloqueada. ` +
+                'Para retomar o trabalho, crie uma nova O.S. vinculada a esta.'
+            );
+        }
+
         if (ordem.status === novoStatus) {
-            throw AppError.requisicaoInvalida(`A O.S. ${idOS} já está com o status ${novoStatus}`);
+            throw AppError.requisicaoInvalida(`A O.S. ${idOS} já está com o status ${novoStatus}`)
         }
 
         // 5. Checa o parecer: obrigatório para concluir
