@@ -311,8 +311,8 @@ export class ServiceOrdemServico {
             return ordemAtualizada;
         });
 
-        // 7. Limpa o cache só depois que a transação terminou
-        this.repositorio.limparCache(id);
+        // 7. Atualiza o cache só depois que a transação terminou
+        this.repositorio.atualizarCache(atualizada);
         return atualizada;
     }
 

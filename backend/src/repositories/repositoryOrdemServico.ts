@@ -83,9 +83,9 @@ export class RepositoryOrdemServico {
         }
     }
 
-    /** Remove uma OS do cache, para a próxima leitura buscar o estado gravado no banco. */
-    limparCache(id: number): void {
-        ordemServicoCache.remover(id);
+    /** Coloca no cache a versão já gravada de uma OS. Chamar depois que a transação terminar. */
+    atualizarCache(ordem: OrdemServico): void {
+        ordemServicoCache.definir(ordem);
     }
 
     /** Remove uma OS. Bloqueado (409) se ainda houver anexos ou funcionários ligados a ela. */
