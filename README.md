@@ -50,7 +50,7 @@ O SGOS resolve essa dor ao oferecer um agrupador central de projetos, ordens de 
 
 | Período da Sprint | Meta (User Stories) | Link para Documentação da Sprint | Link para Vídeo no Youtube do Incremento Entregue |
 | --- | --- | --- | --- |
-| Sprint 1: 01/09/2026 - 25/09/2026 | US#4.1, US#2.1, US#1.2 | [Documentação da Sprint 1](./docs/Sprint%201/docssprint1.md) | [Demonstração da Sprint 1 - YouTube](#) |
+| Sprint 1: 01/09/2026 - 25/09/2026 | US#4.1, US#2.1, US#1.2 | [Documentação da Sprint 1](./docs/Sprint%201/docssprint1.md) | [Demonstração da Sprint 1 - YouTube](https://youtu.be/vnbYhxT90lo) |
 | Sprint 2: 28/09/2026 - 23/10/2026 | *Em progresso* | [Documentação da Sprint 2](./docs/Sprint%202/docssprint2.md) | [Demonstração da Sprint 2 - YouTube](#) |
 | Sprint 3: 26/10/2026 - 20/11/2026 | *Em progresso* | [Documentação da Sprint 3](./docs/Sprint%203/docssprint3.md) | [Demonstração da Sprint 3 - YouTube](#) |
 

@@ -2,6 +2,8 @@
 
 **Projeto:** Sistema de Gestão de Ordens de Serviço (SGOS), cliente ALTAVE · **Equipe:** GesTec, 2º DSM, Fatec SJC (API 2026-2) · **Sprint:** 1 de 3 · **Escopo:** 6 User Stories, 25 pontos
 
+[Demonstração da Sprint 1 - YouTube](https://youtu.be/vnbYhxT90lo) 
+
 ## 1. Resumo da sprint
 
 | Item | Informação |
