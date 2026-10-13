@@ -1,4 +1,4 @@
-import type { auditoria } from '../../prisma/generated/client';
+import type { auditoria } from '../prisma/generated/client';
 
 export type Auditoria = auditoria;
 
