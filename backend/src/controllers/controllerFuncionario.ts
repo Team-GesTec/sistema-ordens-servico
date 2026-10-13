@@ -6,9 +6,9 @@
  * middleware de erros (Express 5 captura erros de funções assíncronas automaticamente).
  */
 import type { Request, Response } from 'express';
-import { usuarioAutenticado } from '../../middlewares/authMiddleware';
+import { usuarioAutenticado } from '../middlewares/authMiddleware';
 import { serviceFuncionario } from '../services/serviceFuncionario';
-import { lerId } from '../../utils/validacao';
+import { lerId } from '../utils/validacao';
 
 export class ControllerFuncionario {
     /** GET /funcionario — lista todos os funcionários. */

@@ -12,7 +12,7 @@
  * Caso contrário, não seria possível adicionar Cliente, pois a tabela locais_operacionais
  * exige o valor de descrição, que não está solicitado nesta U.S.
  */
-import type { clientes } from '../../prisma/generated/client';
+import type { clientes } from '../prisma/generated/client';
 
 /** Cliente como está no banco e como a API devolve (campos em snake_case, iguais ao schema.prisma). */
 export type Cliente = clientes;
@@ -25,9 +25,8 @@ export interface DadosCriacaoLocalOperacional {
 /** Dados validados para criar um cliente. */
 export interface DadosCriacaoCliente {
     nome: string;
-    categoria: string;
-    razao_social: string | null;
-    ramo_atuacao: string | null;
+    razao_social: string;
+    ramo_atuacao: string;
     locais_operacionais: DadosCriacaoLocalOperacional[];
 }
 

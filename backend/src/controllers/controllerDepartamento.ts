@@ -7,7 +7,7 @@
  */
 import type { Request, Response } from 'express';
 import { serviceDepartamento } from '../services/serviceDepartamento';
-import { lerId } from '../../utils/validacao';
+import { lerId } from '../utils/validacao';
 
 export class ControllerDepartamento {
     /** GET /departamento — lista todos os departamentos. */
