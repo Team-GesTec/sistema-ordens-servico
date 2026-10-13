@@ -6,7 +6,7 @@
 
 import { repositoryAuditoria, type RepositoryAuditoria } from '../repositories/repositoryAuditoria';
 import type { Auditoria, DadosRegistroAuditoria } from '../models/modelAuditoria';
-import type { Prisma } from '../../prisma/generated/client';
+import type { Prisma } from '../prisma/generated/client';
 
 export class ServiceAuditoria {
     private readonly repositorio: RepositoryAuditoria;
