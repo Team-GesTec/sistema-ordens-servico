@@ -15,10 +15,10 @@ export class ControllerOrdemServico {
     }
 
     /** GET /ordens-servico/:id — busca o a O.S. pelo id (404 se não existir). */
-        public async getById(req: Request, resp: Response): Promise<Response> {
-            const id = lerId(req.params.id);
-            return resp.status(200).json(await serviceOrdemServico.buscarPorId(id));
-        }
+    public async getById(req: Request, resp: Response): Promise<Response> {
+        const id = lerId(req.params.id);
+        return resp.status(200).json(await serviceOrdemServico.buscarPorId(id));
+    }
 
     /** POST /ordens-servico — abre uma nova O.S. (201 com o registro criado). */
     public async criarOrdem(req: Request, resp: Response): Promise<Response> {
@@ -59,14 +59,16 @@ export class ControllerOrdemServico {
 
     /** PUT /ordens-servico/:id — substitui os dados da O.S. (campos obrigatórios precisam vir). */
     public async updateOrdem(req: Request, resp: Response): Promise<Response> {
+        const usuario = usuarioAutenticado(req);
         const id = lerId(req.params.id);
-        return resp.status(200).json(await serviceOrdemServico.atualizar(id, req.body, false));
+        return resp.status(200).json(await serviceOrdemServico.atualizar(id, req.body, false, usuario.id));
     }
 
     /** PATCH /ordens-servico/:id — altera só os campos enviados. */
     public async patchOrdem(req: Request, resp: Response): Promise<Response> {
+        const usuario = usuarioAutenticado(req);
         const id = lerId(req.params.id);
-        return resp.status(200).json(await serviceOrdemServico.atualizar(id, req.body, true));
+        return resp.status(200).json(await serviceOrdemServico.atualizar(id, req.body, true, usuario.id));
     }
 
     /** 

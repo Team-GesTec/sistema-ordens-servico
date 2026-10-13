@@ -56,6 +56,18 @@ const TEXTO_MAXIMO_DESCRICAO = 1000;
 const TEXTO_MAXIMO_TITULO = 60;
 const TEXTO_MAXIMO_PARECER = 1000;
 
+
+/** Campos que a edição geral não altera: cada um tem a sua rota (US#2.4, US#2.3 e US#3.1). */
+const CAMPOS_PROIBIDOS_NA_EDICAO = [
+    'status',
+    'responsavel_id',
+    'sla_config_id',
+    'prazo_dias_uteis',
+    'data_limite_sla',
+    'sla_manual',
+    'justificativa_sla_manual',
+] as const;
+
 export class ServiceOrdemServico {
     private readonly repositorio: RepositoryOrdemServico;
     private readonly funcionarios: RepositoryFuncionario;
@@ -246,11 +258,62 @@ export class ServiceOrdemServico {
      *                ausente vira `null`. `true` (PATCH): altera só o que foi enviado
      *                (ex.: `{ "status": "em_andamento" }`).
      */
-    async atualizar(id: number, corpo: unknown, parcial: boolean): Promise<OrdemServico> {
+    async atualizar(id: number, corpo: unknown, parcial: boolean, usuarioId: number): Promise<OrdemServico> {
+        // 1. Busca a O.S. para saber o status atual
+        const ordem = await this.repositorio.buscarPorId(id);
+        if (!ordem) {
+            throw AppError.naoEncontrado('OS não encontrada');
+        }
+
+        // 2. O.S. concluída não é editada
+        if (ordem.status === 'concluido') {
+            throw AppError.requisicaoInvalida('OS concluída não pode ser editada');
+        }
+
+        // 3. Status, responsável e SLA têm rotas próprias
         const dados = lerCorpo(corpo);
+        const proibidos = CAMPOS_PROIBIDOS_NA_EDICAO.filter((campo) => campoPresente(dados, campo));
+        if (proibidos.length > 0) {
+            throw AppError.requisicaoInvalida(
+                `Estes campos não podem ser alterados por esta rota: ${proibidos.join(', ')}. ` +
+                'Use as rotas próprias de status, responsável ou SLA.',
+            );
+        }
+
+        // 4. Valida o restante
         const alteracoes = await this.montarAlteracoes(dados, parcial);
         exigirAlteracoes(alteracoes);
-        return this.repositorio.atualizar(id, alteracoes);
+
+        // 5. Descobre quais campos realmente mudaram
+        const campos = Object.keys(alteracoes) as (keyof DadosAtualizacaoOrdemServico)[];
+        const camposAlterados = campos.filter(
+            (campo) => paraTextoAuditoria(ordem[campo]) !== paraTextoAuditoria(alteracoes[campo]),
+        );
+
+        // 6. Grava a edição e a auditoria na mesma transação
+        const atualizada = await prisma.$transaction(async (conexao) => {
+            const ordemAtualizada = await this.repositorio.atualizarNaTransacao(id, alteracoes, conexao);
+
+            for (const campo of camposAlterados) {
+                await serviceAuditoria.registrar(
+                    {
+                        os_id: id,
+                        funcionario_id: usuarioId,
+                        acao: 'atualizacao',
+                        campo_alterado: campo,
+                        dado_antigo: paraTextoAuditoria(ordem[campo]),
+                        dado_novo: paraTextoAuditoria(alteracoes[campo]),
+                    },
+                    conexao,
+                );
+            }
+
+            return ordemAtualizada;
+        });
+
+        // 7. Limpa o cache só depois que a transação terminou
+        this.repositorio.limparCache(id);
+        return atualizada;
     }
 
     /**
@@ -349,7 +412,7 @@ export class ServiceOrdemServico {
         return this.repositorio.remover(id);
     }
 
-    /** Monta o objeto de alterações conforme o modo (PUT ou PATCH). */
+        /** Monta o objeto de alterações conforme o modo (PUT ou PATCH). */
     private async montarAlteracoes(dados: CorpoRequisicao, parcial: boolean): Promise<DadosAtualizacaoOrdemServico> {
         const alteracoes: DadosAtualizacaoOrdemServico = {};
 
@@ -382,34 +445,11 @@ export class ServiceOrdemServico {
             );
         }
 
-        if (!parcial || campoPresente(dados, 'sla_config_id')) {
-            alteracoes.sla_config_id = inteiroPositivoOpcional(
-                dados.sla_config_id,
-                'sla_config_id',
-            );
-        }
-
         if (!parcial || campoPresente(dados, 'cliente_id')) {
             alteracoes.cliente_id = inteiroPositivoOpcional(
                 dados.cliente_id,
                 'cliente_id',
             );
-        }
-
-        if (!parcial || campoPresente(dados, 'responsavel_id')) {
-            const responsavelId = inteiroPositivoOpcional(
-                dados.responsavel_id,
-                'responsavel_id',
-            );
-
-            if (responsavelId !== null) {
-                await this.garantirFuncionarioExiste(
-                    responsavelId,
-                    'responsavel_id',
-                );
-            }
-
-            alteracoes.responsavel_id = responsavelId;
         }
 
         if (!parcial || campoPresente(dados, 'projeto_id')) {
@@ -461,14 +501,6 @@ export class ServiceOrdemServico {
             );
         }
 
-        if (!parcial || campoPresente(dados, 'status')) {
-            alteracoes.status = exigirEnum(
-                dados.status,
-                STATUS_ORDEM,
-                'status',
-            );
-        }
-
         if (!parcial || campoPresente(dados, 'data_criacao')) {
             alteracoes.data_criacao =
                 dados.data_criacao === undefined || dados.data_criacao === null
@@ -477,13 +509,6 @@ export class ServiceOrdemServico {
                         dados.data_criacao,
                         'data_criacao',
                     );
-        }
-
-        if (!parcial || campoPresente(dados, 'prazo_dias_uteis')) {
-            alteracoes.prazo_dias_uteis = inteiroPositivoOpcional(
-                dados.prazo_dias_uteis,
-                'prazo_dias_uteis',
-            );
         }
 
         if (!parcial || campoPresente(dados, 'data_inicio')) {
@@ -500,27 +525,6 @@ export class ServiceOrdemServico {
             );
         }
 
-        if (!parcial || campoPresente(dados, 'data_limite_sla')) {
-            alteracoes.data_limite_sla = dataOpcional(
-                dados.data_limite_sla,
-                'data_limite_sla',
-            );
-        }
-
-        if (!parcial || campoPresente(dados, 'sla_manual')) {
-            alteracoes.sla_manual = exigirBoolean(
-                dados.sla_manual,
-                'sla_manual',
-            );
-        }
-
-        if (!parcial || campoPresente(dados, 'justificativa_sla_manual')) {
-            alteracoes.justificativa_sla_manual = textoOpcional(
-                dados.justificativa_sla_manual,
-                'justificativa_sla_manual',
-            );
-        }
-
         return alteracoes;
     }
 
@@ -531,13 +535,6 @@ export class ServiceOrdemServico {
             throw AppError.requisicaoInvalida(`${campo} não corresponde a um funcionário existente`);
         }
     }
-}
-
-function exigirBoolean(valor: unknown, campo: string): boolean {
-    if (typeof valor !== 'boolean') {
-        throw AppError.requisicaoInvalida(`${campo} deve ser um boolean`);
-    }
-    return valor;
 }
 
 function exigirDataValida(valor: unknown, campo: string): Date {
@@ -552,5 +549,19 @@ function exigirDataValida(valor: unknown, campo: string): Date {
     }
     return data;
 }
+
+
+/** Converte um valor para texto, no formato gravado na auditoria. */
+function paraTextoAuditoria(valor: unknown): string | null {
+    if (valor === null || valor === undefined) {
+        return null;
+    }
+    if (valor instanceof Date) {
+        return valor.toISOString();
+    }
+    return String(valor);
+}
+
+
 /** Instância única usada pelo controller. */
 export const serviceOrdemServico = new ServiceOrdemServico();
