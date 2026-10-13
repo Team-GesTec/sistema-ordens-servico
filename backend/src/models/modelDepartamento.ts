@@ -3,7 +3,7 @@
  *
  * Tipos do objeto Departamento.
  */
-import type { departamentos } from '../../prisma/generated/client';
+import type { departamentos } from '../prisma/generated/client';
 
 /** Departamento como está no banco e como a API devolve. */
 export type Departamento = departamentos;

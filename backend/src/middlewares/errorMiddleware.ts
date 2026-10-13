@@ -5,7 +5,7 @@
  * Toda resposta de erro da API tem o formato `{ "mensagem": "..." }`.
  */
 import type { NextFunction, Request, Response } from 'express';
-import { AppError } from '../src/errors/AppError';
+import { AppError } from '../errors/AppError';
 
 /**
  * Lê o status HTTP de erros gerados pelo próprio Express/body-parser (ex.: corpo grande demais = 413).

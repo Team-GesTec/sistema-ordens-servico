@@ -8,7 +8,7 @@
  * login — e ela vai direto ao banco (sem cache) de propósito: credencial precisa estar sempre
  * atualizada (senha trocada, usuário removido) e hash de senha não deve ficar guardado em memória.
  */
-import { prisma } from '../../prisma/client';
+import { prisma } from '../prisma/client';
 import { funcionarioCache } from '../cache/funcionarioCache';
 import { traduzirErroPrisma } from '../errors/tratarErroPrisma';
 import type {

@@ -3,7 +3,7 @@
 Funcionalidade: Autenticação de Usuários no Sistema
 
     Cenário: Autenticação com credenciais válidas (Caminho Feliz)
-        Dado que o colaborador insere o usuário "admin" e a senha "admin"
+        Dado que o colaborador insere o usuário "admin" e a senha "admin123"
         Quando solicita o acesso
         Então o sistema autentica o colaborador com sucesso
 

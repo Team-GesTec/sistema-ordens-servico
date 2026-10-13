@@ -11,7 +11,7 @@
  *            • num create/update: o id referenciado não existe                  → 400
  *            • num delete: ainda há registros apontando para este               → 409
  */
-import { Prisma } from '../../prisma/generated/client';
+import { Prisma } from '../prisma/generated/client';
 import { AppError } from './AppError';
 
 /** Mensagens personalizadas por situação; o que não for informado usa o texto genérico. */
