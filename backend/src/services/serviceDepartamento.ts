@@ -8,6 +8,7 @@
  *   - `responsavel_id` é opcional; se vier, precisa ser um funcionário existente.
  *     (Não é exigido que o responsável pertença ao próprio departamento — regra não definida na US.)
  */
+
 import { AppError } from '../errors/AppError';
 import { repositoryDepartamento, type RepositoryDepartamento } from '../repositories/repositoryDepartamento';
 import { repositoryFuncionario, type RepositoryFuncionario } from '../repositories/repositoryFuncionario';

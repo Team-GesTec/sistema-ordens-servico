@@ -25,9 +25,8 @@ export interface DadosCriacaoLocalOperacional {
 /** Dados validados para criar um cliente. */
 export interface DadosCriacaoCliente {
     nome: string;
-    categoria: string;
-    razao_social: string | null;
-    ramo_atuacao: string | null;
+    razao_social: string;
+    ramo_atuacao: string;
     locais_operacionais: DadosCriacaoLocalOperacional[];
 }
 
