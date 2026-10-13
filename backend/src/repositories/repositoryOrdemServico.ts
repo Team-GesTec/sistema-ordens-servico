@@ -64,6 +64,10 @@ export class RepositoryOrdemServico {
         }
     }
 
+    /** Coloca no cache a versão já gravada de uma OS. Chamar depois que a transação terminar */
+    atualizarCache(ordem: OrdemServico): void {
+        ordemServicoCache.definir(ordem)
+    }
     /** Remove uma OS. Bloqueado (409) se ainda houver anexos ou funcionários ligados a ela. */
     async remover(id: number): Promise<void> {
         try {

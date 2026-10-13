@@ -190,10 +190,19 @@ export class ServiceOrdemServico {
             throw AppError.naoEncontrado(`O.S. ${idOS} não encontrada`);
         }
 
-        // 3. Checa a permissão: gestor altera qualquer O.S.; os demais, só as atribuídas a eles
+        // 3. Checa a permissão
+        const ehGestor = usuario.tipo === 'gestor';
         const ehResponsavel = ordem.responsavel_id === usuario.id;
-        if (usuario.tipo !== 'gestor' && !ehResponsavel) {
+
+        //gestor altera qualquer O.S. Os demais, só as atribuídas a eles
+        if (!ehGestor && !ehResponsavel) {
             throw AppError.acessoNegado('Apenas o gestor ou o responsável pela O.S. pode alterar o status');
+        }
+
+        // bloquear e desbloquear são ações só do gestor
+        const envolveBloqueio = novoStatus ==='bloqueado' || ordem.status === 'bloqueado'
+        if (!ehGestor && envolveBloqueio) {
+            throw AppError.acessoNegado('Apenas o gestor pode bloquear ou desbloquear uma O.S.')
         }
 
         // 4. Checa a trava: O.S. concluída não muda mais
@@ -234,7 +243,8 @@ export class ServiceOrdemServico {
             return ordemAtualizada;
         });
 
-        // 7. Devolve a O.S. atualizada
+        // 7. Atualiza o cache só depois que a transação terminou
+        this.repositorio.atualizarCache(atualizada)
         return atualizada;
     }
 
