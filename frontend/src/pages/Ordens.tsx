@@ -31,6 +31,7 @@ const CRITICIDADES: SelectOption[] = [
 ];
 
 function Ordens() {
+    const [titulo, setNome] = useState("");
     const [cliente, setCliente] = useState<number | null>(null);
     const [departamento, setDepartamento] = useState<number | null>(null);
     const [projeto, setProjeto] = useState<number | null>(null);
@@ -88,8 +89,8 @@ function Ordens() {
 
     async function handleSubmit(event: FormEvent<HTMLFormElement>) {
         event.preventDefault();
-        if (!cliente || !departamento || !tipo || !descricao.trim()) {
-            setErro("Informe tipo, descrição, cliente e departamento.");
+        if (!titulo.trim() || !cliente || !departamento || !tipo || !descricao.trim()) {
+            setErro("Informe nome, tipo, descrição, cliente e departamento.");
             return;
         }
 
@@ -99,6 +100,7 @@ function Ordens() {
 
         try {
             const criada = await ordemServicoService.criar({
+                titulo,
                 tipo,
                 descricao: descricao.trim(),
                 cliente_id: cliente,
@@ -127,6 +129,21 @@ function Ordens() {
 
                     <form className="form-card" onSubmit={handleSubmit}>
                         <div className="form-grid">
+                            <div className="form-field full-width">
+                                <label htmlFor="nome-os">Nome da OS</label>
+                                <input
+                                    id="nome-os"
+                                    type="text"
+                                    className="form-input"
+                                    placeholder="Digite o nome da ordem de serviço"
+                                    value={titulo}
+                                    onChange={(event) => setNome(event.target.value)}
+                                    maxLength={150}
+                                    aria-label="Nome da ordem de serviço"
+                                    required
+                                />
+                            </div>
+
                             <div className="form-field">
                                 <label>Tipo</label>
                                 <CustomSelect
@@ -206,7 +223,7 @@ function Ordens() {
                             <button type="submit" className="btn-primary" disabled={salvando || carregando}>
                                 {salvando ? "Enviando..." : "Enviar ordem de serviço"}
                             </button>
-                            <button type="button" className="btn-secondary" onClick={() => { setCliente(null); setDepartamento(null); setProjeto(null); setTipo(null); setCriticidade(null); setDescricao(""); setTecnicoResponsavel(null); }} disabled={salvando}>
+                            <button type="button" className="btn-secondary" onClick={() => { setNome(""); setCliente(null); setDepartamento(null); setProjeto(null); setTipo(null); setCriticidade(null); setDescricao(""); setTecnicoResponsavel(null); }} disabled={salvando}>
                                 Cancelar
                             </button>
                         </div>

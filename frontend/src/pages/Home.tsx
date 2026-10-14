@@ -272,8 +272,7 @@ function Home() {
                                     }
                                 >
                                     <span className="card-title">
-                                        #{os.id} —{" "}
-                                        {TIPO_LABELS[os.tipo]}
+                                        #{os.id} — {os.titulo || TIPO_LABELS[os.tipo]}
 
                                         <br />
 

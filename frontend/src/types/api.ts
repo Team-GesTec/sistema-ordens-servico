@@ -87,6 +87,7 @@ export interface ProjetoInput {
 
 export interface OrdemServico {
     id: number;
+    titulo: string
     departamento_id: number;
     cliente_id: number;
     solicitante_id: number;
@@ -103,6 +104,7 @@ export interface OrdemServico {
 }
 
 export interface OrdemServicoInput {
+    titulo: string;
     tipo: TipoOrdemServico;
     descricao: string;
     cliente_id: number;

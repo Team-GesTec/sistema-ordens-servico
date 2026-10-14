@@ -14,12 +14,9 @@ import { projetoService } from "../services/projeto";
 import type { Cliente, Departamento, Projeto, StatusProjeto } from "../types/api";
 
 const STATUS: SelectOption[] = [
-    { value: "pendente", label: "Pendente" },
+    { value: "em_planejamento", label: "Pendente" },
     { value: "em_andamento", label: "Em andamento" },
-    { value: "aguardando_embarque", label: "Aguardando embarque" },
-    { value: "validacao_testes", label: "Validação de testes" },
-    { value: "bloqueado", label: "Bloqueado" },
-    { value: "review", label: "Review" },
+    { value: "pausado", label: "Pausado" },
     { value: "concluido", label: "Concluído" },
 ];
 
