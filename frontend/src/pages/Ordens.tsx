@@ -31,7 +31,7 @@ const CRITICIDADES: SelectOption[] = [
 ];
 
 function Ordens() {
-    const [titulo, setNome] = useState("");
+    const [titulo, setTitulo] = useState("");
     const [cliente, setCliente] = useState<number | null>(null);
     const [departamento, setDepartamento] = useState<number | null>(null);
     const [projeto, setProjeto] = useState<number | null>(null);
@@ -85,12 +85,25 @@ function Ordens() {
             ? [{ value: usuarioLogado.id, label: `#${usuarioLogado.id} — ${usuarioLogado.nome}` }]
             : funcionarios.map((item) => ({ value: item.id, label: `#${item.id} — ${item.nome}` }));
 
-    // TODO: quando existir a rota (PUT) para alterar o técnico responsável, usar tecnicoResponsavel no handleSubmit
+    function limparFormulario() {
+        setTitulo("");
+        setCliente(null);
+        setDepartamento(null);
+        setProjeto(null);
+        setTipo(null);
+        setCriticidade(null);
+        setDescricao("");
+        setTecnicoResponsavel(null);
+    }
 
     async function handleSubmit(event: FormEvent<HTMLFormElement>) {
         event.preventDefault();
-        if (!titulo.trim() || !cliente || !departamento || !tipo || !descricao.trim()) {
-            setErro("Informe nome, tipo, descrição, cliente e departamento.");
+
+        // Técnico sem seleção assume a própria OS
+        const responsavelId = tecnicoResponsavel ?? (isTecnico ? usuarioLogado?.id ?? null : null);
+
+        if (!titulo.trim() || !cliente || !departamento || !tipo || !descricao.trim() || !responsavelId) {
+            setErro("Informe título, tipo, descrição, cliente, departamento e técnico responsável.");
             return;
         }
 
@@ -100,7 +113,7 @@ function Ordens() {
 
         try {
             const criada = await ordemServicoService.criar({
-                titulo,
+                titulo: titulo.trim(),
                 tipo,
                 descricao: descricao.trim(),
                 cliente_id: cliente,
@@ -108,9 +121,12 @@ function Ordens() {
                 projeto_id: projeto,
                 anterior_id: null,
                 criticidade: criticidade,
+                responsavel_id: responsavelId,
             });
+            setTitulo("");
             setDescricao("");
             setCriticidade(null);
+            setTecnicoResponsavel(null);
             setMensagem(`Ordem de serviço #${criada.id} enviada com sucesso.`);
         } catch (error) {
             setErro(error instanceof ApiError ? error.message : "Não foi possível criar a ordem de serviço.");
@@ -130,16 +146,16 @@ function Ordens() {
                     <form className="form-card" onSubmit={handleSubmit}>
                         <div className="form-grid">
                             <div className="form-field full-width">
-                                <label htmlFor="nome-os">Nome da OS</label>
+                                <label htmlFor="titulo-os">Título da OS</label>
                                 <input
-                                    id="nome-os"
+                                    id="titulo-os"
                                     type="text"
                                     className="form-input"
-                                    placeholder="Digite o nome da ordem de serviço"
+                                    placeholder="Digite o título da ordem de serviço"
                                     value={titulo}
-                                    onChange={(event) => setNome(event.target.value)}
+                                    onChange={(event) => setTitulo(event.target.value)}
                                     maxLength={150}
-                                    aria-label="Nome da ordem de serviço"
+                                    aria-label="Título da ordem de serviço"
                                     required
                                 />
                             </div>
@@ -223,7 +239,7 @@ function Ordens() {
                             <button type="submit" className="btn-primary" disabled={salvando || carregando}>
                                 {salvando ? "Enviando..." : "Enviar ordem de serviço"}
                             </button>
-                            <button type="button" className="btn-secondary" onClick={() => { setNome(""); setCliente(null); setDepartamento(null); setProjeto(null); setTipo(null); setCriticidade(null); setDescricao(""); setTecnicoResponsavel(null); }} disabled={salvando}>
+                            <button type="button" className="btn-secondary" onClick={limparFormulario} disabled={salvando}>
                                 Cancelar
                             </button>
                         </div>

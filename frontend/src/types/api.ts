@@ -112,4 +112,5 @@ export interface OrdemServicoInput {
     projeto_id: number | null;
     anterior_id: number | null;
     criticidade: string | null;
+    responsavel_id: number
 }
