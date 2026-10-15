@@ -53,6 +53,15 @@ function Sidebar({ darkMode, setDarkMode }: SidebarProps) {
                     <i className="fa-solid fa-user-tie"></i>
                     <span>Funcionários</span>
                 </NavLink>
+
+                <button
+                    className="menu-item"
+                    onClick={sair}
+                >
+                    <i className="fa-solid fa-right-from-bracket"></i>
+                    <span>Sair</span>
+                </button>
+
             </nav>
 
         </aside>

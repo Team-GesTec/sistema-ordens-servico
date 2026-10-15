@@ -4,7 +4,7 @@
  * Controller de autenticação (US#4.1). Não contém regra: delega ao `serviceAuth`.
  */
 import type { Request, Response } from 'express';
-import { usuarioAutenticado } from '../../middlewares/authMiddleware';
+import { usuarioAutenticado } from '../middlewares/authMiddleware';
 import { serviceAuth } from '../services/serviceAuth';
 
 export class ControllerAuth {

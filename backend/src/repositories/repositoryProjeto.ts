@@ -7,10 +7,10 @@
  * No banco, os departamentos de um projeto ficam em `projetos_departamentos`. Para a API (e para
  * o cache), o projeto é "achatado" num único objeto com `departamentos: number[]`.
  */
-import { prisma } from '../../prisma/client';
+import { prisma } from '../prisma/client';
 import { projetoCache } from '../cache/projetoCache';
 import { traduzirErroPrisma } from '../errors/tratarErroPrisma';
-import type { projetos } from '../../prisma/generated/client';
+import type { projetos } from '../prisma/generated/client';
 import type { DadosAtualizacaoProjeto, DadosCriacaoProjeto, Projeto } from '../models/modelProjeto';
 
 /** O que o Prisma deve trazer junto com o projeto: só os ids dos departamentos ligados. */

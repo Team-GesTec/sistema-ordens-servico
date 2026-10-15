@@ -174,7 +174,7 @@ function Funcionarios() {
                     </form>
 
                     <div className="form-card" style={{ marginTop: 20 }}>
-                        <strong style={{ color: "#fff" }}>Funcionários carregados da API</strong>
+                        <strong>Funcionários carregados da API</strong>
                         {funcionarios.length === 0 ? (
                             <p className="form-hint">Nenhum funcionário retornado pelo backend.</p>
                         ) : (

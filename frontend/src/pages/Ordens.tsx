@@ -8,11 +8,13 @@ import "../styles/forms.css";
 import type { SelectOption } from "../components/CustomSelect";
 import CustomSelect from "../components/CustomSelect";
 import { ApiError } from "../services/api";
+import { getStoredUser } from "../services/auth"; // confirmar o nome real do arquivo do authService
 import { clienteService } from "../services/cliente";
 import { departamentoService } from "../services/departamento";
+import { funcionarioService } from "../services/funcionario";
 import { projetoService } from "../services/projeto";
 import { ordemServicoService } from "../services/ordemServico";
-import type { Cliente, Departamento, Projeto, TipoOrdemServico } from "../types/api";
+import type { Cliente, Departamento, Funcionario, Projeto, TipoOrdemServico } from "../types/api";
 
 const TIPOS: SelectOption[] = [
     { value: "instalacao", label: "Instalação" },
@@ -29,6 +31,7 @@ const CRITICIDADES: SelectOption[] = [
 ];
 
 function Ordens() {
+    const [titulo, setTitulo] = useState("");
     const [cliente, setCliente] = useState<number | null>(null);
     const [departamento, setDepartamento] = useState<number | null>(null);
     const [projeto, setProjeto] = useState<number | null>(null);
@@ -42,6 +45,12 @@ function Ordens() {
     const [salvando, setSalvando] = useState(false);
     const [mensagem, setMensagem] = useState<string | null>(null);
     const [erro, setErro] = useState<string | null>(null);
+
+    const [usuarioLogado] = useState<Funcionario | null>(() => getStoredUser());
+    const isGestor = usuarioLogado?.tipo === "gestor";
+    const isTecnico = usuarioLogado?.tipo === "tecnico";
+    const [funcionarios, setFuncionarios] = useState<Funcionario[]>([]);
+    const [tecnicoResponsavel, setTecnicoResponsavel] = useState<number | null>(null);
 
     useEffect(() => {
         Promise.all([
@@ -58,14 +67,43 @@ function Ordens() {
             .finally(() => setCarregando(false));
     }, []);
 
+    // Só o gestor precisa da lista de funcionários
+    useEffect(() => {
+        if (!isGestor) return;
+        funcionarioService
+            .listar()
+            .then(setFuncionarios)
+            .catch((error: unknown) => setErro(error instanceof ApiError ? error.message : "Não foi possível carregar os funcionários."));
+    }, [isGestor]);
+
     const clienteOptions: SelectOption[] = clientes.map((item) => ({ value: item.id, label: `#${item.id} — ${item.nome}` }));
     const departamentoOptions: SelectOption[] = departamentos.map((item) => ({ value: item.id, label: `#${item.id} — ${item.nome}` }));
     const projetoOptions: SelectOption[] = projetos.map((item) => ({ value: item.id, label: `#${item.id} — cliente #${item.cliente_id}` }));
+    // Gestor vê todos os funcionários; técnico vê somente a si mesmo
+    const funcionarioOptions: SelectOption[] =
+        isTecnico && usuarioLogado
+            ? [{ value: usuarioLogado.id, label: `#${usuarioLogado.id} — ${usuarioLogado.nome}` }]
+            : funcionarios.map((item) => ({ value: item.id, label: `#${item.id} — ${item.nome}` }));
+
+    function limparFormulario() {
+        setTitulo("");
+        setCliente(null);
+        setDepartamento(null);
+        setProjeto(null);
+        setTipo(null);
+        setCriticidade(null);
+        setDescricao("");
+        setTecnicoResponsavel(null);
+    }
 
     async function handleSubmit(event: FormEvent<HTMLFormElement>) {
         event.preventDefault();
-        if (!cliente || !departamento || !tipo || !descricao.trim()) {
-            setErro("Informe tipo, descrição, cliente e departamento.");
+
+        // Técnico sem seleção assume a própria OS
+        const responsavelId = tecnicoResponsavel ?? (isTecnico ? usuarioLogado?.id ?? null : null);
+
+        if (!titulo.trim() || !cliente || !departamento || !tipo || !descricao.trim() || !responsavelId) {
+            setErro("Informe título, tipo, descrição, cliente, departamento e técnico responsável.");
             return;
         }
 
@@ -75,6 +113,7 @@ function Ordens() {
 
         try {
             const criada = await ordemServicoService.criar({
+                titulo: titulo.trim(),
                 tipo,
                 descricao: descricao.trim(),
                 cliente_id: cliente,
@@ -82,9 +121,12 @@ function Ordens() {
                 projeto_id: projeto,
                 anterior_id: null,
                 criticidade: criticidade,
+                responsavel_id: responsavelId,
             });
+            setTitulo("");
             setDescricao("");
             setCriticidade(null);
+            setTecnicoResponsavel(null);
             setMensagem(`Ordem de serviço #${criada.id} enviada com sucesso.`);
         } catch (error) {
             setErro(error instanceof ApiError ? error.message : "Não foi possível criar a ordem de serviço.");
@@ -103,6 +145,21 @@ function Ordens() {
 
                     <form className="form-card" onSubmit={handleSubmit}>
                         <div className="form-grid">
+                            <div className="form-field full-width">
+                                <label htmlFor="titulo-os">Título da OS</label>
+                                <input
+                                    id="titulo-os"
+                                    type="text"
+                                    className="form-input"
+                                    placeholder="Digite o título da ordem de serviço"
+                                    value={titulo}
+                                    onChange={(event) => setTitulo(event.target.value)}
+                                    maxLength={150}
+                                    aria-label="Título da ordem de serviço"
+                                    required
+                                />
+                            </div>
+
                             <div className="form-field">
                                 <label>Tipo</label>
                                 <CustomSelect
@@ -153,6 +210,18 @@ function Ordens() {
                                 />
                             </div>
 
+                            {(isGestor || isTecnico) && (
+                                <div className="form-field">
+                                    <label>Técnico responsável</label>
+                                    <CustomSelect
+                                        options={funcionarioOptions}
+                                        value={tecnicoResponsavel}
+                                        onChange={(value) => setTecnicoResponsavel(Number(value))}
+                                        placeholder="Selecione o funcionário"
+                                    />
+                                </div>
+                            )}
+
                             <div className="form-field full-width">
                                 <label htmlFor="descricao">Descrição</label>
                                 <textarea
@@ -170,7 +239,7 @@ function Ordens() {
                             <button type="submit" className="btn-primary" disabled={salvando || carregando}>
                                 {salvando ? "Enviando..." : "Enviar ordem de serviço"}
                             </button>
-                            <button type="button" className="btn-secondary" onClick={() => { setCliente(null); setDepartamento(null); setProjeto(null); setTipo(null); setCriticidade(null); setDescricao(""); }} disabled={salvando}>
+                            <button type="button" className="btn-secondary" onClick={limparFormulario} disabled={salvando}>
                                 Cancelar
                             </button>
                         </div>

@@ -7,7 +7,7 @@ dist-ssr
 *.local
 
 # Cliente Prisma
-backend/prisma/generated
+**/*/prisma/generated
 
 # Variáveis de ambiente
 .env
