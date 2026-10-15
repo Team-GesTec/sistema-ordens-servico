@@ -11,7 +11,7 @@
  */
 import type { Request, Response } from 'express';
 import { serviceCliente } from '../services/serviceCliente';
-import { lerId } from '../../utils/validacao';
+import { lerId } from '../utils/validacao';
 
 export class ControllerCliente {
     /** GET /cliente — lista todos os clientes. */

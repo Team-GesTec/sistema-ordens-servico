@@ -5,7 +5,7 @@
  * pelo seed inicial (por isso não depende de `config/env`).
  */
 import * as bcrypt from 'bcryptjs';
-import { AppError } from '../src/errors/AppError';
+import { AppError } from '../errors/AppError';
 
 /** Custo do bcrypt (2^12 rodadas). Aumentar deixa o hash mais lento e mais resistente a força bruta. */
 export const CUSTO_BCRYPT = 12;
