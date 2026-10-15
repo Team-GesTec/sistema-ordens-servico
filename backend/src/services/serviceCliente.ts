@@ -74,6 +74,15 @@ export class ServiceCliente {
             ramo_atuacao: exigirTexto(dados.ramo_atuacao, 'ramo_atuacao', { maximo: TEXTO_MAXIMO }),
             locais_operacionais: locaisOperacionais,
         };
+
+        if ((await this.repositorio.listar()).some(os => os.nome == novo.nome)) {
+            throw AppError.conflito(`já existe um cliente com nome ${novo.nome}`);
+        }
+
+        if ((await this.repositorio.listar()).some(os => os.razao_social === novo.razao_social)) {
+            throw AppError.conflito(`já existe um cliente com razão social ${novo.razao_social}`);
+        }
+
         return this.repositorio.criar(novo);
     }
 
@@ -86,6 +95,27 @@ export class ServiceCliente {
      */
     async atualizar(id: number, corpo: unknown, parcial: boolean): Promise<Cliente> {
         const dados = lerCorpo(corpo);
+
+        if (dados.nome) {
+            const existe = (await this.repositorio.listar()).some(
+                cliente => cliente.nome === dados.nome && cliente.id !== id
+            );
+
+            if (existe) {
+                throw AppError.conflito(`já existe um cliente com nome ${dados.nome}`);
+            }
+        }
+        
+        if (dados.razao_social) {
+            const existe = (await this.repositorio.listar()).some(
+                cliente => cliente.razao_social === dados.razao_social && cliente.id !== id
+            );
+
+            if (existe) {
+                throw AppError.conflito(`já existe um cliente com razão social ${dados.razao_social}`);
+            }
+        }
+
         const alteracoes = this.montarAlteracoes(dados, parcial);
         exigirAlteracoes(alteracoes);
         return this.repositorio.atualizar(id, alteracoes);
