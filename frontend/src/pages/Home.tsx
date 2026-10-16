@@ -32,12 +32,10 @@ const setorOptions: SelectOption[] = [
 ];
 
 const STATUS_LABELS: Record<StatusOrdemServico, string> = {
-    pendente: "Pendente",
     em_andamento: "Em andamento",
-    aguardando_embarque: "Aguardando embarque",
+    aguardando: "Aguardando embarque",
     validacao_testes: "Validação de testes",
     bloqueado: "Bloqueado",
-    review: "Review",
     concluido: "Concluído",
 };
 
@@ -85,6 +83,7 @@ function Home() {
     const [funcionarios, setFuncionarios] = useState<Funcionario[]>([]);
     const [tecnicoResponsavel, setTecnicoResponsavel] = useState<number | null>(null);
     const [salvandoResponsavel, setSalvandoResponsavel] = useState(false);
+    const [salvandoStatus, setSalvandoStatus] = useState(false);
 
 
     useEffect(() => {
@@ -245,8 +244,43 @@ function Home() {
         void salvarResponsavel(usuarioLogado.id);
     }
 
+    async function salvarStatus(
+        status: StatusOrdemServico,
+        parecer?: string,
+    ): Promise<boolean> {
+        if (!osSelecionada || salvandoStatus) {
+            return false;
+        }
+
+        const osId = osSelecionada.id;
+
+        setSalvandoStatus(true);
+        setErro(null);
+
+        try {
+            await ordemServicoService.alterarStatus(osId, status, parecer);
+            const encontrada = await sincronizarOrdens(osId);
+
+            if (!encontrada) {
+                setErro(`A O.S. #${osId} não veio na listagem do servidor.`);
+                return false;
+            }
+
+            return true;
+        } catch (error) {
+            setErro(
+                error instanceof ApiError
+                    ? error.message
+                    : "Não foi possível alterar o status da ordem de serviço.",
+            );
+            return false;
+        } finally {
+            setSalvandoStatus(false);
+        }
+    }
+
     function alterarStatus(value: string | number) {
-        if (!osSelecionada) {
+        if (!osSelecionada || salvandoStatus) {
             return;
         }
 
@@ -258,10 +292,7 @@ function Home() {
             return;
         }
 
-        setOsSelecionada({
-            ...osSelecionada,
-            status: novoStatus,
-        });
+        void salvarStatus(novoStatus);
     }
 
     function cancelarParecer() {
@@ -269,20 +300,19 @@ function Home() {
         setParecerTecnico("");
     }
 
-    function confirmarConclusao() {
+    async function confirmarConclusao() {
         const parecer = parecerTecnico.trim();
 
-        if (!parecer || !osSelecionada) {
+        if (!parecer || !osSelecionada || salvandoStatus) {
             return;
         }
 
-        setOsSelecionada({
-            ...osSelecionada,
-            status: "concluido",
-        });
+        const sucesso = await salvarStatus("concluido", parecer);
 
-        setModalParecerAberto(false);
-        setParecerTecnico("");
+        if (sucesso) {
+            setModalParecerAberto(false);
+            setParecerTecnico("");
+        }
     }
 
     return (

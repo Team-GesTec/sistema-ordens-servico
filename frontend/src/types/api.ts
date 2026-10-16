@@ -13,7 +13,12 @@ export type TipoOrdemServico = "instalacao" | "manutencao";
 
 export type NivelCriticidade = "baixo" | "medio" | "alto" | "muito_alto" | "urgente";
 
-export type StatusOrdemServico = StatusProjeto;
+export type StatusOrdemServico =
+    | "em_andamento"
+    | "aguardando"
+    | "validacao_testes"
+    | "bloqueado"
+    | "concluido";
 
 export interface Funcionario {
     id: number;

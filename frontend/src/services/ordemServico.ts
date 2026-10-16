@@ -1,3 +1,4 @@
+
 import { apiRequest } from "./api";
 import type { OrdemServico, OrdemServicoInput } from "../types/api";
 
@@ -21,6 +22,20 @@ export const ordemServicoService = {
         return apiRequest<OrdemServico>(`/ordens-servico/atribuir/${id}`, {
             method: "PATCH",
             body: JSON.stringify({ funcionario_id: funcionarioId }),
+        });
+    },
+
+    alterarStatus(
+        id: number,
+        status: string,
+        parecer_tecnico?: string,
+    ): Promise<OrdemServico> {
+        return apiRequest<OrdemServico>(`/ordens-servico/${id}/status`, {
+            method: "PATCH",
+            body: JSON.stringify({
+                status,
+                parecer_tecnico,
+            }),
         });
     },
 };
