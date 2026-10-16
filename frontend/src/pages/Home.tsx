@@ -14,9 +14,12 @@ import CustomSelect from "../components/CustomSelect";
 import type { SelectOption } from "../components/CustomSelect";
 
 import { ApiError } from "../services/api";
+import { getStoredUser } from "../services/auth"; // confirmar o nome real do arquivo do authService
+import { funcionarioService } from "../services/funcionario";
 import { ordemServicoService } from "../services/ordemServico";
 
 import type {
+    Funcionario,
     NivelCriticidade,
     OrdemServico,
     StatusOrdemServico,
@@ -78,6 +81,13 @@ function Home() {
     const [parecerTecnico, setParecerTecnico] =
         useState("");
 
+    const [usuarioLogado] = useState<Funcionario | null>(() => getStoredUser());
+    const isGestor = usuarioLogado?.tipo === "gestor";
+    const isTecnico = usuarioLogado?.tipo === "tecnico";
+    const [funcionarios, setFuncionarios] = useState<Funcionario[]>([]);
+    const [tecnicoResponsavel, setTecnicoResponsavel] = useState<number | null>(null);
+    const [salvandoResponsavel, setSalvandoResponsavel] = useState(false);
+
 
     useEffect(() => {
         ordemServicoService
@@ -92,6 +102,29 @@ function Home() {
             )
             .finally(() => setCarregando(false));
     }, []);
+
+    // Todos os perfis precisam da lista para mostrar o nome do técnico responsável
+    useEffect(() => {
+        funcionarioService
+            .listar()
+            .then(setFuncionarios)
+            .catch((error: unknown) =>
+                setErro(
+                    error instanceof ApiError
+                        ? error.message
+                        : "Não foi possível carregar os funcionários.",
+                ),
+            );
+    }, []);
+
+    const funcionarioOptions: SelectOption[] = funcionarios.map((item) => ({
+        value: item.id,
+        label: `#${item.id} — ${item.nome}`,
+    }));
+
+    const tecnicoDaOS = funcionarios.find(
+        (item) => item.id === osSelecionada?.responsavel_id,
+    );
 
     const ordensFiltradas = useMemo(() => {
         const termo = search.trim().toLowerCase();
@@ -111,6 +144,7 @@ function Home() {
 
             return (
                 String(os.id).includes(termo) ||
+                (os.titulo ?? "").toLowerCase().includes(termo) ||
                 os.descricao.toLowerCase().includes(termo) ||
                 TIPO_LABELS[os.tipo]
                     .toLowerCase()
@@ -122,8 +156,95 @@ function Home() {
         });
     }, [ordens, search, selectedSetor]);
 
+    function abrirModal(os: OrdemServico) {
+        setOsSelecionada(os);
+        setTecnicoResponsavel(os.responsavel_id ?? null);
+    }
+
     function fecharModal() {
         setOsSelecionada(null);
+        setTecnicoResponsavel(null);
+    }
+
+    // Recarrega a lista do servidor e atualiza a OS aberta no modal.
+    // Devolve false se a OS não vier mais na listagem.
+    async function sincronizarOrdens(idSelecionado: number): Promise<boolean> {
+        const lista = await ordemServicoService.listar();
+        setOrdens(lista);
+
+        const osAtual = lista.find((os) => os.id === idSelecionado);
+
+        if (!osAtual) {
+            setOsSelecionada(null);
+            setTecnicoResponsavel(null);
+            return false;
+        }
+
+        setOsSelecionada(osAtual);
+        setTecnicoResponsavel(osAtual.responsavel_id ?? null);
+        return true;
+    }
+
+    // Grava o responsável (PATCH /ordens-servico/atribuir/:id) e SEMPRE relista
+    // em seguida, dando certo ou não, para a tela refletir o que está no servidor
+    async function salvarResponsavel(funcionarioId: number) {
+        if (!osSelecionada || salvandoResponsavel) {
+            return;
+        }
+
+        const osId = osSelecionada.id;
+        let idAtual = osId;
+
+        setSalvandoResponsavel(true);
+        setErro(null);
+
+        try {
+            const atualizada = await ordemServicoService.atribuirResponsavel(
+                osId,
+                funcionarioId,
+            );
+
+            // Se o backend devolver a OS com outro id, acompanha o id novo
+            idAtual = atualizada?.id ?? osId;
+        } catch (error) {
+            setErro(
+                error instanceof ApiError
+                    ? error.message
+                    : "Não foi possível atribuir o responsável.",
+            );
+        }
+
+        try {
+            const encontrada = await sincronizarOrdens(idAtual);
+
+            if (!encontrada) {
+                setErro(
+                    (anterior) =>
+                        anterior ??
+                        `A O.S. #${idAtual} não veio na listagem do servidor.`,
+                );
+            }
+        } catch (error) {
+            setErro(
+                error instanceof ApiError
+                    ? error.message
+                    : "Não foi possível recarregar as ordens de serviço.",
+            );
+        } finally {
+            setSalvandoResponsavel(false);
+        }
+    }
+
+    function atribuirTecnico(value: string | number) {
+        void salvarResponsavel(Number(value));
+    }
+
+    function assumirOS() {
+        if (!usuarioLogado) {
+            return;
+        }
+
+        void salvarResponsavel(usuarioLogado.id);
     }
 
     function alterarStatus(value: string | number) {
@@ -220,13 +341,10 @@ function Home() {
                                     key={os.id}
                                     className={`card ${os.criticidade ?? ""
                                         }`}
-                                    onClick={() =>
-                                        setOsSelecionada(os)
-                                    }
+                                    onClick={() => abrirModal(os)}
                                 >
                                     <span className="card-title">
-                                        #{os.id} —{" "}
-                                        {TIPO_LABELS[os.tipo]}
+                                        #{os.id} — {os.titulo || TIPO_LABELS[os.tipo]}
 
                                         <br />
 
@@ -289,6 +407,12 @@ function Home() {
                         </div>
 
                         <div className="modal-body">
+                            {erro && (
+                                <p className="form-hint">
+                                    {erro}
+                                </p>
+                            )}
+
                             <div className="modal-datas">
                                 <div className="modal-info-item">
                                     <span className="modal-label">
@@ -377,6 +501,54 @@ function Home() {
                                     </div>
                                 </div>
                             </div>
+
+                            <div className="modal-detalhes">
+                                <div>
+                                    <span className="modal-label">
+                                        Técnico responsável
+                                    </span>
+
+                                    <p>
+                                        {tecnicoDaOS
+                                            ? `#${tecnicoDaOS.id} — ${tecnicoDaOS.nome}`
+                                            : osSelecionada.responsavel_id
+                                                ? `Técnico #${osSelecionada.responsavel_id}`
+                                                : "Nenhum técnico atribuído"}
+                                    </p>
+                                </div>
+                            </div>
+
+                            {isGestor && (
+                                <div className="modal-detalhes">
+                                    <div>
+                                        <span className="modal-label">
+                                            Alterar técnico
+                                        </span>
+
+                                        <CustomSelect
+                                            className="modal-tecnico"
+                                            options={funcionarioOptions}
+                                            value={tecnicoResponsavel}
+                                            onChange={atribuirTecnico}
+                                            placeholder="Selecione o funcionário"
+                                        />
+                                    </div>
+                                </div>
+                            )}
+
+                            {isTecnico && !osSelecionada.responsavel_id && (
+                                <div className="">
+                                    <button
+                                        type="button"
+                                        className="btn-primary modal-tecnico"
+                                        onClick={assumirOS}
+                                        disabled={salvandoResponsavel}
+                                    >
+                                        Assumir OS
+                                    </button>
+                                </div>
+                            )}
+
                         </div>
                     </div>
                 </div>

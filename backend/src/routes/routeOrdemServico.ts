@@ -41,8 +41,8 @@ router.put('/:id', somenteGestor, (req: Request, res: Response) => controllerOrd
 
 //DELETE - gestor
 router.delete('/:id', somenteGestor, (req: Request, res: Response) => controllerOrdemServico.deleteOrdem(req, res))
-
 // PATCH status — gestor altera qualquer O.S.; técnico, só as atribuídas a ele (checado no service)
+
 router.patch('/:id/status', gestorOuTecnico, (req: Request, res: Response) =>
     controllerOrdemServico.alterarStatus(req, res),
 );

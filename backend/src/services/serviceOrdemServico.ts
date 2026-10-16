@@ -1,5 +1,7 @@
 /**
  * services/serviceOrdemServico.ts
+/**
+ * services/serviceOrdemServico.ts
  *
  * Regras de negócio da O.S.: abertura (US#2.1), edição, atribuição de responsável (US#2.3)
  * e alteração de status (US#2.4).
@@ -30,6 +32,9 @@ import {
     type DadosCriacaoOrdemServico,
     type DadosAtualizacaoOrdemServico,
     type DadosAlteracaoStatus,
+import {
+    type DadosCriacaoOrdemServico,
+    type DadosAtualizacaoOrdemServico,
     type OrdemServico,
     STATUS_ORDEM,
     STATUS_PADRAO,

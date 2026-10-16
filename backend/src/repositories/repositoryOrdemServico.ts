@@ -5,7 +5,6 @@
  * Leituras passam pelo cache; escritas vão ao banco e, confirmadas, atualizam o cache.
  */
 
-
 import { prisma } from '../prisma/client';
 import type { Prisma } from '../prisma/generated/client';
 import { ordemServicoCache } from '../cache/ordemServicoCache';
@@ -66,8 +65,9 @@ export class RepositoryOrdemServico {
 
     /** Coloca no cache a versão já gravada de uma OS. Chamar depois que a transação terminar */
     atualizarCache(ordem: OrdemServico): void {
-        ordemServicoCache.definir(ordem)
+        ordemServicoCache.definir(ordem);
     }
+
     /** Remove uma OS. Bloqueado (409) se ainda houver anexos ou funcionários ligados a ela. */
     async remover(id: number): Promise<void> {
         try {
@@ -140,11 +140,12 @@ export class RepositoryOrdemServico {
             });
         });
 
-        // A transação já foi confirmada, invalida o cache para que a próxima leitura busque o estado persistido.
-        ordemServicoCache.remover(osId);
+        // A transação já foi confirmada: atualiza o cache com o estado persistido.
+        ordemServicoCache.definir(atualizada);
 
         return atualizada;
     }
+
     /** Grava o novo status e o parecer técnico de uma O.S. que já existe. */
     async atualizarStatus(
         id: number,
@@ -155,6 +156,7 @@ export class RepositoryOrdemServico {
             where: { id },
             data: dados,
         });
+
         return atualizada;
     }
 }
