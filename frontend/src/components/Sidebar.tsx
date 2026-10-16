@@ -1,4 +1,4 @@
-import { NavLink, useNavigate } from "react-router-dom";
+import { NavLink } from "react-router-dom";
 import logo from "../images/logo_gestec.png";
 
 interface SidebarProps {
@@ -8,12 +8,6 @@ interface SidebarProps {
 
 function Sidebar({ darkMode, setDarkMode }: SidebarProps) {
 
-    const navigate = useNavigate();
-
-    function sair() {
-        sessionStorage.removeItem("autenticado");
-        navigate("/login");
-    }
 
     return (
         <aside className="sidebar">

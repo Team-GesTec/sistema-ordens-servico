@@ -1,4 +1,3 @@
-import { useState } from "react";
 import "../styles/variaveis.css";
 import "../styles/global.css";
 import "../styles/layout.css";
