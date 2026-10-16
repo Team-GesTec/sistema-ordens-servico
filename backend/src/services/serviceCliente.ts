@@ -70,9 +70,8 @@ export class ServiceCliente {
         const locaisOperacionais = this.validarLocaisOperacionais(dados.locais_operacionais)
         const novo: DadosCriacaoCliente = {
             nome: exigirTexto(dados.nome, 'nome', { maximo: TEXTO_MAXIMO }),
-            categoria: exigirTexto(dados.categoria, 'categoria', { maximo: TEXTO_MAXIMO }),
-            razao_social: textoOpcional(dados.razao_social, 'razao_social', { maximo: TEXTO_MAXIMO }),
-            ramo_atuacao: textoOpcional(dados.ramo_atuacao, 'ramo_atuacao', { maximo: TEXTO_MAXIMO }),
+            razao_social: exigirTexto(dados.razao_social, 'razao_social', { maximo: TEXTO_MAXIMO }),
+            ramo_atuacao: exigirTexto(dados.ramo_atuacao, 'ramo_atuacao', { maximo: TEXTO_MAXIMO }),
             locais_operacionais: locaisOperacionais,
         };
         return this.repositorio.criar(novo);
@@ -103,14 +102,11 @@ export class ServiceCliente {
         if (!parcial || campoPresente(dados, 'nome')) {
             alteracoes.nome = exigirTexto(dados.nome, 'nome', { maximo: TEXTO_MAXIMO });
         }
-        if (!parcial || campoPresente(dados, 'categoria')) {
-            alteracoes.categoria = exigirTexto(dados.categoria, 'categoria', { maximo: TEXTO_MAXIMO });
-        }
         if (!parcial || campoPresente(dados, 'razao_social')) {
-            alteracoes.razao_social = textoOpcional(dados.razao_social, 'razao_social', { maximo: TEXTO_MAXIMO });
+            alteracoes.razao_social = exigirTexto(dados.razao_social, 'razao_social', { maximo: TEXTO_MAXIMO });
         }
         if (!parcial || campoPresente(dados, 'ramo_atuacao')) {
-            alteracoes.ramo_atuacao = textoOpcional(dados.ramo_atuacao, 'ramo_atuacao', { maximo: TEXTO_MAXIMO });
+            alteracoes.ramo_atuacao = exigirTexto(dados.ramo_atuacao, 'ramo_atuacao', { maximo: TEXTO_MAXIMO });
         }
         if (!parcial || campoPresente(dados, 'locais_operacionais')) {
             alteracoes.locais_operacionais = this.validarLocaisOperacionais(dados.locais_operacionais)

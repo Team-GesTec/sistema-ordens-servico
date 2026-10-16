@@ -39,34 +39,68 @@ async function main(): Promise<void> {
     const nome = process.env.SEED_GESTOR_NOME?.trim() || 'Administrador';
     const nomeDepartamento = process.env.SEED_DEPARTAMENTO_NOME?.trim() || 'Administração';
 
-    const existente = await prisma.funcionarios.findUnique({ where: { usuario }, select: { id: true } });
-    if (existente) {
-        console.log(`[seed] O usuário "${usuario}" já existe (id ${existente.id}). Nada a fazer.`);
-        return;
-    }
-
-    const departamento =
-        (await prisma.departamentos.findFirst({ where: { nome: nomeDepartamento } })) ??
-        (await prisma.departamentos.create({ data: { nome: nomeDepartamento } }));
-
-    const gestor = await prisma.funcionarios.create({
-        data: {
-            usuario,
-            nome,
-            tipo: 'gestor',
-            departamento_id: departamento.id,
-            senha_hash: await gerarHashSenha(senha),
-        },
-        select: { id: true, usuario: true },
+    const gestorExistente = await prisma.funcionarios.findUnique({
+        where: { usuario },
+        select: { id: true },
     });
+    if (gestorExistente) {
+        console.log(`[seed] O gestor "${usuario}" já existe (id ${gestorExistente.id}).`);
+    } else {
+        const departamento =
+            (await prisma.departamentos.findFirst({ where: { nome: nomeDepartamento } })) ??
+            (await prisma.departamentos.create({ data: { nome: nomeDepartamento } }));
 
-    if (departamento.responsavel_id === null) {
-        await prisma.departamentos.update({ where: { id: departamento.id }, data: { responsavel_id: gestor.id } });
+        const gestor = await prisma.funcionarios.create({
+            data: {
+                usuario,
+                nome,
+                tipo: 'gestor',
+                departamento_id: departamento.id,
+                senha_hash: await gerarHashSenha(senha),
+            },
+            select: { id: true, usuario: true },
+        });
+
+        if (departamento.responsavel_id === null) {
+            await prisma.departamentos.update({ where: { id: departamento.id }, data: { responsavel_id: gestor.id } });
+        }
+
+        console.log(
+            `[seed] Gestor "${gestor.usuario}" (id ${gestor.id}) criado no departamento "${departamento.nome}" (id ${departamento.id}).`,
+        );
     }
 
-    console.log(
-        `[seed] Gestor "${gestor.usuario}" (id ${gestor.id}) criado no departamento "${departamento.nome}" (id ${departamento.id}).`,
-    );
+    // Criação de técnico e seu departamento
+    const usuarioTecnico = lerVariavel('SEED_TECNICO_USUARIO').trim().toLowerCase();
+    const senhaTecnico = validarSenha(lerVariavel('SEED_TECNICO_SENHA'), 'SEED_TECNICO_SENHA');
+    const nomeTecnico = process.env.SEED_TECNICO_NOME?.trim() || 'Técnico';
+    const nomeDepartamentoTecnico = process.env.SEED_DEPARTAMENTO_TECNICO_NOME?.trim() || 'Tecnologia';
+
+    const tecnicoExistente = await prisma.funcionarios.findUnique({
+        where: { usuario: usuarioTecnico },
+        select: { id: true },
+    });
+    if (tecnicoExistente) {
+        console.log(`[seed] O técnico "${usuarioTecnico}" já existe (id ${tecnicoExistente.id}).`);
+    } else {
+        const departamentoTecnico =
+            (await prisma.departamentos.findFirst({ where: { nome: nomeDepartamentoTecnico } })) ??
+            (await prisma.departamentos.create({ data: { nome: nomeDepartamentoTecnico } }));
+
+        const tecnico = await prisma.funcionarios.create({
+            data: {
+                usuario: usuarioTecnico,
+                nome: nomeTecnico,
+                tipo: 'tecnico',
+                departamento_id: departamentoTecnico.id,
+                senha_hash: await gerarHashSenha(senhaTecnico),
+            },
+        });
+
+        console.log(
+            `[seed] Técnico "${tecnico.usuario}" (id ${tecnico.id}) criado no departamento "${departamentoTecnico.nome}" (id ${departamentoTecnico.id}).`,
+        );
+    }
 }
 
 main()
