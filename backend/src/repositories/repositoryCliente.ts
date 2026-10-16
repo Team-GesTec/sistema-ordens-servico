@@ -69,16 +69,65 @@ export class RepositoryCliente {
         }
     }
 
-    /** Remove um cliente do banco e do cache. Bloqueado (409) se houver projetos/O.S./locais ligados a ele. */
-    async remover(id: number): Promise<void> {
+        /** Conta projetos do cliente cujo status não é concluído. */
+    async contarProjetosNaoConcluidos(clienteId: number): Promise<number> {
+        return prisma.projetos.count({
+            where: {
+                cliente_id: clienteId,
+                status: { not: 'concluido' },
+            },
+        });
+    }
+
+    /** Conta O.S. não concluídas vinculadas diretamente ao cliente ou por projeto. */
+    async contarOrdensServicoNaoConcluidas(clienteId: number): Promise<number> {
+        return prisma.ordens_servico.count({
+            where: {
+                status: { not: 'concluido' },
+                OR: [
+                    // O.S. vinculada diretamente ao cliente
+                    { cliente_id: clienteId },
+
+                    // O.S. vinculada por meio de um projeto do cliente
+                    { projetos: { is: { cliente_id: clienteId } } },
+
+                    // O.S. vinculada a um local operacional do cliente
+                    { locais_operacionais: { is: { cliente_id: clienteId } } },
+                ],
+            },
+        });
+    }
+
+    /** Inativa o cliente sem apagar seu registro ou histórico. */
+    async inativar(id: number): Promise<Cliente> {
         try {
-            await prisma.clientes.delete({ where: { id }, select: { id: true } });
-            clienteCache.remover(id);
+            const inativado = await prisma.clientes.update({
+                where: { id },
+                data: { ativo: false },
+            });
+
+            clienteCache.definir(inativado);
+            return inativado;
         } catch (erro) {
             throw traduzirErroPrisma(erro, {
                 registroNaoEncontrado: 'Cliente não encontrado',
-                referenciaEmUso:
-                    'Não é possível excluir: o cliente ainda tem projetos, O.S. ou locais operacionais vinculados',
+            });
+        }
+    }
+
+    /** Reativa o cliente sem apagar seu histórico. */
+    async ativar(id: number): Promise<Cliente> {
+        try {
+            const ativado = await prisma.clientes.update({
+                where: { id },
+                data: { ativo: true },
+            });
+
+            clienteCache.definir(ativado);
+            return ativado;
+        } catch (erro) {
+            throw traduzirErroPrisma(erro, {
+                registroNaoEncontrado: "Cliente não encontrado",
             });
         }
     }

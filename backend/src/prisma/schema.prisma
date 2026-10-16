@@ -38,9 +38,10 @@ model auditoria {
 
 model clientes {
   id                  Int                   @id @default(autoincrement())
-  nome                String
-  razao_social        String
+  nome                String                @unique
+  razao_social        String                @unique
   ramo_atuacao        String
+  ativo               Boolean               @default(true)
   locais_operacionais locais_operacionais[]
   ordens_servico      ordens_servico[]
   projetos            projetos[]

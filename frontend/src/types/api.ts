@@ -33,9 +33,9 @@ export interface LoginResponse {
 export interface Cliente {
     id: number;
     nome: string;
-    categoria: string;
-    razao_social: string | null;
-    ramo_atuacao: string | null;
+    razao_social: string;
+    ramo_atuacao: string;
+    ativo: boolean;
 }
 
 export interface LocalOperacionalInput {
@@ -45,9 +45,8 @@ export interface LocalOperacionalInput {
 
 export interface ClienteInput {
     nome: string;
-    categoria: string;
-    razao_social: string | null;
-    ramo_atuacao: string | null;
+    razao_social: string;
+    ramo_atuacao: string;
     locais_operacionais: LocalOperacionalInput[];
 }
 
