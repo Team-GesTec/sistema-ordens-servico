@@ -12,9 +12,8 @@ import "../styles/modal-os.css";
 
 import CustomSelect from "../components/CustomSelect";
 import type { SelectOption } from "../components/CustomSelect";
-
 import { ApiError } from "../services/api";
-import { getStoredUser } from "../services/auth"; // confirmar o nome real do arquivo do authService
+import { getStoredUser } from "../services/auth";
 import { funcionarioService } from "../services/funcionario";
 import { ordemServicoService } from "../services/ordemServico";
 
@@ -25,7 +24,6 @@ import type {
     StatusOrdemServico,
     TipoOrdemServico,
 } from "../types/api";
-
 const setorOptions: SelectOption[] = [
     {
         value: 0,
@@ -305,9 +303,7 @@ function Home() {
                         <CustomSelect
                             options={setorOptions}
                             value={selectedSetor}
-                            onChange={(value) =>
-                                setSelectedSetor(Number(value))
-                            }
+                            onChange={(value) => setSelectedSetor(Number(value))}
                             placeholder="Todos os setores"
                         />
 

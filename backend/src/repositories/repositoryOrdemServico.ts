@@ -64,6 +64,26 @@ export class RepositoryOrdemServico {
     }
 
     /** Coloca no cache a versão já gravada de uma OS. Chamar depois que a transação terminar */
+        /**
+     * Atualiza os campos informados de uma OS dentro de uma transação.
+     * Não mexe no cache: quem chama deve chamar `limparCache` depois que a transação terminar.
+     */
+    async atualizarNaTransacao(
+        id: number,
+        dados: DadosAtualizacaoOrdemServico,
+        conexao: Prisma.TransactionClient,
+    ): Promise<OrdemServico> {
+        try {
+            return await conexao.ordens_servico.update({ where: { id }, data: dados });
+        } catch (erro) {
+            throw traduzirErroPrisma(erro, {
+                registroNaoEncontrado: 'Ordem de Serviço não encontrada',
+                referenciaInvalida: REFERENCIA_INVALIDA,
+            });
+        }
+    }
+
+    /** Coloca no cache a versão já gravada de uma OS. Chamar depois que a transação terminar. */
     atualizarCache(ordem: OrdemServico): void {
         ordemServicoCache.definir(ordem);
     }

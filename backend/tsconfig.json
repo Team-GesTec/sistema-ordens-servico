@@ -22,5 +22,5 @@
     "moduleDetection": "force",
     "skipLibCheck": true,
   },
-  "exclude": ["prisma.config.ts", "features"],
+  "exclude": ["prisma.config.ts", "features", "prisma/generated"]
 }
