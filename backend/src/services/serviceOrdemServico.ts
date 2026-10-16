@@ -32,9 +32,6 @@ import {
     type DadosCriacaoOrdemServico,
     type DadosAtualizacaoOrdemServico,
     type DadosAlteracaoStatus,
-import {
-    type DadosCriacaoOrdemServico,
-    type DadosAtualizacaoOrdemServico,
     type OrdemServico,
     STATUS_ORDEM,
     STATUS_PADRAO,
