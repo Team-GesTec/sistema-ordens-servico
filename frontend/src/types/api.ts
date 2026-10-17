@@ -117,4 +117,12 @@ export interface OrdemServicoInput {
     projeto_id: number | null;
     anterior_id: number | null;
     criticidade: string | null;
+    /** AJ-06 — cadastro de O.S. antiga (somente gestor): data de abertura no passado, em ISO. */
+    data_criacao?: string;
+    /** AJ-06 — status atual da O.S. antiga. */
+    status?: StatusOrdemServico;
+    /** AJ-06 — obrigatório quando a O.S. antiga já está concluída. */
+    parecer_tecnico?: string;
+    /** AJ-06 — data de conclusão (ISO), obrigatória quando a O.S. antiga já está concluída. */
+    data_fim?: string;
 }

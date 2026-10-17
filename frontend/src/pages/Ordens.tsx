@@ -136,6 +136,7 @@ function Ordens() {
                 projetos={ordens.projetos}
                 salvando={ordens.salvando}
                 erro={ordens.formularioAberto ? ordens.erro : null}
+                podeCadastrarAntiga={ordens.podeGerenciar}
                 onClose={ordens.fecharFormulario}
                 onSave={ordens.salvarOrdem}
                 onClearError={ordens.limparErro}
@@ -144,4 +145,4 @@ function Ordens() {
     );
 }
 
-export default Ordens;
+export default Ordens;

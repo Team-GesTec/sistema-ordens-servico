@@ -447,6 +447,25 @@ export function useOrdens() {
             return;
         }
 
+        // AJ-06: O.S. antiga (data de abertura informada) é exclusiva do gestor
+        const cadastroAntiga = !ordemEmEdicao && dados.data_criacao !== undefined;
+
+        if (cadastroAntiga && !podeGerenciar) {
+            setErro("Apenas gestores podem cadastrar ordens de serviço antigas.");
+            return;
+        }
+
+        if (
+            cadastroAntiga &&
+            dados.status === "concluido" &&
+            !dados.parecer_tecnico?.trim()
+        ) {
+            setErro("O parecer técnico é obrigatório para cadastrar uma O.S. concluída.");
+            return;
+        }
+
+        let ordemAntigaCriada: OrdemServico | null = null;
+
         setSalvando(true);
         setErro(null);
         setMensagem(null);
@@ -471,16 +490,27 @@ export function useOrdens() {
                 const criada = await ordemServicoService.criar(payload);
 
                 setMensagem(
-                    `Ordem de serviço #${criada.id} cadastrada com sucesso.`,
+                    cadastroAntiga
+                        ? `Ordem de serviço antiga #${criada.id} cadastrada com sucesso.`
+                        : `Ordem de serviço #${criada.id} cadastrada com sucesso.`,
                 );
                 setBusca("");
                 setFiltroStatus("todos");
+
+                if (cadastroAntiga) {
+                    ordemAntigaCriada = criada;
+                }
             }
 
             await carregarOrdens();
 
             setFormularioAberto(false);
             setOrdemEmEdicao(null);
+
+            // AJ-06: mostra a O.S. antiga com os dados reais da API (abertura e SLA calculado)
+            if (ordemAntigaCriada) {
+                void abrirDetalhes(ordemAntigaCriada);
+            }
         } catch (error) {
             setErro(
                 mensagemErro(
@@ -552,4 +582,4 @@ export function useOrdens() {
         fecharConfirmacaoAtivo,
         confirmarAlteracaoAtivo,
     };
-}
+}

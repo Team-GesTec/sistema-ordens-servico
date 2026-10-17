@@ -780,3 +780,58 @@
     color: #ffffff;
     border: 1px solid #94a3b8;
 }
+/* =========================
+   O.S. ANTIGA / EXISTENTE (AJ-06)
+========================= */
+
+.ordem-form-antiga {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    min-width: 0;
+    margin: 0;
+    padding: 14px 16px 16px;
+    border: 1px solid #c4deee;
+    border-radius: 8px;
+    background: #f6fafd;
+}
+
+.ordem-form-antiga-legenda {
+    padding: 0 6px;
+    color: #28485e;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.ordem-form-check {
+    display: flex;
+    align-items: flex-start;
+    gap: 9px;
+    color: #193247;
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1.5;
+    cursor: pointer;
+}
+
+.ordem-form-check input {
+    flex-shrink: 0;
+    width: 16px;
+    height: 16px;
+    margin: 1px 0 0;
+    accent-color: #1768b7;
+    cursor: pointer;
+}
+
+.ordem-form-check input:focus-visible {
+    outline: 2px solid #1768b7;
+    outline-offset: 2px;
+}
+
+.ordens-feedback--aviso {
+    margin: 0;
+    border: 1px solid #e3b341;
+    background: #fff6db;
+    color: #5c4300;
+    line-height: 1.5;
+}

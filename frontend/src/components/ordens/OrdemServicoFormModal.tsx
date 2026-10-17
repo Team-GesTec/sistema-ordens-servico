@@ -7,10 +7,12 @@ import type {
     OrdemServico,
     OrdemServicoInput,
     Projeto,
+    StatusOrdemServico,
     TipoOrdemServico,
 } from "../../types/api";
 import Autocomplete from "../common/Autocomplete";
 import type { AutocompleteOption } from "../common/Autocomplete";
+import { STATUS_LABELS } from "../../utils/ordemServicoUtils";
 
 interface OrdemServicoFormModalProps {
     aberto: boolean;
@@ -20,9 +22,50 @@ interface OrdemServicoFormModalProps {
     projetos: Projeto[];
     salvando: boolean;
     erro: string | null;
+    /** AJ-06: libera o cadastro de O.S. antiga/existente (somente gestor). */
+    podeCadastrarAntiga?: boolean;
     onClose: () => void;
     onSave: (dados: OrdemServicoInput) => Promise<void>;
     onClearError: () => void;
+}
+
+/** AJ-06: campos do cadastro de O.S. antiga/existente (migração manual). */
+interface FormularioOrdemAntiga {
+    ativo: boolean;
+    dataAbertura: string;
+    status: StatusOrdemServico;
+    dataConclusao: string;
+    parecerTecnico: string;
+    /** Momento (ms) da última interação, usado como "agora" sem chamar Date.now() no render. */
+    referencia: number;
+}
+
+const FORMULARIO_ANTIGA_INICIAL: FormularioOrdemAntiga = {
+    ativo: false,
+    referencia: 0,
+    dataAbertura: "",
+    status: "em_andamento",
+    dataConclusao: "",
+    parecerTecnico: "",
+};
+
+const STATUS_OPCOES: AutocompleteOption[] = (
+    Object.keys(STATUS_LABELS) as StatusOrdemServico[]
+).map((status) => ({ value: status, label: STATUS_LABELS[status] }));
+
+/** Mesma folga de relógio usada pela API para considerar a abertura "no passado". */
+const TOLERANCIA_DATA_PASSADA_MS = 5 * 60 * 1000;
+
+/** Converte milissegundos para o formato do input datetime-local (AAAA-MM-DDTHH:mm), no fuso do navegador. */
+function msParaInput(ms: number): string {
+    const data = new Date(ms);
+    const deslocamento = data.getTimezoneOffset() * 60000;
+    return new Date(ms - deslocamento).toISOString().slice(0, 16);
+}
+
+/** Converte o valor do datetime-local (hora local) em milissegundos; NaN se vazio/inválido. */
+function inputParaMs(valor: string): number {
+    return valor ? new Date(valor).getTime() : Number.NaN;
 }
 
 interface FormularioOrdem {
@@ -66,6 +109,7 @@ function OrdemServicoFormModal({
     projetos,
     salvando,
     erro,
+    podeCadastrarAntiga = false,
     onClose,
     onSave,
     onClearError,
@@ -73,6 +117,27 @@ function OrdemServicoFormModal({
     const [form, setForm] =
         useState<FormularioOrdem>(FORMULARIO_INICIAL);
     const [erroLocal, setErroLocal] = useState<string | null>(null);
+
+    // AJ-06: campos da O.S. antiga, reiniciados sempre que o modal abre
+    const [antiga, setAntiga] = useState<FormularioOrdemAntiga>(
+        FORMULARIO_ANTIGA_INICIAL,
+    );
+    const [abertoAnterior, setAbertoAnterior] = useState(aberto);
+
+    if (aberto !== abertoAnterior) {
+        setAbertoAnterior(aberto);
+        if (aberto) {
+            setAntiga(FORMULARIO_ANTIGA_INICIAL);
+        }
+    }
+
+    const exibirCadastroAntiga = podeCadastrarAntiga && ordem === null;
+    const cadastroAntigaAtivo = exibirCadastroAntiga && antiga.ativo;
+    const aberturaNoPassado =
+        cadastroAntigaAtivo &&
+        inputParaMs(antiga.dataAbertura) < antiga.referencia;
+    const antigaConcluida =
+        cadastroAntigaAtivo && antiga.status === "concluido";
 
     useEffect(() => {
         if (!aberto) return;
@@ -148,6 +213,72 @@ function OrdemServicoFormModal({
         onClearError();
     }
 
+    function atualizarCampoAntiga<K extends keyof FormularioOrdemAntiga>(
+        campo: K,
+        valor: FormularioOrdemAntiga[K],
+    ) {
+        setAntiga((anterior) => ({
+            ...anterior,
+            [campo]: valor,
+            referencia: Date.now(),
+        }));
+        setErroLocal(null);
+        onClearError();
+    }
+
+    /** AJ-06: valida os campos da O.S. antiga. Devolve a mensagem de erro ou null. */
+    function validarCadastroAntiga(): string | null {
+        const abertura = inputParaMs(antiga.dataAbertura);
+
+        if (Number.isNaN(abertura)) {
+            return "Informe a data de abertura da O.S. antiga.";
+        }
+
+        if (abertura >= Date.now() - TOLERANCIA_DATA_PASSADA_MS) {
+            return "Para cadastrar uma O.S. antiga, a data de abertura deve ser anterior à data atual.";
+        }
+
+        if (antiga.status !== "concluido") {
+            return null;
+        }
+
+        if (!antiga.parecerTecnico.trim()) {
+            return "O parecer técnico é obrigatório para cadastrar uma O.S. concluída.";
+        }
+
+        const conclusao = inputParaMs(antiga.dataConclusao);
+
+        if (Number.isNaN(conclusao)) {
+            return "Informe a data de conclusão da O.S. concluída.";
+        }
+
+        if (conclusao < abertura) {
+            return "A data de conclusão não pode ser anterior à data de abertura.";
+        }
+
+        if (conclusao > Date.now()) {
+            return "A data de conclusão não pode estar no futuro.";
+        }
+
+        return null;
+    }
+
+    /** AJ-06: campos extras enviados à API quando o cadastro é de O.S. antiga. */
+    function montarDadosAntiga(): Partial<OrdemServicoInput> {
+        if (!cadastroAntigaAtivo) return {};
+
+        return {
+            data_criacao: new Date(antiga.dataAbertura).toISOString(),
+            status: antiga.status,
+            ...(antiga.status === "concluido"
+                ? {
+                      parecer_tecnico: antiga.parecerTecnico.trim(),
+                      data_fim: new Date(antiga.dataConclusao).toISOString(),
+                  }
+                : {}),
+        };
+    }
+
     async function handleSubmit(event: FormEvent<HTMLFormElement>) {
         event.preventDefault();
 
@@ -164,6 +295,14 @@ function OrdemServicoFormModal({
             return;
         }
 
+        if (cadastroAntigaAtivo) {
+            const erroAntiga = validarCadastroAntiga();
+            if (erroAntiga) {
+                setErroLocal(erroAntiga);
+                return;
+            }
+        }
+
         setErroLocal(null);
 
         await onSave({
@@ -175,6 +314,7 @@ function OrdemServicoFormModal({
             projeto_id: form.projetoId,
             anterior_id: ordem?.anterior_id ?? null,
             criticidade: form.criticidade,
+            ...montarDadosAntiga(),
         });
     }
 
@@ -355,6 +495,129 @@ function OrdemServicoFormModal({
                                     required
                                 />
                             </div>
+
+                            {exibirCadastroAntiga && (
+                                <fieldset className="ordem-form-field--wide ordem-form-antiga">
+                                    <legend className="ordem-form-antiga-legenda">
+                                        O.S. antiga / existente
+                                    </legend>
+
+                                    <label
+                                        className="ordem-form-check"
+                                        htmlFor="os-antiga-ativo"
+                                    >
+                                        <input
+                                            id="os-antiga-ativo"
+                                            type="checkbox"
+                                            checked={antiga.ativo}
+                                            onChange={(event) =>
+                                                atualizarCampoAntiga(
+                                                    "ativo",
+                                                    event.target.checked,
+                                                )
+                                            }
+                                            disabled={salvando}
+                                        />
+                                        Cadastrar uma O.S. que já existia antes do sistema (migração manual)
+                                    </label>
+
+                                    {cadastroAntigaAtivo && (
+                                        <div className="ordem-form-grid">
+                                            <div className="ordem-form-field">
+                                                <label htmlFor="os-antiga-abertura">
+                                                    Data de abertura *
+                                                </label>
+                                                <input
+                                                    id="os-antiga-abertura"
+                                                    type="datetime-local"
+                                                    value={antiga.dataAbertura}
+                                                    max={msParaInput(antiga.referencia)}
+                                                    onChange={(event) =>
+                                                        atualizarCampoAntiga(
+                                                            "dataAbertura",
+                                                            event.target.value,
+                                                        )
+                                                    }
+                                                    required
+                                                />
+                                            </div>
+
+                                            <div className="ordem-form-field">
+                                                <label htmlFor="os-antiga-status">
+                                                    Status atual *
+                                                </label>
+                                                <Autocomplete
+                                                    id="os-antiga-status"
+                                                    options={STATUS_OPCOES}
+                                                    value={antiga.status}
+                                                    onChange={(valor) =>
+                                                        atualizarCampoAntiga(
+                                                            "status",
+                                                            (valor ??
+                                                                "em_andamento") as StatusOrdemServico,
+                                                        )
+                                                    }
+                                                    placeholder="Selecione o status"
+                                                />
+                                            </div>
+
+                                            {aberturaNoPassado && (
+                                                <div
+                                                    className="ordem-form-field--wide ordens-feedback ordens-feedback--aviso"
+                                                    role="status"
+                                                >
+                                                    <strong>Atenção:</strong> a data de abertura informada é anterior à data atual.
+                                                    O prazo de SLA será calculado pelo sistema a partir dessa data e a O.S. pode
+                                                    ser cadastrada já vencida.
+                                                </div>
+                                            )}
+
+                                            {antigaConcluida && (
+                                                <>
+                                                    <div className="ordem-form-field">
+                                                        <label htmlFor="os-antiga-conclusao">
+                                                            Data de conclusão *
+                                                        </label>
+                                                        <input
+                                                            id="os-antiga-conclusao"
+                                                            type="datetime-local"
+                                                            value={antiga.dataConclusao}
+                                                            min={antiga.dataAbertura || undefined}
+                                                            max={msParaInput(antiga.referencia)}
+                                                            onChange={(event) =>
+                                                                atualizarCampoAntiga(
+                                                                    "dataConclusao",
+                                                                    event.target.value,
+                                                                )
+                                                            }
+                                                            required
+                                                        />
+                                                    </div>
+
+                                                    <div className="ordem-form-field ordem-form-field--wide">
+                                                        <label htmlFor="os-antiga-parecer">
+                                                            Parecer técnico de conclusão *
+                                                        </label>
+                                                        <textarea
+                                                            id="os-antiga-parecer"
+                                                            value={antiga.parecerTecnico}
+                                                            onChange={(event) =>
+                                                                atualizarCampoAntiga(
+                                                                    "parecerTecnico",
+                                                                    event.target.value,
+                                                                )
+                                                            }
+                                                            rows={4}
+                                                            maxLength={1000}
+                                                            required
+                                                        />
+                                                    </div>
+                                                </>
+                                            )}
+                                        </div>
+                                    )}
+                                </fieldset>
+                            )}
                         </div>
                     </div>
 
