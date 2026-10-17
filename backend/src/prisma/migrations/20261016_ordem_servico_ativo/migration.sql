@@ -1,0 +1,2 @@
+ALTER TABLE public.ordens_servico
+ADD COLUMN ativo BOOLEAN NOT NULL DEFAULT TRUE;

@@ -60,7 +60,7 @@ O SGOS resolve essa dor ao oferecer um agrupador central de projetos, ordens de 
 
 - **Frontend:** React.js / TypeScript / Tailwind CSS
 - **Backend:** Node.js / TypeScript / Express.js
-- **Banco de Dados:** PostgreSQL
+- **Banco de Dados:** PostgreSQL hospedado no Supabase, acessado pelo backend via Prisma ORM 7
 - **Documentação de API:** Swagger (OpenAPI 3.0) — *planejado para a Sprint 3 (US#4.4), ainda não implementado*
 - **Autenticação:** JSON Web Token (JWT) e bcrypt
 
@@ -258,26 +258,49 @@ sistema-ordens-servico/
 
 ## Como Executar, Usar e Testar o Projeto
 
-> Este é um resumo rápido. Para o passo a passo completo, consulte o [Manual de Instalação](./docs/instalacao.md).
+> Este é um resumo rápido. O passo a passo completo está no [Manual de Instalação](./docs/instalacao.md).
+>
+> **O projeto utiliza PostgreSQL hospedado no Supabase.** Para executar a aplicação, os desenvolvedores não precisam instalar um servidor PostgreSQL local. O frontend conversa com a API Express; somente o backend acessa o banco. Nunca coloque credenciais do Supabase em variáveis `VITE_*`.
 
-### 1. Clonar o Repositório
+### 1. Clonar o repositório
 
 ```bash
 git clone https://github.com/Team-GesTec/sistema-ordens-servico.git
 cd sistema-ordens-servico
 ```
 
-### 2. Configuração do Backend e Banco de Dados
+Depois, selecione a branch indicada para a task de acordo com o [Guia de Contribuição](./CONTRIBUTING.md). Não faça commits diretamente na `main`.
+
+### 2. Configurar o backend e o Supabase
+
+Crie o ambiente local a partir do exemplo. No PowerShell:
+
+```powershell
+Copy-Item backend/.env.example backend/.env
+```
+
+No macOS/Linux:
+
+```bash
+cp backend/.env.example backend/.env
+```
+
+Edite `backend/.env` com as credenciais fornecidas pelo responsável pelo ambiente Supabase. Use **Connect → Session pooler → URI** e mantenha a URL privada. A configuração adotada pelo projeto usa essa URI em `DATABASE_URL` (API) e `DIRECT_URL` (Prisma CLI). O arquivo `.env` não deve ser commitado.
+
+Instale as dependências e gere o Prisma Client:
 
 ```bash
 cd backend
-npm install
+npm ci
+npm run prisma:generate
+npm run db:status
 ```
 
-Crie o arquivo `.env` a partir do arquivo de exemplo:
+Se o banco compartilhado tiver migrations pendentes, confirme primeiro que `DIRECT_URL` aponta para o ambiente de desenvolvimento correto e, com autorização, aplique as migrations versionadas:
 
 ```bash
-cp .env.example .env
+npx prisma migrate deploy
+npm run db:status
 ```
 
 Preencha as variáveis de ambiente no `.env` com as informações do banco PostgreSQL.
@@ -287,50 +310,75 @@ Preencha as variáveis de ambiente no `.env` com as informações do banco Postg
 >
 > As variáves necessárias estão disponíveis no arquivo `.env.example`.
 
-Com o banco configurado, gere o client do Prisma, execute as migrations e adicione as credenciais necessárias:
+Com o banco configurado, gere o client do Prisma:
 
 ```bash
 npx prisma generate
-npx prisma migrate reset
+```
+
+`migrate deploy` aplica o SQL das migrations já versionadas e pendentes; não faz reset automático, não gera migrations novas e não executa o seed. Revise migrations antes de aplicá-las, pois o SQL de uma migration pode conter alterações destrutivas. **Nunca use `prisma migrate reset` no banco Supabase compartilhado.** O seed deve ser executado uma única vez na preparação inicial do ambiente, por uma pessoa responsável, depois de configurar as variáveis `SEED_*`:
+
+```bash
 npm run db:seed
 ```
 
-> Sempre que o `schema.prisma` mudar, rode as migrations novamente antes de continuar o desenvolvimento — nenhuma alteração de tabela deve ser feita diretamente no banco. Veja o [Manual de Instalação](./docs/instalacao.md) para detalhes e solução de problemas comuns.
+Se o banco compartilhado já estiver preparado, não é necessário executar o seed novamente.
 
-Por fim, inicie o servidor em modo de desenvolvimento:
-
-```bash
-npm run dev
-```
-
-### 3. Configuração do Frontend
-
-```bash
-cd ../frontend
-npm install
-```
-
-Crie o arquivo `.env` com a URL do backend:
-
-```bash
-echo "VITE_API_URL=http://localhost:3000" > .env
-```
-
-> Sem essa variável, o frontend não consegue localizar a API e o login falha silenciosamente.
+Inicie a API:
 
 ```bash
 npm run dev
 ```
 
-### 4. Execução dos Testes Automatizados
+Verifique a saúde da API em outro terminal:
 
-```bash
-# No diretório backend
-npm run test
+```powershell
+Invoke-RestMethod http://localhost:3000/health
 ```
 
-> No momento, apenas o **backend** possui suíte de testes automatizados (Cucumber/BDD). O `frontend` ainda não tem script de teste configurado no `package.json`.
+### 3. Configurar o frontend
 
+Em um segundo terminal, crie `frontend/.env` a partir do exemplo.
+
+PowerShell:
+
+```powershell
+Copy-Item frontend/.env.example frontend/.env
+```
+
+macOS/Linux:
+
+```bash
+cp frontend/.env.example frontend/.env
+```
+
+O valor local padrão é `VITE_API_URL=http://localhost:3000`. Essa variável aponta para o **backend**, nunca para o PostgreSQL/Supabase.
+
+```bash
+cd frontend
+npm ci
+npm run dev
+```
+
+Abra `http://localhost:5173`. Use as credenciais de teste fornecidas de forma segura pelo responsável pelo ambiente; não há senha padrão documentada no repositório.
+
+### 4. Testes automatizados
+
+No diretório `backend/`:
+
+```bash
+npm test
+npm run build
+```
+
+No diretório `frontend/`:
+
+```bash
+npm run lint
+npm run build
+```
+
+Consulte o [Manual de Instalação](./docs/instalacao.md) para configuração detalhada, migrações e resolução de problemas.
 ---
 
 ## Contribuição

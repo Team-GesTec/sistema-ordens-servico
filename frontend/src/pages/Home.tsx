@@ -12,7 +12,6 @@ import "../styles/modal-os.css";
 
 import CustomSelect from "../components/CustomSelect";
 import type { SelectOption } from "../components/CustomSelect";
-
 import { ApiError } from "../services/api";
 import { getStoredUser } from "../services/auth"; // confirmar o nome real do arquivo do authService
 import { funcionarioService } from "../services/funcionario";
@@ -34,12 +33,10 @@ const setorOptions: SelectOption[] = [
 ];
 
 const STATUS_LABELS: Record<StatusOrdemServico, string> = {
-    pendente: "Pendente",
     em_andamento: "Em andamento",
-    aguardando_embarque: "Aguardando embarque",
+    aguardando: "Aguardando",
     validacao_testes: "Validação de testes",
     bloqueado: "Bloqueado",
-    review: "Review",
     concluido: "Concluído",
 };
 
@@ -71,7 +68,6 @@ function Home() {
 
     const [carregando, setCarregando] = useState(true);
     const [erro, setErro] = useState<string | null>(null);
-
     const [osSelecionada, setOsSelecionada] =
         useState<OrdemServico | null>(null);
 
@@ -87,7 +83,6 @@ function Home() {
     const [funcionarios, setFuncionarios] = useState<Funcionario[]>([]);
     const [tecnicoResponsavel, setTecnicoResponsavel] = useState<number | null>(null);
     const [salvandoResponsavel, setSalvandoResponsavel] = useState(false);
-
 
     useEffect(() => {
         ordemServicoService

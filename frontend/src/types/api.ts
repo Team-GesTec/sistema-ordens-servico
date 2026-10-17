@@ -1,3 +1,8 @@
+/**
+ * Tipos das entidades e dos payloads trocados com a API (formato snake_case do backend).
+ * AJ-06: OrdemServicoInput aceita os campos opcionais do cadastro de O.S. antiga.
+ */
+
 export type PerfilFuncionario = "gestor" | "analista" | "tecnico";
 
 export type StatusProjeto =
@@ -13,7 +18,12 @@ export type TipoOrdemServico = "instalacao" | "manutencao";
 
 export type NivelCriticidade = "baixo" | "medio" | "alto" | "muito_alto" | "urgente";
 
-export type StatusOrdemServico = StatusProjeto;
+export type StatusOrdemServico =
+    | "em_andamento"
+    | "aguardando"
+    | "validacao_testes"
+    | "bloqueado"
+    | "concluido";
 
 export interface Funcionario {
     id: number;
@@ -33,9 +43,9 @@ export interface LoginResponse {
 export interface Cliente {
     id: number;
     nome: string;
-    categoria: string;
-    razao_social: string | null;
-    ramo_atuacao: string | null;
+    razao_social: string;
+    ramo_atuacao: string;
+    ativo: boolean;
 }
 
 export interface LocalOperacionalInput {
@@ -45,9 +55,8 @@ export interface LocalOperacionalInput {
 
 export interface ClienteInput {
     nome: string;
-    categoria: string;
-    razao_social: string | null;
-    ramo_atuacao: string | null;
+    razao_social: string;
+    ramo_atuacao: string;
     locais_operacionais: LocalOperacionalInput[];
 }
 
@@ -87,19 +96,20 @@ export interface ProjetoInput {
 
 export interface OrdemServico {
     id: number;
-    titulo: string
     departamento_id: number;
-    cliente_id: number;
+    cliente_id: number | null;
     solicitante_id: number;
     responsavel_id: number | null;
     projeto_id: number | null;
     anterior_id: number | null;
     parecer_tecnico: string | null;
     tipo: TipoOrdemServico;
+    titulo: string;
     criticidade: NivelCriticidade | null;
     prazo_horas: number;
     descricao: string;
     status: StatusOrdemServico;
+    ativo: boolean;
     data_criacao: string;
 }
 
@@ -112,5 +122,13 @@ export interface OrdemServicoInput {
     projeto_id: number | null;
     anterior_id: number | null;
     criticidade: string | null;
-    responsavel_id: number
+    responsavel_id?: number;
+    /** AJ-06 — cadastro de O.S. antiga (somente gestor): data de abertura no passado, em ISO. */
+    data_criacao?: string;
+    /** AJ-06 — status atual da O.S. antiga. */
+    status?: StatusOrdemServico;
+    /** AJ-06 — obrigatório quando a O.S. antiga já está concluída. */
+    parecer_tecnico?: string;
+    /** AJ-06 — data de conclusão (ISO), obrigatória quando a O.S. antiga já está concluída. */
+    data_fim?: string;
 }

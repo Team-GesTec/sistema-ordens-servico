@@ -1,0 +1,123 @@
+.autocomplete {
+    position: relative;
+    width: 100%;
+    min-width: 0;
+}
+
+.autocomplete-control {
+    position: relative;
+    display: flex;
+    align-items: center;
+    width: 100%;
+}
+
+.autocomplete-control input {
+    box-sizing: border-box;
+    width: 100%;
+    min-width: 0;
+    height: 38px;
+    padding: 0 36px 0 12px;
+    border: 1px solid #c4deee;
+    border-radius: 6px;
+    background: #fff;
+    color: #193247;
+    font: inherit;
+    font-size: 12px;
+    outline: none;
+}
+
+.autocomplete-control input:focus {
+    border-color: #1768b7;
+    box-shadow: 0 0 0 3px rgba(23, 104, 183, 0.12);
+}
+
+.autocomplete-control input:disabled {
+    background: #edf1f4;
+    cursor: not-allowed;
+}
+
+.autocomplete-clear {
+    position: absolute;
+    right: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    border: 0;
+    border-radius: 4px;
+    background: transparent;
+    color: #627486;
+    font-size: 18px;
+    cursor: pointer;
+}
+
+.autocomplete-clear:hover {
+    background: #e5f2fb;
+    color: #155b98;
+}
+
+.autocomplete-options {
+    position: absolute;
+    top: calc(100% + 5px);
+    right: 0;
+    left: 0;
+    z-index: 1200;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    max-height: 240px;
+    overflow-y: auto;
+    padding: 5px;
+    border: 1px solid #d6e7f2;
+    border-radius: 8px;
+    background: #fff;
+    box-shadow: 0 10px 28px rgba(25, 73, 107, 0.18);
+}
+
+.autocomplete-option {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+    width: 100%;
+    padding: 10px 11px;
+    border: 0;
+    border-radius: 5px;
+    background: transparent;
+    color: #193c55;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+
+.autocomplete-option:hover,
+.autocomplete-option:focus-visible,
+.autocomplete-option.selected {
+    background: #edf7fd;
+    outline: none;
+}
+
+.autocomplete-option:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.autocomplete-option-label {
+    color: #18374e;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.autocomplete-option-description {
+    color: #687f90;
+    font-size: 10px;
+    line-height: 1.4;
+}
+
+.autocomplete-empty {
+    padding: 12px;
+    color: #687f90;
+    font-size: 12px;
+    text-align: center;
+}

@@ -6,6 +6,17 @@ export const ordemServicoService = {
         return apiRequest<OrdemServico[]>("/ordens-servico");
     },
 
+    listarInativas(): Promise<OrdemServico[]> {
+        return apiRequest<OrdemServico[]>("/ordens-servico/inativas");
+    },
+
+    alterarAtivo(id: number, ativo: boolean): Promise<OrdemServico> {
+        return apiRequest<OrdemServico>(`/ordens-servico/${id}/ativo`, {
+            method: "PATCH",
+            body: JSON.stringify({ ativo }),
+        });
+    },
+
     buscarPorId(id: number): Promise<OrdemServico> {
         return apiRequest<OrdemServico>(`/ordens-servico/${id}`);
     },
@@ -17,10 +28,41 @@ export const ordemServicoService = {
         });
     },
 
-    atribuirResponsavel(id: number, funcionarioId: number): Promise<OrdemServico> {
+    atribuirResponsavel(
+        id: number,
+        funcionarioId: number,
+    ): Promise<OrdemServico> {
         return apiRequest<OrdemServico>(`/ordens-servico/atribuir/${id}`, {
             method: "PATCH",
             body: JSON.stringify({ funcionario_id: funcionarioId }),
+        });
+    },
+
+    alterarStatus(
+        id: number,
+        status: OrdemServico["status"],
+        parecerTecnico?: string,
+    ): Promise<OrdemServico> {
+        const payload = {
+            status,
+            ...(parecerTecnico !== undefined
+                ? { parecer_tecnico: parecerTecnico }
+                : {}),
+        };
+
+        return apiRequest<OrdemServico>(`/ordens-servico/${id}/status`, {
+            method: "PATCH",
+            body: JSON.stringify(payload),
+        });
+    },
+
+    atualizar(
+        id: number,
+        payload: Partial<OrdemServicoInput>,
+    ): Promise<OrdemServico> {
+        return apiRequest<OrdemServico>(`/ordens-servico/${id}`, {
+            method: "PATCH",
+            body: JSON.stringify(payload),
         });
     },
 };
