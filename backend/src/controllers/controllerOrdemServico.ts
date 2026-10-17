@@ -17,6 +17,7 @@ export class ControllerOrdemServico {
     /** GET /ordens-servico/:id — busca o a O.S. pelo id (404 se não existir). */
         public async getById(req: Request, resp: Response): Promise<Response> {
             const id = lerId(req.params.id);
+            
             return resp.status(200).json(await serviceOrdemServico.buscarPorId(id));
         }
 
@@ -25,39 +26,53 @@ export class ControllerOrdemServico {
         const usuario = usuarioAutenticado(req);
 
         const novaOS = await serviceOrdemServico.criar(req.body, usuario.id);
+
         return resp.status(201).json(novaOS);
     }
 
     /** PATCH /ordens-servico/atribuir/:id — atribui um responsável a O.S. */
     public async atribuirResponsavel(req: Request, resp: Response): Promise<Response> {
         const usuario = usuarioAutenticado(req);
-
         const osId = lerId(req.params.id, 'id');
-        //const funcionarioId = lerId(req.body["funcionario_id"]);
+
         return resp.status(200).json(await serviceOrdemServico.atribuirResponsavel(osId, req.body.funcionario_id, usuario.id));
+    }
+
+    /** PATCH /ordens-servico/:id/sla-manual — atribui o SLA manualmente */
+    public async alterarSlaManual(req: Request, resp: Response): Promise<Response> {
+        const usuario = usuarioAutenticado(req);
+        const id = lerId(req.params.id, 'id');
+
+        const ordem = await serviceOrdemServico.alterarSlaManual(id, req.body, usuario.id);
+
+        return resp.status(200).json(ordem);
     }
 
     /** PATCH /ordens-servico/bloquear/:id — bloqueia uma O.S. */
     public async bloquearOrdem(req: Request, resp: Response): Promise<Response> {
         const id = lerId(req.params.id);
+
         return resp.status(200).json(await serviceOrdemServico.bloquear(id));
     }
 
     /** PATCH /ordens-servico/desbloquear/:id — desbloqueia uma O.S. */
     public async desbloquearOrdem(req: Request, resp: Response): Promise<Response> {
         const id = lerId(req.params.id);
+
         return resp.status(200).json(await serviceOrdemServico.desbloquear(id));
     }
 
     /** PUT /ordens-servico/:id — substitui os dados da O.S. (campos obrigatórios precisam vir). */
     public async updateOrdem(req: Request, resp: Response): Promise<Response> {
         const id = lerId(req.params.id);
+
         return resp.status(200).json(await serviceOrdemServico.atualizar(id, req.body, false));
     }
 
     /** PATCH /ordens-servico/:id — altera só os campos enviados. */
     public async patchOrdem(req: Request, resp: Response): Promise<Response> {
         const id = lerId(req.params.id);
+
         return resp.status(200).json(await serviceOrdemServico.atualizar(id, req.body, true));
     }
 
@@ -67,7 +82,9 @@ export class ControllerOrdemServico {
      */
     public async deleteOrdem(req: Request, resp: Response): Promise<Response> {
         const id =  lerId(req.params.id);
+
         await serviceOrdemServico.remover(id);
+
         return resp.status(200).json({ mensagem: 'Ordem excluída com sucesso' });
     }
 }

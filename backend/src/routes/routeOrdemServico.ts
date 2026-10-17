@@ -9,7 +9,7 @@ import { autorizar } from '../middlewares/authMiddleware';
 
 const router = Router();
 
-/** Gestor e técnico podem criar uma O.S. */
+/** Gestor e técnico podem criar O.S. e atribuir responsável. */
 const gestorOuTecnico = autorizar('gestor', 'tecnico');
 
 /** Somente gestores podem bloquear uma O.S. e modificá-la livremente. */
@@ -24,8 +24,11 @@ router.get('/:id', (req: Request, res: Response) => controllerOrdemServico.getBy
 // POST - gestor / técnico
 router.post('/', gestorOuTecnico, (req: Request, res: Response) => controllerOrdemServico.criarOrdem(req, res));
 
-// Regras de atribuição para gestores e técnicos são validadas no service.
+// Atribuição de responsável - PATCH - Regras de atribuição para gestores e técnicos são validadas no service.
 router.patch('/atribuir/:id', gestorOuTecnico, (req: Request, res: Response) => controllerOrdemServico.atribuirResponsavel(req, res));
+
+// Alteração manual do SLA - PATCH - gestor
+router.patch('/:id/sla-manual', somenteGestor, (req: Request, res: Response) => controllerOrdemServico.alterarSlaManual(req, res));
 
 // Bloqueio - PATCH - gestor
 router.patch('/bloquear/:id', somenteGestor, (req: Request, res: Response) => controllerOrdemServico.bloquearOrdem(req, res));
@@ -36,10 +39,10 @@ router.patch('/desbloquear/:id', somenteGestor, (req: Request, res: Response) =>
 // PATCH - gestor
 router.patch('/:id', somenteGestor, (req: Request, res: Response) => controllerOrdemServico.patchOrdem(req, res))
 
-//PUT - gestor
+// PUT - gestor
 router.put('/:id', somenteGestor, (req: Request, res: Response) => controllerOrdemServico.updateOrdem(req, res))
 
-//DELETE - gestor
+// DELETE - gestor
 router.delete('/:id', somenteGestor, (req: Request, res: Response) => controllerOrdemServico.deleteOrdem(req, res))
 
 export default router;

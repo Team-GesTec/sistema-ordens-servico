@@ -156,8 +156,22 @@ export class ServiceOrdemServico {
      */
     async atualizar(id: number, corpo: unknown, parcial: boolean): Promise<OrdemServico> {
         const dados = lerCorpo(corpo);
+
+        const camposSlaManual = [
+            'data_limite_sla',
+            'sla_manual',
+            'justificativa_sla_manual'
+        ];
+
+        const campoRestrito = camposSlaManual.find((campo) => campoPresente(dados, campo));
+
+        if (campoRestrito) {
+            throw AppError.requisicaoInvalida(`O campo ${campoRestrito} deve ser alterado pela rota específica de SLA manual`);
+        }
+
         const alteracoes = await this.montarAlteracoes(dados, parcial);
         exigirAlteracoes(alteracoes);
+
         return this.repositorio.atualizar(id, alteracoes);
     }
 
@@ -211,6 +225,29 @@ export class ServiceOrdemServico {
             responsavelId,
             solicitanteId,
             permitirTroca: solicitante.tipo === 'gestor',
+        });
+    }
+
+    /** 
+     * Altera manualmente a data limite do SLA de uma O.S.
+     * A autorização de gestor é aplicada pelo middleware da rota.
+     * @param id Id da O.S.
+     * @param funcionarioId Id do funcionario solicitante
+     */
+    async alterarSlaManual(id: number, corpo: unknown, funcionarioId: number): Promise<OrdemServico> {
+        const dados = lerCorpo(corpo);
+
+        const dataLimiteSla = exigirDataValida(dados.data_limite_sla, 'data_limite_sla');
+        const justificativa = exigirTexto(dados.justficativa_sla_manual, 'justficativa_sla_manual');
+
+        // Garante que a OS existe antes de solicitar a alteração
+        await this.buscarPorId(id);
+
+        return this.repositorio.alterarSlaManual({
+            osId: id,
+            dataLimiteSla,
+            justificativa,
+            funcionarioId
         });
     }
 
@@ -460,5 +497,6 @@ function exigirDataValida(valor: unknown, campo: string): Date {
     }
     return data;
 }
+
 /** Instância única usada pelo controller. */
 export const serviceOrdemServico = new ServiceOrdemServico();
