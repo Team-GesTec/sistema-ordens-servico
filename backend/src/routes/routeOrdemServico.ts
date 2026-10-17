@@ -18,6 +18,11 @@ const somenteGestor = autorizar('gestor');
 // GET ALL — qualquer usuário autenticado (o `autenticar` global já é aplicado no app.ts)
 router.get('/', (req: Request, res: Response) => controllerOrdemServico.getAll(req, res));
 
+// GET ALL INATIVAS
+router.get('/inativas', somenteGestor, (req: Request, res: Response) =>
+    controllerOrdemServico.getInativas(req, res),
+);
+
 // GET BY ID — qualquer usuário autenticado
 router.get('/:id', (req: Request, res: Response) => controllerOrdemServico.getById(req, res));
 
@@ -30,17 +35,16 @@ router.patch('/atribuir/:id', gestorOuTecnico, (req: Request, res: Response) => 
 // Bloqueio - PATCH - gestor
 router.patch('/bloquear/:id', somenteGestor, (req: Request, res: Response) => controllerOrdemServico.bloquearOrdem(req, res));
 
-// Desbloqueio - PATCH - gestor
-router.patch('/desbloquear/:id', somenteGestor, (req: Request, res: Response) => controllerOrdemServico.desbloquearOrdem(req, res));
+// Ativar ou inativar — somente gestor
+router.patch('/:id/ativo', somenteGestor, (req: Request, res: Response) =>
+    controllerOrdemServico.alterarAtivo(req, res),
+);
 
 // PATCH - gestor
 router.patch('/:id', somenteGestor, (req: Request, res: Response) => controllerOrdemServico.patchOrdem(req, res))
 
 //PUT - gestor
 router.put('/:id', somenteGestor, (req: Request, res: Response) => controllerOrdemServico.updateOrdem(req, res))
-
-//DELETE - gestor
-router.delete('/:id', somenteGestor, (req: Request, res: Response) => controllerOrdemServico.deleteOrdem(req, res))
 
 // PATCH status — gestor altera qualquer O.S.; técnico, só as atribuídas a ele (checado no service)
 router.patch('/:id/status', gestorOuTecnico, (req: Request, res: Response) =>

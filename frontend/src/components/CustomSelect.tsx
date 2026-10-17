@@ -55,12 +55,12 @@ export default function CustomSelect({
               key={opt.value}
               className={`custom-option${opt.value === value ? " selected" : ""}`}
               onClick={() => {
-                onChange(opt.value);
-                setOpen(false);
-              }}
-            >
-              {opt.label}
-            </button>
+              onChange(opt.value);
+              setOpen(false);
+          }}
+          >
+              <span>{opt.label}</span>
+          </button>
           ))}
         </div>
       )}

@@ -88,18 +88,6 @@ export class RepositoryOrdemServico {
         ordemServicoCache.definir(ordem);
     }
 
-    /** Remove uma OS. Bloqueado (409) se ainda houver anexos ou funcionários ligados a ela. */
-    async remover(id: number): Promise<void> {
-        try {
-            await prisma.ordens_servico.delete({ where: { id }, select: { id: true } });
-            ordemServicoCache.remover(id);
-        } catch (erro) {
-            throw traduzirErroPrisma(erro, {
-                registroNaoEncontrado: 'Ordem de Serviço não encontrada',
-                referenciaEmUso: 'Não é possível excluir: a OS ainda tem anexos ou funcionários vinculados.',
-            });
-        }
-    }
 
     /**
      * Atribui ou substitui o responsável e registra a auditoria na mesma transação.

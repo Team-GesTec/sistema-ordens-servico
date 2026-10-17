@@ -15,9 +15,29 @@ import ClienteFormModal from "../components/clientes/ClienteFormModal";
 import ClienteStatusModal from "../components/clientes/ClienteStatusModal";
 import ClientesToolbar from "../components/clientes/ClientesToolbar";
 import { useClientes } from "../hooks/useClientes";
+import { Link, useSearchParams } from "react-router-dom";
 
 function Clientes() {
     const clientes = useClientes();
+
+    const [searchParams] = useSearchParams();
+
+    const clienteParam = searchParams.get("visualizar");
+    const clienteVisualizadoId = Number(clienteParam);
+
+    const modoVisualizacao =
+        clienteParam !== null &&
+        Number.isInteger(clienteVisualizadoId) &&
+        clienteVisualizadoId > 0;
+
+    const clientesExibidos = modoVisualizacao
+        ? clientes.clientes.filter(
+            (cliente) => cliente.id === clienteVisualizadoId,
+        )
+        : clientes.clientesFiltrados;
+
+    const podeGerenciarTela =
+        !modoVisualizacao && clientes.podeGerenciar;
 
     const modalStatusAberto = Boolean(
         clientes.clienteConfirmacao && clientes.acaoConfirmacao
@@ -47,15 +67,31 @@ function Clientes() {
                             </div>
                         )}
 
-                    <ClientesToolbar
-                        busca={clientes.busca}
-                        onBuscaChange={clientes.setBusca}
-                        filtroSituacao={clientes.filtroSituacao}
-                        onFiltroChange={clientes.setFiltroSituacao}
-                        clientes={clientes.clientesPorSituacao}
-                        podeGerenciar={clientes.podeGerenciar}
-                        onCadastrar={clientes.abrirCadastro}
-                    />
+                    {!modoVisualizacao ? (
+                        <ClientesToolbar
+                            busca={clientes.busca}
+                            onBuscaChange={clientes.setBusca}
+                            filtroSituacao={clientes.filtroSituacao}
+                            onFiltroChange={clientes.setFiltroSituacao}
+                            clientes={clientes.clientesPorSituacao}
+                            podeGerenciar={clientes.podeGerenciar}
+                            onCadastrar={clientes.abrirCadastro}
+                        />
+                    ) : (
+                        <div className="clientes-toolbar">
+                            <div>
+                                <h1>Visualização do cliente</h1>
+                                <p>Consulta somente leitura.</p>
+                            </div>
+
+                            <Link
+                                to="/ordens"
+                                className="clientes-btn-secondary"
+                            >
+                                Voltar às ordens
+                            </Link>
+                        </div>
+                    )}
 
                     {clientes.carregando ? (
                         <div className="clientes-empty">
@@ -63,22 +99,24 @@ function Clientes() {
                         </div>
                     ) : (
                         <div className="clientes-grid">
-                            {clientes.clientesFiltrados.length === 0 ? (
+                            {clientesExibidos.length === 0 ? (
                                 <div className="clientes-empty">
-                                    {clientes.busca.trim()
+                                    {modoVisualizacao
+                                        ? `Cliente #${clienteVisualizadoId} não encontrado.`
+                                        : clientes.busca.trim()
                                         ? "Nenhum cliente corresponde à pesquisa e ao filtro selecionado."
                                         : clientes.filtroSituacao === "ativos"
-                                          ? "Nenhum cliente ativo encontrado."
-                                          : clientes.filtroSituacao === "inativos"
+                                            ? "Nenhum cliente ativo encontrado."
+                                            : clientes.filtroSituacao === "inativos"
                                             ? "Nenhum cliente inativo encontrado."
                                             : "Nenhum cliente cadastrado."}
                                 </div>
                             ) : (
-                                clientes.clientesFiltrados.map((cliente) => (
+                                clientesExibidos.map((cliente) => (
                                     <ClienteCard
                                         key={cliente.id}
                                         cliente={cliente}
-                                        podeGerenciar={clientes.podeGerenciar}
+                                        podeGerenciar={podeGerenciarTela}
                                         bloqueado={
                                             clientes.salvando ||
                                             clientes.inativandoId !== null

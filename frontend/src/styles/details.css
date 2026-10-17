@@ -111,6 +111,7 @@
 
 /* =========================
    BADGES (STATUS / CRITICIDADE)
+*/
 
 .details-badges {
     display: flex;
@@ -163,7 +164,7 @@
 
 /* =========================
    SEÇÕES DE INFORMAÇÃO
-
+*/
 .details-info {
     display: flex;
     flex-direction: column;
@@ -181,14 +182,13 @@
 
 .info-section-title {
     color: #0c3f57;
-
     font-size: 11px;
     font-weight: 700;
-
     text-transform: uppercase;
     letter-spacing: 0.6px;
-
     opacity: 0.75;
+}
+
 .details-content {
     width: 100%;
 }
@@ -289,4 +289,86 @@
     .details {
         display: none;
     }
+}
+
+/* Área de alteração de status */
+.ordem-status-edicao {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 14px;
+}
+
+.ordem-status-select {
+    box-sizing: border-box;
+    width: 100%;
+    max-width: 360px;
+    min-height: 46px;
+    padding: 11px 14px;
+    border: 1px solid rgba(128, 128, 128, 0.45);
+    border-radius: 12px;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    cursor: pointer;
+    transition:
+        border-color 0.2s ease,
+        box-shadow 0.2s ease;
+}
+
+.ordem-status-select:focus {
+    outline: none;
+    border-color: #6478e8;
+    box-shadow: 0 0 0 3px rgba(100, 120, 232, 0.18);
+}
+
+.ordem-status-select:disabled {
+    cursor: not-allowed;
+    opacity: 0.65;
+}
+
+.ordem-status-atualizar {
+    margin-top: 2px;
+    align-self: flex-start;
+    min-height: 42px;
+    padding: 10px 18px;
+    border-radius: 10px;
+}
+
+/* Rascunho do parecer técnico */
+.ordem-parecer-rascunho {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+}
+
+.ordem-parecer-textarea {
+    box-sizing: border-box;
+    display: block;
+    width: 100%;
+    min-height: 180px;
+    height: 180px;
+    padding: 14px 16px;
+    border: 1px solid rgba(128, 128, 128, 0.45);
+    border-radius: 12px;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    line-height: 1.6;
+    resize: vertical;
+    transition:
+        border-color 0.2s ease,
+        box-shadow 0.2s ease;
+}
+
+.ordem-parecer-textarea::placeholder {
+    color: inherit;
+    opacity: 0.55;
+}
+
+.ordem-parecer-textarea:focus {
+    outline: none;
+    border-color: #6478e8;
+    box-shadow: 0 0 0 3px rgba(100, 120, 232, 0.18);
 }

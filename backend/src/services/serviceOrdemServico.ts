@@ -60,6 +60,7 @@ const TEXTO_MAXIMO_PARECER = 1000;
 /** Campos que a edição geral não altera: cada um tem a sua rota (US#2.4, US#2.3 e US#3.1). */
 const CAMPOS_PROIBIDOS_NA_EDICAO = [
     'status',
+    'ativo',
     'responsavel_id',
     'sla_config_id',
     'prazo_dias_uteis',
@@ -77,9 +78,18 @@ export class ServiceOrdemServico {
         this.funcionarios = funcionarios
     }
 
-    /** Lista todas as O.S. cadastradas, sem filtro (por enquanto). */
+
+
+    /** Lista somente as O.S. ativas. */
     async listar(): Promise<OrdemServico[]> {
-        return this.repositorio.listar();
+        const ordens = await this.repositorio.listar();
+        return ordens.filter((ordem) => ordem.ativo);
+    }
+
+    /** Lista somente as O.S. inativas, para consulta do histórico. */
+    async listarInativas(): Promise<OrdemServico[]> {
+        const ordens = await this.repositorio.listar();
+        return ordens.filter((ordem) => !ordem.ativo);
     }
 
     /** Busca uma O.S. pelo id.
@@ -120,7 +130,7 @@ export class ServiceOrdemServico {
                 ? NIVEIS_CRITICIDADE[1]
                 : exigirEnum(dados.criticidade, NIVEIS_CRITICIDADE, 'criticidade');
         const parecerTecnico = textoOpcional(dados.parecer_tecnico, 'parecer_tecnico', { maximo: TEXTO_MAXIMO_DESCRICAO });
-        const status = 
+        const status =
             dados.status === undefined || dados.status === null
                 ? STATUS_PADRAO
                 : exigirEnum(dados.status, STATUS_ORDEM, 'status');
@@ -212,6 +222,13 @@ export class ServiceOrdemServico {
         if (ordem.status === 'concluido') {
             throw AppError.requisicaoInvalida(`A O.S. ${idOS} está concluída e não pode ter o status alterado`);
         }
+
+        if (ordem.status === 'bloqueado') {
+            throw AppError.requisicaoInvalida(
+                `A O.S. ${idOS} está bloqueada e não pode ter o status alterado por esta rota`,
+            );
+        }
+
         if (ordem.status === novoStatus) {
             throw AppError.requisicaoInvalida(`A O.S. ${idOS} já está com o status ${novoStatus}`);
         }
@@ -270,7 +287,12 @@ export class ServiceOrdemServico {
             throw AppError.requisicaoInvalida('OS concluída não pode ser editada');
         }
 
-        // 3. Status, responsável e SLA têm rotas próprias
+        // 3. O.S. bloqueada não pode ser editada
+        if (ordem.status === 'bloqueado') {
+            throw AppError.requisicaoInvalida('OS bloqueada não pode ser editada');
+        }
+
+        // 4. Status, responsável e SLA têm rotas próprias
         const dados = lerCorpo(corpo);
         const proibidos = CAMPOS_PROIBIDOS_NA_EDICAO.filter((campo) => campoPresente(dados, campo));
         if (proibidos.length > 0) {
@@ -280,17 +302,17 @@ export class ServiceOrdemServico {
             );
         }
 
-        // 4. Valida o restante
+        // 5. Valida o restante
         const alteracoes = await this.montarAlteracoes(dados, parcial);
         exigirAlteracoes(alteracoes);
 
-        // 5. Descobre quais campos realmente mudaram
+        // 6. Descobre quais campos realmente mudaram
         const campos = Object.keys(alteracoes) as (keyof DadosAtualizacaoOrdemServico)[];
         const camposAlterados = campos.filter(
             (campo) => paraTextoAuditoria(ordem[campo]) !== paraTextoAuditoria(alteracoes[campo]),
         );
 
-        // 6. Grava a edição e a auditoria na mesma transação
+        // 7. Grava a edição e a auditoria na mesma transação
         const atualizada = await prisma.$transaction(async (conexao) => {
             const ordemAtualizada = await this.repositorio.atualizarNaTransacao(id, alteracoes, conexao);
 
@@ -311,7 +333,7 @@ export class ServiceOrdemServico {
             return ordemAtualizada;
         });
 
-        // 7. Atualiza o cache só depois que a transação terminou
+        // 8. Atualiza o cache só depois que a transação terminou
         this.repositorio.atualizarCache(atualizada);
         return atualizada;
     }
@@ -369,47 +391,118 @@ export class ServiceOrdemServico {
         });
     }
 
-    /** 
-     * Bloqueia uma O.S.
-     * Somente gestores podem executar essa opeação.
-     * @param id Id da O.S.
+    /**
+     * Bloqueia uma O.S. e registra a alteração na auditoria.
+     * Uma O.S. concluída não pode ser bloqueada.
      */
-    async bloquear(id: number): Promise<OrdemServico> {
-        const ordem = await this.repositorio.buscarPorId(id);
+    async bloquear(id: number, usuarioId: number): Promise<OrdemServico> {
+        const idOS = exigirInteiroPositivo(id, "id");
+        const ordem = await this.repositorio.buscarPorId(idOS);
 
         if (!ordem) {
-            throw AppError.naoEncontrado('OS não encontrada');
+            throw AppError.naoEncontrado(`O.S. ${idOS} não encontrada`);
         }
 
-        if (ordem.status === 'bloqueado') {
-            throw AppError.requisicaoInvalida('A O.S. já está bloqueada');
+        if (ordem.status === "concluido") {
+            throw AppError.requisicaoInvalida(
+                "Uma O.S. concluída não pode ser bloqueada.",
+            );
         }
 
-        return this.repositorio.atualizar(id, { status: 'bloqueado' });
+        if (ordem.status === "bloqueado") {
+            throw AppError.requisicaoInvalida(
+                "A O.S. já está bloqueada.",
+            );
+        }
+
+        const atualizada = await prisma.$transaction(async (conexao) => {
+            const resultado = await this.repositorio.atualizarNaTransacao(
+                idOS,
+                { status: "bloqueado" },
+                conexao,
+            );
+
+            await serviceAuditoria.registrar(
+                {
+                    os_id: idOS,
+                    funcionario_id: usuarioId,
+                    acao: "atualizacao",
+                    campo_alterado: "status",
+                    dado_antigo: ordem.status,
+                    dado_novo: "bloqueado",
+                    justificativa: "Bloqueio da ordem de serviço",
+                },
+                conexao,
+            );
+
+            return resultado;
+        });
+
+        this.repositorio.atualizarCache(atualizada);
+
+        return atualizada;
     }
 
-    /** 
-     * Desbloqueia uma O.S.
-     * Somente gestores podem executar essa opeação.
-     * @param id Id da O.S.
+
+    /**
+     * Ativa ou inativa uma O.S. sem apagar seu registro.
+     * Registra a alteração na auditoria dentro da mesma transação.
      */
-    async desbloquear(id: number): Promise<OrdemServico> {
-        const ordem = await this.repositorio.buscarPorId(id);
+    async alterarAtivo(
+        id: number,
+        ativo: boolean,
+        usuarioId: number,
+    ): Promise<OrdemServico> {
+        const idOS = exigirInteiroPositivo(id, "id");
+
+        if (typeof ativo !== "boolean") {
+            throw AppError.requisicaoInvalida(
+                "O campo ativo deve ser true ou false",
+            );
+        }
+
+        const ordem = await this.repositorio.buscarPorId(idOS);
 
         if (!ordem) {
-            throw AppError.naoEncontrado('OS não encontrada');
+            throw AppError.naoEncontrado(`O.S. ${idOS} não encontrada`);
         }
 
-        if (ordem.status !== 'bloqueado') {
-            throw AppError.requisicaoInvalida('A O.S. já está desbloqueada');
+        if (ordem.ativo === ativo) {
+            throw AppError.requisicaoInvalida(
+                ativo
+                    ? `A O.S. ${idOS} já está ativa`
+                    : `A O.S. ${idOS} já está inativa`,
+            );
         }
 
-        return this.repositorio.atualizar(id, { status: 'em_andamento' });
-    }
+        const atualizada = await prisma.$transaction(async (conexao) => {
+            const resultado = await this.repositorio.atualizarNaTransacao(
+                idOS,
+                { ativo },
+                conexao,
+            );
 
-    /** Remove um projeto (bloqueado pelo banco se houver vinculos). */
-    remover(id: number): Promise<void> {
-        return this.repositorio.remover(id);
+            await serviceAuditoria.registrar(
+                {
+                    os_id: idOS,
+                    funcionario_id: usuarioId,
+                    acao: "atualizacao",
+                    campo_alterado: "ativo",
+                    dado_antigo: String(ordem.ativo),
+                    dado_novo: String(ativo),
+                    justificativa: ativo
+                        ? "Reativação da ordem de serviço"
+                        : "Inativação da ordem de serviço",
+                },
+                conexao,
+            );
+
+            return resultado;
+        });
+
+        this.repositorio.atualizarCache(atualizada);
+
+        return atualizada;
     }
 
         /** Monta o objeto de alterações conforme o modo (PUT ou PATCH). */

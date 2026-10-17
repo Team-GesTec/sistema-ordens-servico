@@ -104,6 +104,7 @@ model ordens_servico {
   criticidade                                              nivel_criticidade    @default(medio)
   descricao                                                String
   status                                                   status_enum          @default(em_andamento)
+  ativo                                                    Boolean              @default(true)
   data_criacao                                             DateTime             @default(now()) @db.Timestamptz(6)
   sla_config_id                                            Int?
   ativo_id                                                 Int?

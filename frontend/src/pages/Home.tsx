@@ -17,12 +17,10 @@ import type { NivelCriticidade, OrdemServico, StatusOrdemServico, TipoOrdemServi
 const setorOptions: SelectOption[] = [{ value: 0, label: "Todos os setores" }];
 
 const STATUS_LABELS: Record<StatusOrdemServico, string> = {
-    pendente: "Pendente",
     em_andamento: "Em andamento",
-    aguardando_embarque: "Aguardando embarque",
+    aguardando: "Aguardando",
     validacao_testes: "Validação de testes",
     bloqueado: "Bloqueado",
-    review: "Review",
     concluido: "Concluído",
 };
 

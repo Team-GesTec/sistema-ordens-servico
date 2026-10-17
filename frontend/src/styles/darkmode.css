@@ -67,8 +67,17 @@
     color: #9eb0bd;
 }
 
-.dark-mode button {
-    background: #393739;
+.dark-mode input,
+.dark-mode textarea,
+.dark-mode select {
+    background-color: #202f42;
+    color: #f8fafc;
+    border-color: #526579;
+}
+
+.dark-mode input::placeholder,
+.dark-mode textarea::placeholder {
+    color: #bdc9d6;
 }
 
 /* =========================
@@ -144,4 +153,57 @@
             color-mix(in srgb, var(--azul-escuro) 60%, var(--azul-claro)) 0%,
             color-mix(in srgb, var(--azul-escuro) 85%, black) 78%);
     border-left: 1px solid color-mix(in srgb, var(--azul-claro) 30%, transparent);
+}
+
+/* MODAIS DE ORDENS NO MODO ESCURO */
+.dark-mode .ordem-modal {
+    background: #111f31;
+    color: #f8fafc;
+    border-color: #40566e;
+}
+
+.dark-mode .ordem-modal-header,
+.dark-mode .ordem-modal-actions {
+    background: #182b40;
+    border-color: #40566e;
+}
+
+.dark-mode .ordem-modal-header h2,
+.dark-mode .ordem-detalhe strong,
+.dark-mode .ordem-detalhes-descricao h3,
+.dark-mode .ordem-detalhes-descricao p {
+    color: #f1f5f9;
+}
+
+.dark-mode .ordem-detalhe {
+    background-color: #1b3046;
+    border-color: #40566e;
+}
+
+.dark-mode .ordem-detalhe span {
+    color: #c2d1df;
+}
+
+.dark-mode .ordem-detalhes-descricao {
+    background-color: #1b3046;
+    border-color: #40566e;
+}
+
+.dark-mode .ordem-modal-close {
+    background: #30465e;
+    color: #ffffff;
+}
+
+.dark-mode .ordem-modal-close:hover {
+    background: #405b77;
+}
+
+.dark-mode .ordem-modal .ordens-btn-secondary {
+    background: #30465e;
+    color: #ffffff;
+    border: 1px solid #526b85;
+}
+
+.dark-mode .ordem-modal .ordens-btn-secondary:hover {
+    background: #405b77;
 }

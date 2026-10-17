@@ -13,7 +13,12 @@ export type TipoOrdemServico = "instalacao" | "manutencao";
 
 export type NivelCriticidade = "baixo" | "medio" | "alto" | "muito_alto" | "urgente";
 
-export type StatusOrdemServico = StatusProjeto;
+export type StatusOrdemServico =
+    | "em_andamento"
+    | "aguardando"
+    | "validacao_testes"
+    | "bloqueado"
+    | "concluido";
 
 export interface Funcionario {
     id: number;
@@ -87,21 +92,24 @@ export interface ProjetoInput {
 export interface OrdemServico {
     id: number;
     departamento_id: number;
-    cliente_id: number;
+    cliente_id: number | null;
     solicitante_id: number;
     responsavel_id: number | null;
     projeto_id: number | null;
     anterior_id: number | null;
     parecer_tecnico: string | null;
     tipo: TipoOrdemServico;
+    titulo: string;
     criticidade: NivelCriticidade | null;
     prazo_horas: number;
     descricao: string;
     status: StatusOrdemServico;
+    ativo: boolean;
     data_criacao: string;
 }
 
 export interface OrdemServicoInput {
+    titulo: string;
     tipo: TipoOrdemServico;
     descricao: string;
     cliente_id: number;
