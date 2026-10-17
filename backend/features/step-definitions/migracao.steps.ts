@@ -1,3 +1,9 @@
+/**
+ * Steps BDD do cadastro de O.S. antiga/existente — migração manual (AJ-06).
+ * Cobrem: gestor cadastrando com data de abertura passada, parecer obrigatório para concluída,
+ * 403 para técnico, registro da origem na auditoria e presença da O.S. migrada na listagem.
+ * Os steps de autenticação e de listagem são reaproveitados de atribuicao.steps.ts e crud.steps.ts.
+ */
 import { When, Then } from "@cucumber/cucumber";
 import assert from "assert/strict";
 import { api } from "../support/api";

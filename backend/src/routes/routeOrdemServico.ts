@@ -52,4 +52,4 @@ router.patch('/:id/status', gestorOuTecnico, (req: Request, res: Response) =>
     controllerOrdemServico.alterarStatus(req, res),
 );
 
-export default router;
+export default router;

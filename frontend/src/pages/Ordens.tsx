@@ -1,3 +1,8 @@
+/**
+ * Página de O.S.: monta a toolbar, a grade de cards e os modais (detalhes, ativar/inativar e formulário)
+ * a partir do estado do hook useOrdens. O cadastro de O.S. antiga (AJ-06) só é liberado para o gestor.
+ */
+
 import "../styles/variaveis.css";
 import "../styles/global.css";
 import "../styles/layout.css";
@@ -145,4 +150,4 @@ function Ordens() {
     );
 }
 
-export default Ordens;
+export default Ordens;

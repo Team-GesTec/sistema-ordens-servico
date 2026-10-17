@@ -1,3 +1,8 @@
+/**
+ * Tipos das entidades e dos payloads trocados com a API (formato snake_case do backend).
+ * AJ-06: OrdemServicoInput aceita os campos opcionais do cadastro de O.S. antiga.
+ */
+
 export type PerfilFuncionario = "gestor" | "analista" | "tecnico";
 
 export type StatusProjeto =

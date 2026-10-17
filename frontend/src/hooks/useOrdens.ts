@@ -1,3 +1,11 @@
+/**
+ * Hook da tela de O.S.: carrega ordens, clientes, departamentos e projetos, controla filtros, modais
+ * e permissões por perfil, e integra com a API para cadastrar, editar, alterar status e ativar/inativar.
+ *
+ * AJ-06: o cadastro de O.S. antiga (com data de abertura) é aceito só para o gestor; após o sucesso,
+ * abre o detalhe da O.S. com os dados reais devolvidos pela API (abertura e SLA calculados no backend).
+ */
+
 import { useEffect, useMemo, useState } from "react";
 import { authService, getStoredUser } from "../services/auth";
 import { ApiError } from "../services/api";
@@ -582,4 +590,4 @@ export function useOrdens() {
         fecharConfirmacaoAtivo,
         confirmarAlteracaoAtivo,
     };
-}
+}
