@@ -41,11 +41,14 @@ export class ControllerOrdemServico {
         return resp.status(200).json(await serviceOrdemServico.buscarPorId(id));
     }
 
-    /** POST /ordens-servico — abre uma nova O.S. (201 com o registro criado). */
+    /**
+     * POST /ordens-servico — abre uma nova O.S. (201 com o registro criado).
+     * O perfil vai junto para o service validar o cadastro de O.S. antiga (AJ-06).
+     */
     public async criarOrdem(req: Request, resp: Response): Promise<Response> {
         const usuario = usuarioAutenticado(req);
 
-        const novaOS = await serviceOrdemServico.criar(req.body, usuario.id);
+        const novaOS = await serviceOrdemServico.criar(req.body, usuario.id, usuario.tipo);
         return resp.status(201).json(novaOS);
     }
 
@@ -96,4 +99,4 @@ export class ControllerOrdemServico {
 }
 
 /** Instância única usada pelas rotas. */
-export const controllerOrdemServico = new ControllerOrdemServico();
+export const controllerOrdemServico = new ControllerOrdemServico();

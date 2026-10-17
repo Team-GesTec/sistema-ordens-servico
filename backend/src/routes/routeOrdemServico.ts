@@ -27,6 +27,7 @@ router.get('/inativas', somenteGestor, (req: Request, res: Response) =>
 router.get('/:id', (req: Request, res: Response) => controllerOrdemServico.getById(req, res));
 
 // POST - gestor / técnico
+// AJ-06: data de abertura (data_criacao) no passado é exclusiva do gestor — checado no service (403 para técnico)
 router.post('/', gestorOuTecnico, (req: Request, res: Response) => controllerOrdemServico.criarOrdem(req, res));
 
 // Regras de atribuição para gestores e técnicos são validadas no service.
@@ -51,4 +52,4 @@ router.patch('/:id/status', gestorOuTecnico, (req: Request, res: Response) =>
     controllerOrdemServico.alterarStatus(req, res),
 );
 
-export default router;
+export default router;

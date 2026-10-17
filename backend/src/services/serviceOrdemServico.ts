@@ -18,6 +18,18 @@
  *  - O.S. concluída não tem o status alterado;
  *  - o parecer técnico é obrigatório para concluir e opcional nos demais status;
  *  - a alteração e o registro de auditoria são gravados na mesma transação.
+ *
+ * Regras do cadastro de O.S. antiga/existente — migração manual (AJ-06-BE):
+ *  - a O.S. é tratada como migração quando a data_criacao (abertura) informada está no passado;
+ *  - apenas o Gestor cadastra com data de abertura no passado (PE-14); o Técnico recebe 403;
+ *  - o status atual pode ser qualquer um dos 5 oficiais;
+ *  - status concluido exige parecer_tecnico e data_fim (data de conclusão), como na US#2.4;
+ *  - a data de conclusão não pode ser anterior à abertura nem estar no futuro;
+ *  - O.S. que já "nasce vencida" é aceita normalmente (não há bloqueio por SLA na criação);
+ *  - o cadastro e o registro de auditoria da origem (migração manual) são gravados na mesma transação.
+ *
+ * ALTERAÇÕES (17/10/2026):
+ *  - AJ-06-BE: `criar` passa a receber o perfil do usuário logado e trata o cadastro de O.S. antiga.
  */
 
 import { prisma } from '../prisma/client';
@@ -55,6 +67,15 @@ const STATUS_ORDEM_SERVICO = ['em_andamento', 'aguardando', 'validacao_testes', 
 const TEXTO_MAXIMO_DESCRICAO = 1000;
 const TEXTO_MAXIMO_TITULO = 60;
 const TEXTO_MAXIMO_PARECER = 1000;
+
+/**
+ * Folga para diferença de relógio entre o navegador e o servidor (AJ-06).
+ * Uma data_criacao só é considerada "no passado" se for anterior a agora menos essa folga.
+ */
+const TOLERANCIA_DATA_PASSADA_MS = 5 * 60 * 1000;
+
+/** Valor gravado na auditoria para identificar a origem do cadastro de O.S. antiga (AJ-06). */
+const ORIGEM_MIGRACAO_MANUAL = 'migracao_manual';
 
 
 /** Campos que a edição geral não altera: cada um tem a sua rota (US#2.4, US#2.3 e US#3.1). */
@@ -107,9 +128,11 @@ export class ServiceOrdemServico {
      * Valida o corpo e abre uma O.S.
      * @param corpo O `req.body` recebido.
      * @param solicitanteId Id do funcionário logado (vem do token, nunca do corpo).
+     * @param perfil Perfil do funcionário logado (vem do token, nunca do corpo).
      * @throws AppError 400 se algum campo for inválido ou o `anterior_id` não existir.
+     * @throws AppError 403 se um não gestor informar data de abertura no passado (AJ-06).
      */
-    async criar(corpo: unknown, solicitanteId: number): Promise<OrdemServico> {
+    async criar(corpo: unknown, solicitanteId: number, perfil: PerfilFuncionario): Promise<OrdemServico> {
         const dados = lerCorpo(corpo);
 
         const tipo = exigirEnum(dados.tipo, TIPOS_ORDEM_SERVICO, 'tipo');
@@ -143,6 +166,15 @@ export class ServiceOrdemServico {
         const dataFim = dataOpcional(dados.data_fim, 'data_fim');
         const dataLimiteSla = dataOpcional(dados.data_limite_sla, 'data_limite_sla');
         const justificativaSlaManual = textoOpcional(dados.justificativa_sla_manual, 'justficativa_sla_manual');
+
+        // AJ-06: data de abertura no passado = cadastro de O.S. antiga (migração manual)
+        const migracao = ehDataNoPassado(dataCriacao);
+        if (migracao) {
+            if (perfil !== 'gestor') {
+                throw AppError.acessoNegado('Apenas o gestor pode cadastrar O.S. com data de abertura no passado');
+            }
+            validarMigracao({ status, parecerTecnico, dataCriacao, dataFim });
+        }
 
         if (anteriorId !== null) {
             const anterior = await this.repositorio.buscarPorId(anteriorId);
@@ -179,7 +211,45 @@ export class ServiceOrdemServico {
             justificativa_sla_manual: justificativaSlaManual
         };
 
+        if (migracao) {
+            return this.criarMigracao(novaOS, solicitanteId);
+        }
+
         return this.repositorio.criar(novaOS);
+    }
+
+    /**
+     * Grava uma O.S. antiga/existente e registra na auditoria, na mesma transação,
+     * que a origem do cadastro é a migração manual (AJ-06-BE).
+     *
+     * A data_criacao informada (no passado) é mantida como data de abertura: é ela a base
+     * do cálculo do SLA (PE-08), e não a data/hora atual do servidor.
+     */
+    private async criarMigracao(novaOS: DadosCriacaoOrdemServico, usuarioId: number): Promise<OrdemServico> {
+        const criada = await prisma.$transaction(async (conexao) => {
+            const ordemCriada = await this.repositorio.criarNaTransacao(novaOS, conexao);
+
+            await serviceAuditoria.registrar(
+                {
+                    os_id: ordemCriada.id,
+                    funcionario_id: usuarioId,
+                    acao: 'insercao',
+                    campo_alterado: 'origem',
+                    dado_antigo: null,
+                    dado_novo: ORIGEM_MIGRACAO_MANUAL,
+                    justificativa:
+                        'Cadastro de O.S. antiga/existente (migração manual) com abertura em ' +
+                        `${novaOS.data_criacao.toISOString()} e status ${novaOS.status}`,
+                },
+                conexao,
+            );
+
+            return ordemCriada;
+        });
+
+        // Atualiza o cache só depois que a transação terminou
+        this.repositorio.atualizarCache(criada);
+        return criada;
     }
 
     /**
@@ -644,6 +714,43 @@ function exigirDataValida(valor: unknown, campo: string): Date {
 }
 
 
+/** Indica se a data está no passado, descontando a folga de relógio (AJ-06). */
+function ehDataNoPassado(data: Date): boolean {
+    return data.getTime() < Date.now() - TOLERANCIA_DATA_PASSADA_MS;
+}
+
+/**
+ * Valida os dados de uma O.S. antiga/existente (AJ-06-BE).
+ * Concluída exige parecer técnico e data de conclusão (data_fim), seguindo a regra da US#2.4.
+ * @throws AppError 400 se faltar parecer/data de conclusão ou se a data de conclusão for inválida.
+ */
+function validarMigracao(dados: {
+    status: string;
+    parecerTecnico: string | null;
+    dataCriacao: Date;
+    dataFim: Date | null;
+}): void {
+    if (dados.status !== 'concluido') {
+        return;
+    }
+
+    if (dados.parecerTecnico === null) {
+        throw AppError.requisicaoInvalida('parecer_tecnico é obrigatório para cadastrar uma O.S. concluída');
+    }
+
+    if (dados.dataFim === null) {
+        throw AppError.requisicaoInvalida('data_fim (data de conclusão) é obrigatória para cadastrar uma O.S. concluída');
+    }
+
+    if (dados.dataFim.getTime() < dados.dataCriacao.getTime()) {
+        throw AppError.requisicaoInvalida('data_fim (data de conclusão) não pode ser anterior à data de abertura');
+    }
+
+    if (dados.dataFim.getTime() > Date.now() + TOLERANCIA_DATA_PASSADA_MS) {
+        throw AppError.requisicaoInvalida('data_fim (data de conclusão) não pode estar no futuro');
+    }
+}
+
 /** Converte um valor para texto, no formato gravado na auditoria. */
 function paraTextoAuditoria(valor: unknown): string | null {
     if (valor === null || valor === undefined) {
@@ -657,4 +764,4 @@ function paraTextoAuditoria(valor: unknown): string | null {
 
 
 /** Instância única usada pelo controller. */
-export const serviceOrdemServico = new ServiceOrdemServico();
+export const serviceOrdemServico = new ServiceOrdemServico();

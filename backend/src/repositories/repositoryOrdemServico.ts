@@ -50,6 +50,21 @@ export class RepositoryOrdemServico {
         }
     }
 
+    /**
+     * Cria uma OS dentro de uma transação (usado no cadastro de O.S. antiga — AJ-06).
+     * Não mexe no cache: quem chama deve chamar `atualizarCache` depois que a transação terminar.
+     */
+    async criarNaTransacao(
+        dados: DadosCriacaoOrdemServico,
+        conexao: Prisma.TransactionClient,
+    ): Promise<OrdemServico> {
+        try {
+            return await conexao.ordens_servico.create({ data: dados });
+        } catch (erro) {
+            throw traduzirErroPrisma(erro, { referenciaInvalida: REFERENCIA_INVALIDA });
+        }
+    }
+
     /** Atualiza os campos informados de uma OS e atualiza o cache. */
     async atualizar(id: number, dados: DadosAtualizacaoOrdemServico): Promise<OrdemServico> {
         try {
@@ -168,4 +183,4 @@ export class RepositoryOrdemServico {
 }
 
 /** Instância única usada pelos services. */
-export const repositoryOrdemServico = new RepositoryOrdemServico();
+export const repositoryOrdemServico = new RepositoryOrdemServico();
