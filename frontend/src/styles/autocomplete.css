@@ -121,3 +121,44 @@
     font-size: 12px;
     text-align: center;
 }
+/* O menu é renderizado em portal para escapar do overflow dos modais roláveis. */
+.autocomplete-options {
+    box-sizing: border-box;
+    z-index: 2000;
+    overflow-x: hidden;
+    overscroll-behavior: contain;
+}
+
+.autocomplete-option.active,
+.autocomplete-option[aria-selected="true"] {
+    background: #edf7fd;
+    outline: none;
+}
+
+.autocomplete-option[aria-disabled="true"] {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.autocomplete-options--dark {
+    border-color: #40566e;
+    background: #182b40;
+    color: #f8fafc;
+}
+
+.autocomplete-options--dark .autocomplete-option-label {
+    color: #f1f5f9;
+}
+
+.autocomplete-options--dark .autocomplete-option-description,
+.autocomplete-options--dark .autocomplete-empty {
+    color: #c2d1df;
+}
+
+.autocomplete-options--dark .autocomplete-option.active,
+.autocomplete-options--dark .autocomplete-option:hover,
+.autocomplete-options--dark .autocomplete-option:focus-visible,
+.autocomplete-options--dark .autocomplete-option.selected,
+.autocomplete-options--dark .autocomplete-option[aria-selected="true"] {
+    background: #30465e;
+}

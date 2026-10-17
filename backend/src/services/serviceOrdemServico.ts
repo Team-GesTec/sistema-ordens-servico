@@ -37,6 +37,7 @@ import { AppError } from '../errors/AppError';
 import { repositoryOrdemServico, type RepositoryOrdemServico } from '../repositories/repositoryOrdemServico';
 import { repositoryFuncionario, type RepositoryFuncionario } from '../repositories/repositoryFuncionario';
 import { serviceAuditoria } from './serviceAuditoria';
+import { bloquearOrdemServico, bloquearProjetosRelacionados, validarProjetoDaOrdem } from '../utils/projetoOsInvariant';
 import type { PerfilFuncionario } from '../models/modelFuncionario';
 import {
     type DadosCriacaoOrdemServico,
@@ -215,7 +216,15 @@ export class ServiceOrdemServico {
             return this.criarMigracao(novaOS, solicitanteId);
         }
 
-        return this.repositorio.criar(novaOS);
+        // Criação e validação do projeto compartilham a mesma transação. O lock da
+        // linha do projeto serializa este caminho com a inativação do projeto.
+        const criada = await prisma.$transaction(async (conexao) => {
+            const projetosBloqueados = await bloquearProjetosRelacionados(conexao, [novaOS.projeto_id]);
+            validarProjetoDaOrdem(novaOS.projeto_id, true, novaOS.status, projetosBloqueados);
+            return this.repositorio.criarNaTransacao(novaOS, conexao);
+        });
+        this.repositorio.atualizarCache(criada);
+        return criada;
     }
 
     /**
@@ -227,6 +236,8 @@ export class ServiceOrdemServico {
      */
     private async criarMigracao(novaOS: DadosCriacaoOrdemServico, usuarioId: number): Promise<OrdemServico> {
         const criada = await prisma.$transaction(async (conexao) => {
+            const projetosBloqueados = await bloquearProjetosRelacionados(conexao, [novaOS.projeto_id]);
+            validarProjetoDaOrdem(novaOS.projeto_id, true, novaOS.status, projetosBloqueados);
             const ordemCriada = await this.repositorio.criarNaTransacao(novaOS, conexao);
 
             await serviceAuditoria.registrar(
@@ -266,7 +277,6 @@ export class ServiceOrdemServico {
         corpo: unknown,
         usuario: { id: number; tipo: PerfilFuncionario },
     ): Promise<OrdemServico> {
-        // 1. Valida o que chegou
         const idOS = exigirInteiroPositivo(id, 'id');
         const dados = lerCorpo(corpo);
         const novoStatus = exigirEnum(dados.status, STATUS_ORDEM_SERVICO, 'status');
@@ -275,46 +285,39 @@ export class ServiceOrdemServico {
         const parecer = parecerEnviado
             ? exigirTexto(dados.parecer_tecnico, 'parecer_tecnico', { maximo: TEXTO_MAXIMO_PARECER })
             : undefined;
-
-        // 2. Busca a O.S.
-        const ordem = await this.repositorio.buscarPorId(idOS);
-        if (!ordem) {
-            throw AppError.naoEncontrado(`O.S. ${idOS} não encontrada`);
-        }
-
-        // 3. Checa a permissão: gestor altera qualquer O.S.; os demais, só as atribuídas a eles
-        const ehResponsavel = ordem.responsavel_id === usuario.id;
-        if (usuario.tipo !== 'gestor' && !ehResponsavel) {
-            throw AppError.acessoNegado('Apenas o gestor ou o responsável pela O.S. pode alterar o status');
-        }
-
-        // 4. Checa a trava: O.S. concluída não muda mais
-        if (ordem.status === 'concluido') {
-            throw AppError.requisicaoInvalida(`A O.S. ${idOS} está concluída e não pode ter o status alterado`);
-        }
-
-        if (ordem.status === 'bloqueado') {
-            throw AppError.requisicaoInvalida(
-                `A O.S. ${idOS} está bloqueada e não pode ter o status alterado por esta rota`,
-            );
-        }
-
-        if (ordem.status === novoStatus) {
-            throw AppError.requisicaoInvalida(`A O.S. ${idOS} já está com o status ${novoStatus}`);
-        }
-
-        // 5. Checa o parecer: obrigatório para concluir
-        if (novoStatus === 'concluido' && parecer === undefined) {
-            throw AppError.requisicaoInvalida('parecer_tecnico é obrigatório para concluir a O.S.');
-        }
-
-        // 6. Grava o status e a auditoria na mesma transação
         const dadosStatus: DadosAlteracaoStatus = { status: novoStatus };
-        if (parecer !== undefined) {
-            dadosStatus.parecer_tecnico = parecer;
-        }
+        if (parecer !== undefined) dadosStatus.parecer_tecnico = parecer;
 
         const atualizada = await prisma.$transaction(async (conexao) => {
+            // Releitura sob lock evita aceitar uma transição usando status em cache
+            // enquanto outra requisição conclui a mesma O.S.
+            await bloquearOrdemServico(conexao, idOS);
+            const ordemAtual = await conexao.ordens_servico.findUnique({ where: { id: idOS } });
+            if (!ordemAtual) throw AppError.naoEncontrado(`O.S. ${idOS} não encontrada`);
+
+            const ehResponsavel = ordemAtual.responsavel_id === usuario.id;
+            if (usuario.tipo !== 'gestor' && !ehResponsavel) {
+                throw AppError.acessoNegado('Apenas o gestor ou o responsável pela O.S. pode alterar o status');
+            }
+            if (ordemAtual.status === 'concluido') {
+                throw AppError.requisicaoInvalida(`A O.S. ${idOS} está concluída e não pode ter o status alterado`);
+            }
+            if (ordemAtual.status === 'bloqueado') {
+                throw AppError.requisicaoInvalida(
+                    `A O.S. ${idOS} está bloqueada e não pode ter o status alterado por esta rota`,
+                );
+            }
+            if (ordemAtual.status === novoStatus) {
+                throw AppError.requisicaoInvalida(`A O.S. ${idOS} já está com o status ${novoStatus}`);
+            }
+            // A obrigatoriedade do parecer é verificada somente depois da existência,
+            // autorização e restrições de estado, preservando o contrato 404/403/400.
+            if (novoStatus === 'concluido' && parecer === undefined) {
+                throw AppError.requisicaoInvalida('parecer_tecnico é obrigatório para concluir a O.S.');
+            }
+
+            const projetosBloqueados = await bloquearProjetosRelacionados(conexao, [ordemAtual.projeto_id]);
+            validarProjetoDaOrdem(ordemAtual.projeto_id, ordemAtual.ativo, novoStatus, projetosBloqueados);
             const ordemAtualizada = await this.repositorio.atualizarStatus(idOS, dadosStatus, conexao);
 
             await serviceAuditoria.registrar(
@@ -323,17 +326,16 @@ export class ServiceOrdemServico {
                     funcionario_id: usuario.id,
                     acao: 'atualizacao',
                     campo_alterado: 'status',
-                    dado_antigo: ordem.status,
+                    dado_antigo: ordemAtual.status,
                     dado_novo: novoStatus,
                     justificativa: parecer ?? null,
                 },
                 conexao,
             );
-
             return ordemAtualizada;
         });
 
-        // 7. Devolve a O.S. atualizada
+        this.repositorio.atualizarCache(atualizada);
         return atualizada;
     }
 
@@ -346,64 +348,62 @@ export class ServiceOrdemServico {
      *                (ex.: `{ "status": "em_andamento" }`).
      */
     async atualizar(id: number, corpo: unknown, parcial: boolean, usuarioId: number): Promise<OrdemServico> {
-        // 1. Busca a O.S. para saber o status atual
-        const ordem = await this.repositorio.buscarPorId(id);
-        if (!ordem) {
-            throw AppError.naoEncontrado('OS não encontrada');
-        }
+        const idOS = exigirInteiroPositivo(id, 'id');
 
-        // 2. O.S. concluída não é editada
-        if (ordem.status === 'concluido') {
-            throw AppError.requisicaoInvalida('OS concluída não pode ser editada');
-        }
-
-        // 3. O.S. bloqueada não pode ser editada
-        if (ordem.status === 'bloqueado') {
-            throw AppError.requisicaoInvalida('OS bloqueada não pode ser editada');
-        }
-
-        // 4. Status, responsável e SLA têm rotas próprias
-        const dados = lerCorpo(corpo);
-        const proibidos = CAMPOS_PROIBIDOS_NA_EDICAO.filter((campo) => campoPresente(dados, campo));
-        if (proibidos.length > 0) {
-            throw AppError.requisicaoInvalida(
-                `Estes campos não podem ser alterados por esta rota: ${proibidos.join(', ')}. ` +
-                'Use as rotas próprias de status, responsável ou SLA.',
-            );
-        }
-
-        // 5. Valida o restante
-        const alteracoes = await this.montarAlteracoes(dados, parcial);
-        exigirAlteracoes(alteracoes);
-
-        // 6. Descobre quais campos realmente mudaram
-        const campos = Object.keys(alteracoes) as (keyof DadosAtualizacaoOrdemServico)[];
-        const camposAlterados = campos.filter(
-            (campo) => paraTextoAuditoria(ordem[campo]) !== paraTextoAuditoria(alteracoes[campo]),
-        );
-
-        // 7. Grava a edição e a auditoria na mesma transação
         const atualizada = await prisma.$transaction(async (conexao) => {
-            const ordemAtualizada = await this.repositorio.atualizarNaTransacao(id, alteracoes, conexao);
+            // Mantém existência e estado antes da validação do corpo, como no contrato anterior,
+            // mas verifica ambos sobre a linha bloqueada dentro da transação.
+            await bloquearOrdemServico(conexao, idOS);
+            const ordemAtual = await conexao.ordens_servico.findUnique({ where: { id: idOS } });
+            if (!ordemAtual) throw AppError.naoEncontrado('OS não encontrada');
+            if (ordemAtual.status === 'concluido') {
+                throw AppError.requisicaoInvalida('OS concluída não pode ser editada');
+            }
+            if (ordemAtual.status === 'bloqueado') {
+                throw AppError.requisicaoInvalida('OS bloqueada não pode ser editada');
+            }
 
+            const dados = lerCorpo(corpo);
+            const proibidos = CAMPOS_PROIBIDOS_NA_EDICAO.filter((campo) => campoPresente(dados, campo));
+            if (proibidos.length > 0) {
+                throw AppError.requisicaoInvalida(
+                    `Estes campos não podem ser alterados por esta rota: ${proibidos.join(', ')}. ` +
+                    'Use as rotas próprias de status, responsável ou SLA.',
+                );
+            }
+            const alteracoes = await this.montarAlteracoes(dados, parcial);
+            exigirAlteracoes(alteracoes);
+
+            const projetoIdFinal = alteracoes.projeto_id !== undefined
+                ? alteracoes.projeto_id
+                : ordemAtual.projeto_id;
+            const projetosBloqueados = await bloquearProjetosRelacionados(
+                conexao,
+                [ordemAtual.projeto_id, projetoIdFinal],
+            );
+            validarProjetoDaOrdem(projetoIdFinal, ordemAtual.ativo, ordemAtual.status, projetosBloqueados);
+
+            const campos = Object.keys(alteracoes) as (keyof DadosAtualizacaoOrdemServico)[];
+            const camposAlterados = campos.filter(
+                (campo) => paraTextoAuditoria(ordemAtual[campo]) !== paraTextoAuditoria(alteracoes[campo]),
+            );
+            const ordemAtualizada = await this.repositorio.atualizarNaTransacao(idOS, alteracoes, conexao);
             for (const campo of camposAlterados) {
                 await serviceAuditoria.registrar(
                     {
-                        os_id: id,
+                        os_id: idOS,
                         funcionario_id: usuarioId,
                         acao: 'atualizacao',
                         campo_alterado: campo,
-                        dado_antigo: paraTextoAuditoria(ordem[campo]),
+                        dado_antigo: paraTextoAuditoria(ordemAtual[campo]),
                         dado_novo: paraTextoAuditoria(alteracoes[campo]),
                     },
                     conexao,
                 );
             }
-
             return ordemAtualizada;
         });
 
-        // 8. Atualiza o cache só depois que a transação terminou
         this.repositorio.atualizarCache(atualizada);
         return atualizada;
     }
@@ -467,49 +467,39 @@ export class ServiceOrdemServico {
      */
     async bloquear(id: number, usuarioId: number): Promise<OrdemServico> {
         const idOS = exigirInteiroPositivo(id, "id");
-        const ordem = await this.repositorio.buscarPorId(idOS);
-
-        if (!ordem) {
-            throw AppError.naoEncontrado(`O.S. ${idOS} não encontrada`);
-        }
-
-        if (ordem.status === "concluido") {
-            throw AppError.requisicaoInvalida(
-                "Uma O.S. concluída não pode ser bloqueada.",
-            );
-        }
-
-        if (ordem.status === "bloqueado") {
-            throw AppError.requisicaoInvalida(
-                "A O.S. já está bloqueada.",
-            );
-        }
-
         const atualizada = await prisma.$transaction(async (conexao) => {
+            await bloquearOrdemServico(conexao, idOS);
+            const ordemAtual = await conexao.ordens_servico.findUnique({ where: { id: idOS } });
+            if (!ordemAtual) throw AppError.naoEncontrado(`O.S. ${idOS} não encontrada`);
+            if (ordemAtual.status === "concluido") {
+                throw AppError.requisicaoInvalida("Uma O.S. concluída não pode ser bloqueada.");
+            }
+            if (ordemAtual.status === "bloqueado") {
+                throw AppError.requisicaoInvalida("A O.S. já está bloqueada.");
+            }
+
+            const projetosBloqueados = await bloquearProjetosRelacionados(conexao, [ordemAtual.projeto_id]);
+            validarProjetoDaOrdem(ordemAtual.projeto_id, ordemAtual.ativo, "bloqueado", projetosBloqueados);
             const resultado = await this.repositorio.atualizarNaTransacao(
                 idOS,
                 { status: "bloqueado" },
                 conexao,
             );
-
             await serviceAuditoria.registrar(
                 {
                     os_id: idOS,
                     funcionario_id: usuarioId,
                     acao: "atualizacao",
                     campo_alterado: "status",
-                    dado_antigo: ordem.status,
+                    dado_antigo: ordemAtual.status,
                     dado_novo: "bloqueado",
                     justificativa: "Bloqueio da ordem de serviço",
                 },
                 conexao,
             );
-
             return resultado;
         });
-
         this.repositorio.atualizarCache(atualizada);
-
         return atualizada;
     }
 
@@ -524,54 +514,38 @@ export class ServiceOrdemServico {
         usuarioId: number,
     ): Promise<OrdemServico> {
         const idOS = exigirInteiroPositivo(id, "id");
-
         if (typeof ativo !== "boolean") {
-            throw AppError.requisicaoInvalida(
-                "O campo ativo deve ser true ou false",
-            );
-        }
-
-        const ordem = await this.repositorio.buscarPorId(idOS);
-
-        if (!ordem) {
-            throw AppError.naoEncontrado(`O.S. ${idOS} não encontrada`);
-        }
-
-        if (ordem.ativo === ativo) {
-            throw AppError.requisicaoInvalida(
-                ativo
-                    ? `A O.S. ${idOS} já está ativa`
-                    : `A O.S. ${idOS} já está inativa`,
-            );
+            throw AppError.requisicaoInvalida("O campo ativo deve ser true ou false");
         }
 
         const atualizada = await prisma.$transaction(async (conexao) => {
-            const resultado = await this.repositorio.atualizarNaTransacao(
-                idOS,
-                { ativo },
-                conexao,
-            );
+            await bloquearOrdemServico(conexao, idOS);
+            const ordemAtual = await conexao.ordens_servico.findUnique({ where: { id: idOS } });
+            if (!ordemAtual) throw AppError.naoEncontrado(`O.S. ${idOS} não encontrada`);
+            if (ordemAtual.ativo === ativo) {
+                throw AppError.requisicaoInvalida(
+                    ativo ? `A O.S. ${idOS} já está ativa` : `A O.S. ${idOS} já está inativa`,
+                );
+            }
 
+            const projetosBloqueados = await bloquearProjetosRelacionados(conexao, [ordemAtual.projeto_id]);
+            validarProjetoDaOrdem(ordemAtual.projeto_id, ativo, ordemAtual.status, projetosBloqueados);
+            const resultado = await this.repositorio.atualizarNaTransacao(idOS, { ativo }, conexao);
             await serviceAuditoria.registrar(
                 {
                     os_id: idOS,
                     funcionario_id: usuarioId,
                     acao: "atualizacao",
                     campo_alterado: "ativo",
-                    dado_antigo: String(ordem.ativo),
+                    dado_antigo: String(ordemAtual.ativo),
                     dado_novo: String(ativo),
-                    justificativa: ativo
-                        ? "Reativação da ordem de serviço"
-                        : "Inativação da ordem de serviço",
+                    justificativa: ativo ? "Reativação da ordem de serviço" : "Inativação da ordem de serviço",
                 },
                 conexao,
             );
-
             return resultado;
         });
-
         this.repositorio.atualizarCache(atualizada);
-
         return atualizada;
     }
 
@@ -764,4 +738,4 @@ function paraTextoAuditoria(valor: unknown): string | null {
 
 
 /** Instância única usada pelo controller. */
-export const serviceOrdemServico = new ServiceOrdemServico();
+export const serviceOrdemServico = new ServiceOrdemServico();

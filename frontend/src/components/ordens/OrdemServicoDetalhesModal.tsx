@@ -260,38 +260,43 @@ function OrdemServicoDetalhesModal({
                                 <section className="ordem-detalhes-descricao ordem-status-edicao">
                                     <h3>Alterar status</h3>
 
-                                    <select
-                                        id="ordem-status-select"
-                                        className="ordem-status-select"
-                                        aria-label="Selecionar novo status"
-                                        value={statusSelecionado}
-                                        onChange={(event) =>
-                                            setStatusSelecionado(
-                                                event.target.value as StatusOrdemServico,
-                                            )
-                                        }
-                                        disabled={alterandoStatusId !== null}
-                                    >
-                                        {STATUS_EDITAVEIS.map((status) => (
-                                            <option key={status} value={status}>
-                                                {STATUS_LABELS[status]}
-                                            </option>
-                                        ))}
-                                    </select>
+                                    <div className="ordem-status-controls">
+                                        <div className="ordem-status-field">
+                                            <label htmlFor="ordem-status-select">Novo status</label>
+                                            <select
+                                                id="ordem-status-select"
+                                                className="ordem-status-select"
+                                                value={statusSelecionado}
+                                                onChange={(event) =>
+                                                    setStatusSelecionado(
+                                                        event.target.value as StatusOrdemServico,
+                                                    )
+                                                }
+                                                disabled={alterandoStatusId !== null}
+                                            >
+                                                {STATUS_EDITAVEIS.map((status) => (
+                                                    <option key={status} value={status}>
+                                                        {STATUS_LABELS[status]}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                        </div>
 
-                                    <button
-                                        type="button"
-                                        className="ordens-btn-primary ordem-status-atualizar"
-                                        onClick={() => onAlterarStatus(statusSelecionado)}
-                                        disabled={
-                                            alterandoStatusId !== null ||
-                                            statusSelecionado === ordem.status
-                                        }
-                                    >
-                                        {alterandoStatusId === ordem.id
-                                            ? "Atualizando..."
-                                            : "Atualizar status"}
-                                    </button>
+                                        <button
+                                            type="button"
+                                            className="ordens-btn-primary ordem-status-atualizar"
+                                            onClick={() => onAlterarStatus(statusSelecionado)}
+                                            disabled={
+                                                alterandoStatusId !== null ||
+                                                statusSelecionado === ordem.status
+                                            }
+                                            aria-busy={alterandoStatusId === ordem.id}
+                                        >
+                                            {alterandoStatusId === ordem.id
+                                                ? "Atualizando..."
+                                                : "Atualizar status"}
+                                        </button>
+                                    </div>
                                 </section>
                             )}
 

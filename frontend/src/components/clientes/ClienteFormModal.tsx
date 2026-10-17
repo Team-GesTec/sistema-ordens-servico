@@ -99,7 +99,7 @@ function ClienteFormModal({
 
     return (
         <div
-            className="cliente-modal-overlay"
+            className="projeto-modal-overlay cliente-modal-overlay"
             onMouseDown={(event) => {
                 if (event.target === event.currentTarget) {
                     onClose();
@@ -107,19 +107,19 @@ function ClienteFormModal({
             }}
         >
             <section
-                className="cliente-modal"
+                className="projeto-modal cliente-modal cliente-form-modal projeto-form-modal"
                 role="dialog"
                 aria-modal="true"
                 aria-labelledby="cliente-modal-titulo"
             >
-                <header className="cliente-modal-header">
+                <header className="projeto-modal-header cliente-modal-header">
                     <h2 id="cliente-modal-titulo">
                         {cliente ? "Editar cliente" : "Cadastrar cliente"}
                     </h2>
 
                     <button
                         type="button"
-                        className="cliente-modal-close"
+                        className="projeto-modal-close cliente-modal-close"
                         aria-label="Fechar formulário"
                         onClick={onClose}
                         disabled={salvando}
@@ -138,7 +138,7 @@ function ClienteFormModal({
                         </div>
                     )}
 
-                    <div className="cliente-form-field">
+                    <div className="projeto-field">
                         <label htmlFor="cliente-nome">Nome</label>
                         <input
                             id="cliente-nome"
@@ -152,7 +152,7 @@ function ClienteFormModal({
                         />
                     </div>
 
-                    <div className="cliente-form-field">
+                    <div className="projeto-field">
                         <label htmlFor="cliente-razao">
                             Razão social
                         </label>
@@ -171,7 +171,7 @@ function ClienteFormModal({
                         />
                     </div>
 
-                    <div className="cliente-form-field">
+                    <div className="projeto-field">
                         <label htmlFor="cliente-ramo">
                             Ramo de atuação
                         </label>
@@ -190,10 +190,10 @@ function ClienteFormModal({
                         />
                     </div>
 
-                    <div className="cliente-modal-actions">
+                    <div className="projeto-modal-actions cliente-modal-actions">
                         <button
                             type="button"
-                            className="clientes-btn-secondary"
+                            className="projeto-btn-secondary"
                             onClick={onClose}
                             disabled={salvando}
                         >
@@ -202,7 +202,7 @@ function ClienteFormModal({
 
                         <button
                             type="submit"
-                            className="clientes-btn-primary"
+                            className="projeto-btn-primary"
                             disabled={salvando}
                         >
                             {salvando

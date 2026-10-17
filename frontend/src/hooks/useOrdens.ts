@@ -117,12 +117,30 @@ export function useOrdens() {
                     projetoService.listar(),
                 ]);
 
+                // O endpoint de projetos ativos não inclui uma associação histórica inativa.
+                // Gestores podem consultar inativos; carregamos essa lista separadamente para
+                // exibir o rótulo de um projeto já associado, sem oferecê-lo como nova escolha.
+                let projetosConhecidos = projetosApi;
+                if (gestor) {
+                    try {
+                        const projetosInativosApi = await projetoService.listarInativos();
+                        projetosConhecidos = [...projetosApi, ...projetosInativosApi];
+                    } catch (error) {
+                        if (ativo) {
+                            setErro(mensagemErro(
+                                error,
+                                "Não foi possível carregar os projetos inativos associados a ordens existentes.",
+                            ));
+                        }
+                    }
+                }
+
                 if (!ativo) return;
 
                 setOrdens(ordensApi);
                 setClientes(clientesApi);
                 setDepartamentos(departamentosApi);
-                setProjetos(projetosApi);
+                setProjetos(projetosConhecidos);
             } catch (error) {
                 if (ativo) {
                     setErro(
@@ -327,6 +345,34 @@ export function useOrdens() {
                 mensagemErro(
                     error,
                     "Não foi possível carregar os detalhes da ordem de serviço.",
+                ),
+            );
+        } finally {
+            setCarregandoDetalhes(false);
+        }
+    }
+
+    async function abrirDetalhesPorId(id: number): Promise<void> {
+        setOrdemSelecionada(null);
+        setDetalhesAbertos(true);
+        setCarregandoDetalhes(true);
+        setErro(null);
+
+        try {
+            const detalhe = await ordemServicoService.buscarPorId(id);
+            setOrdemSelecionada(detalhe);
+
+            // Se a navegação veio do histórico de um projeto para uma O.S. inativa,
+            // mantenha a lista de O.S. inativas selecionada e atualize-a em segundo plano.
+            if (!detalhe.ativo && podeGerenciar) {
+                setMostrarInativas(true);
+                void carregarOrdensInativas();
+            }
+        } catch (error) {
+            setErro(
+                mensagemErro(
+                    error,
+                    `Não foi possível carregar os detalhes da ordem de serviço #${id}.`,
                 ),
             );
         } finally {
@@ -568,6 +614,7 @@ export function useOrdens() {
         ),
         ordemSelecionada,
         abrirDetalhes,
+        abrirDetalhesPorId,
         fecharDetalhes,
 
         ordensInativas,
@@ -582,4 +629,4 @@ export function useOrdens() {
         fecharConfirmacaoAtivo,
         confirmarAlteracaoAtivo,
     };
-}
+}

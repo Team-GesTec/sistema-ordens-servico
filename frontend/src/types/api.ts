@@ -1,12 +1,9 @@
 export type PerfilFuncionario = "gestor" | "analista" | "tecnico";
 
 export type StatusProjeto =
-    | "pendente"
+    | "em_planejamento"
     | "em_andamento"
-    | "aguardando_embarque"
-    | "validacao_testes"
-    | "bloqueado"
-    | "review"
+    | "pausado"
     | "concluido";
 
 export type TipoOrdemServico = "instalacao" | "manutencao";
@@ -74,17 +71,43 @@ export interface FuncionarioInput {
     tipo: PerfilFuncionario;
 }
 
+export interface OrdemServicoProjeto {
+    id: number;
+    titulo: string;
+    status: StatusOrdemServico;
+    ativo: boolean;
+    data_criacao: string;
+    data_fim: string | null;
+    data_limite_sla: string | null;
+}
+
+/** Contrato enxuto da listagem e das respostas de mutação; não inclui linhas de O.S. */
 export interface Projeto {
     id: number;
+    nome: string;
     cliente_id: number;
-    data_prazo: string | null;
+    data_inicio: string | null;
+    data_fim: string | null;
     status: StatusProjeto;
+    ativo: boolean;
     departamentos: number[];
+    cliente: Pick<Cliente, "id" | "nome" | "razao_social">;
+    departamentos_detalhes: Pick<Departamento, "id" | "nome">[];
+    total_os_elegiveis: number;
+    os_concluidas: number;
+    percentual_conclusao: number | null;
+}
+
+/** Contrato separado dos detalhes; as O.S. retornadas dependem do perfil autenticado. */
+export interface ProjetoDetalhe extends Projeto {
+    ordens_servico: OrdemServicoProjeto[];
 }
 
 export interface ProjetoInput {
+    nome: string;
     cliente_id: number;
-    data_prazo: string | null;
+    data_inicio: string | null;
+    data_fim: string | null;
     status: StatusProjeto;
     departamentos: number[];
 }
