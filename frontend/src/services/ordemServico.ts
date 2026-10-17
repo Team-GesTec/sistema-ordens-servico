@@ -56,6 +56,21 @@ export const ordemServicoService = {
         });
     },
 
+    /** PATCH /ordens-servico/:id/sla-manual — altera o prazo final (somente gestor). */
+    alterarPrazo(
+        id: number,
+        dataLimiteSla: string,
+        justificativa: string,
+    ): Promise<OrdemServico> {
+        return apiRequest<OrdemServico>(`/ordens-servico/${id}/sla-manual`, {
+            method: "PATCH",
+            body: JSON.stringify({
+                data_limite_sla: dataLimiteSla,
+                justificativa_sla_manual: justificativa,
+            }),
+        });
+    },
+
     atualizar(
         id: number,
         payload: Partial<OrdemServicoInput>,

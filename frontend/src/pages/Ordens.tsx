@@ -10,6 +10,7 @@ import "../styles/sidebar.css";
 import "../styles/darkmode.css";
 import "../styles/forms.css";
 import "../styles/autocomplete.css";
+import "../styles/details.css";
 import "../styles/ordens.css";
 
 import OrdensToolbar from "../components/ordens/OrdensToolbar";
@@ -122,6 +123,9 @@ function Ordens() {
                 podeAlterarStatus={ordens.podeAlterarStatus}
                 alterandoStatusId={ordens.alterandoStatusId}
                 onAlterarStatus={ordens.alterarStatusOrdem}
+                podeAlterarPrazo={ordens.podeGerenciar}
+                alterandoPrazo={ordens.alterandoPrazo}
+                onAlterarPrazo={ordens.alterarPrazoOrdem}
             />
 
             <OrdemServicoAtivoModal

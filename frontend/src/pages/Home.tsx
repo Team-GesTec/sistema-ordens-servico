@@ -64,6 +64,9 @@ function Home() {
     const [search, setSearch] = useState("");
     const [selectedSetor, setSelectedSetor] = useState(0);
 
+    // Filtro de status: começa mostrando todas as ordens.
+    const [selectedStatus, setSelectedStatus] = useState<StatusOrdemServico | "todos">("todos");
+
     const [ordens, setOrdens] = useState<OrdemServico[]>([]);
 
     const [carregando, setCarregando] = useState(true);
@@ -121,15 +124,17 @@ function Home() {
         (item) => item.id === osSelecionada?.responsavel_id,
     );
 
+    // Combina pesquisa por texto, setor e status.
     const ordensFiltradas = useMemo(() => {
         const termo = search.trim().toLowerCase();
 
         return ordens.filter((os) => {
             const bateSetor =
-                selectedSetor === 0 ||
-                os.departamento_id === selectedSetor;
+                selectedSetor === 0 || os.departamento_id === selectedSetor;
+            const bateStatus =
+                selectedStatus === "todos" || os.status === selectedStatus;
 
-            if (!bateSetor) {
+            if (!bateSetor || !bateStatus) {
                 return false;
             }
 
@@ -141,15 +146,11 @@ function Home() {
                 String(os.id).includes(termo) ||
                 (os.titulo ?? "").toLowerCase().includes(termo) ||
                 os.descricao.toLowerCase().includes(termo) ||
-                TIPO_LABELS[os.tipo]
-                    .toLowerCase()
-                    .includes(termo) ||
-                STATUS_LABELS[os.status]
-                    .toLowerCase()
-                    .includes(termo)
+                TIPO_LABELS[os.tipo].toLowerCase().includes(termo) ||
+                STATUS_LABELS[os.status].toLowerCase().includes(termo)
             );
         });
-    }, [ordens, search, selectedSetor]);
+    }, [ordens, search, selectedSetor, selectedStatus]);
 
     function abrirModal(os: OrdemServico) {
         setOsSelecionada(os);
@@ -306,10 +307,32 @@ function Home() {
                             placeholder="Todos os setores"
                         />
 
+                        {/* Filtros por status */}
                         <div className="filter-button">
-                            <button disabled></button>
-                            <button disabled></button>
-                            <button disabled></button>
+                            <button
+                                type="button"
+                                className={selectedStatus === "todos" ? "active" : ""}
+                                aria-pressed={selectedStatus === "todos"}
+                                onClick={() => setSelectedStatus("todos")}
+                            >
+                                Todos
+                            </button>
+
+                            {statusOptions.map((status) => {
+                                const valor = status.value as StatusOrdemServico;
+
+                                return (
+                                    <button
+                                        key={valor}
+                                        type="button"
+                                        className={selectedStatus === valor ? "active" : ""}
+                                        aria-pressed={selectedStatus === valor}
+                                        onClick={() => setSelectedStatus(valor)}
+                                    >
+                                        {status.label}
+                                    </button>
+                                );
+                            })}
                         </div>
                     </div>
 

@@ -594,7 +594,18 @@ export class ServiceOrdemServico {
             'justificativa_sla_manual',
         );
 
-        await this.buscarPorId(id);
+        const ordem = await this.buscarPorId(id);
+
+        if (!ordem.ativo) {
+            throw AppError.requisicaoInvalida(`A O.S. ${id} está inativa e não pode ter o prazo alterado`);
+        }
+
+        if (ordem.status === 'concluido' || ordem.status === 'bloqueado') {
+            throw AppError.requisicaoInvalida(
+                `A O.S. ${id} está ${ordem.status === 'concluido' ? 'concluída' : 'bloqueada'} e não pode ter o prazo alterado`,
+            );
+        }
+
         return this.repositorio.alterarSlaManual({
             osId: id,
             dataLimiteSla,

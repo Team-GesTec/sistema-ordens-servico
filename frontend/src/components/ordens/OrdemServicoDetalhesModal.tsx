@@ -12,6 +12,8 @@ import {
     TIPO_LABELS,
 } from "../../utils/ordemServicoUtils";
 
+type OrdemComSla = OrdemServico & { data_limite_sla?: string | null };
+
 interface OrdemServicoDetalhesModalProps {
     aberto: boolean;
     ordem: OrdemServico | null;
@@ -21,10 +23,14 @@ interface OrdemServicoDetalhesModalProps {
     erro: string | null;
     podeEditar: boolean;
     podeAlterarStatus: boolean;
+    podeAlterarPrazo?: boolean;
     alterandoStatusId: number | null;
+    alterandoPrazo?: boolean;
     onFechar: () => void;
     onEditar: (ordem: OrdemServico) => void;
     onAlterarStatus: (status: StatusOrdemServico) => void;
+    // Recebe a data (AAAA-MM-DD) e o motivo da alteração
+    onAlterarPrazo?: (dataLimite: string, justificativa: string) => void;
 }
 
 const STATUS_EDITAVEIS: StatusOrdemServico[] = [
@@ -45,6 +51,13 @@ function formatarData(data: string | null | undefined): string {
     return dataConvertida.toLocaleString("pt-BR");
 }
 
+// Converte o valor do backend para o formato aceito pelo <input type="date">.
+function paraInputData(data: string | null | undefined): string {
+    if (!data) return "";
+
+    return data.slice(0, 10);
+}
+
 function OrdemServicoDetalhesModal({
     aberto,
     ordem,
@@ -52,20 +65,30 @@ function OrdemServicoDetalhesModal({
     erro,
     podeEditar,
     podeAlterarStatus,
+    podeAlterarPrazo = false,
     alterandoStatusId,
+    alterandoPrazo = false,
     clientes,
     departamentos,
     onFechar,
     onEditar,
     onAlterarStatus,
+    onAlterarPrazo,
 }: OrdemServicoDetalhesModalProps) {
     const [parecerTemporario, setParecerTemporario] = useState("");
     const [statusSelecionado, setStatusSelecionado] =
         useState<StatusOrdemServico>("em_andamento");
+    const [prazoSelecionado, setPrazoSelecionado] = useState("");
+    const [justificativaAberta, setJustificativaAberta] = useState(false);
+    const [justificativaPrazo, setJustificativaPrazo] = useState("");
+
+    const prazoAtual = paraInputData((ordem as OrdemComSla | null)?.data_limite_sla);
 
     // Descarta o rascunho ao fechar o modal ou trocar de OS.
     useEffect(() => {
         setParecerTemporario("");
+        setJustificativaAberta(false);
+        setJustificativaPrazo("");
     }, [aberto, ordem?.id]);
 
     // Sincroniza o seletor com o status atual da ordem.
@@ -73,12 +96,24 @@ function OrdemServicoDetalhesModal({
         setStatusSelecionado(ordem?.status ?? "em_andamento");
     }, [aberto, ordem?.id, ordem?.status]);
 
+    // Sincroniza o seletor de data com o prazo atual da ordem.
+    useEffect(() => {
+        setPrazoSelecionado(prazoAtual);
+    }, [aberto, ordem?.id, prazoAtual]);
+
     // Permite fechar o modal com a tecla Escape.
     useEffect(() => {
         if (!aberto) return;
 
         function handleKeyDown(event: KeyboardEvent) {
             if (event.key === "Escape") {
+                // Com o modal de motivo aberto, o Escape fecha só ele.
+                if (justificativaAberta) {
+                    setJustificativaAberta(false);
+                    setJustificativaPrazo("");
+                    return;
+                }
+
                 onFechar();
             }
         }
@@ -88,9 +123,23 @@ function OrdemServicoDetalhesModal({
         return () => {
             document.removeEventListener("keydown", handleKeyDown);
         };
-    }, [aberto, onFechar]);
+    }, [aberto, onFechar, justificativaAberta]);
 
     if (!aberto) return null;
+
+    function cancelarJustificativa() {
+        setJustificativaAberta(false);
+        setJustificativaPrazo("");
+    }
+
+    function confirmarJustificativa() {
+        const motivo = justificativaPrazo.trim();
+
+        if (!motivo) return;
+
+        onAlterarPrazo?.(prazoSelecionado, motivo);
+        cancelarJustificativa();
+    }
 
     const podeEditarOrdem =
         podeEditar &&
@@ -243,13 +292,8 @@ function OrdemServicoDetalhesModal({
                                     <strong>
                                         {"data_limite_sla" in ordem
                                             ? formatarData(
-                                                  (
-                                                      ordem as OrdemServico & {
-                                                          data_limite_sla?:
-                                                              | string
-                                                              | null;
-                                                      }
-                                                  ).data_limite_sla,
+                                                  (ordem as OrdemComSla)
+                                                      .data_limite_sla,
                                               )
                                             : "Não informado"}
                                     </strong>
@@ -291,6 +335,39 @@ function OrdemServicoDetalhesModal({
                                         {alterandoStatusId === ordem.id
                                             ? "Atualizando..."
                                             : "Atualizar status"}
+                                    </button>
+                                </section>
+                            )}
+
+                            {podeAlterarPrazo && (
+                                <section className="ordem-detalhes-descricao ordem-status-edicao">
+                                    <h3>Alterar prazo final</h3>
+
+                                    <input
+                                        id="ordem-prazo-input"
+                                        type="date"
+                                        className="ordem-status-select"
+                                        aria-label="Selecionar novo prazo final"
+                                        value={prazoSelecionado}
+                                        onChange={(event) =>
+                                            setPrazoSelecionado(event.target.value)
+                                        }
+                                        disabled={alterandoPrazo}
+                                    />
+
+                                    <button
+                                        type="button"
+                                        className="ordens-btn-primary ordem-status-atualizar"
+                                        onClick={() => setJustificativaAberta(true)}
+                                        disabled={
+                                            alterandoPrazo ||
+                                            !prazoSelecionado ||
+                                            prazoSelecionado === prazoAtual
+                                        }
+                                    >
+                                        {alterandoPrazo
+                                            ? "Atualizando..."
+                                            : "Confirmar alteração"}
                                     </button>
                                 </section>
                             )}
@@ -352,6 +429,83 @@ function OrdemServicoDetalhesModal({
                     )}
                 </footer>
             </section>
+
+            {justificativaAberta && (
+                <div
+                    className="ordem-modal-overlay ordem-modal-overlay--sobreposto"
+                    onMouseDown={(event) => {
+                        if (event.target === event.currentTarget) {
+                            cancelarJustificativa();
+                        }
+                    }}
+                >
+                    <section
+                        className="ordem-modal ordem-modal--justificativa"
+                        role="dialog"
+                        aria-modal="true"
+                        aria-labelledby="ordem-justificativa-titulo"
+                    >
+                        <header className="ordem-modal-header">
+                            <div>
+                                <span className="ordem-card-id">
+                                    MOTIVO DA ALTERAÇÃO
+                                </span>
+
+                                <h2 id="ordem-justificativa-titulo">
+                                    Alterar prazo da OS #{ordem?.id}
+                                </h2>
+                            </div>
+
+                            <button
+                                type="button"
+                                className="ordem-modal-close"
+                                onClick={cancelarJustificativa}
+                                aria-label="Fechar motivo da alteração"
+                            >
+                                ×
+                            </button>
+                        </header>
+
+                        <div className="ordem-modal-body ordem-parecer-rascunho">
+                            <label htmlFor="ordem-justificativa-prazo">
+                                Explique o motivo da alteração
+                            </label>
+
+                            <textarea
+                                id="ordem-justificativa-prazo"
+                                className="ordem-parecer-textarea"
+                                rows={5}
+                                maxLength={1000}
+                                autoFocus
+                                value={justificativaPrazo}
+                                onChange={(event) =>
+                                    setJustificativaPrazo(event.target.value)
+                                }
+                                placeholder="Descreva o motivo da alteração do prazo..."
+                            />
+                        </div>
+
+                        <footer className="ordem-modal-actions">
+                            <button
+                                type="button"
+                                className="ordens-btn-secondary"
+                                onClick={cancelarJustificativa}
+                            >
+                                Cancelar
+                            </button>
+
+                            <button
+                                type="button"
+                                className="ordens-btn-primary"
+                                disabled={!justificativaPrazo.trim()}
+                                onClick={confirmarJustificativa}
+                            >
+                                Confirmar alteração
+                            </button>
+                        </footer>
+                    </section>
+                </div>
+            )}
         </div>
     );
 }

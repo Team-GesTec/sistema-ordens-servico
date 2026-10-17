@@ -33,6 +33,7 @@ function mensagemErro(error: unknown, fallback: string): string {
 export function useOrdens() {
     const [ordens, setOrdens] = useState<OrdemServico[]>([]);
     const [alterandoStatusId, setAlterandoStatusId] = useState<number | null>(null);
+    const [alterandoPrazo, setAlterandoPrazo] = useState(false);
     const [ordensInativas, setOrdensInativas] = useState<OrdemServico[]>([]);
     const [carregandoInativas, setCarregandoInativas] = useState(false);
     const [mostrarInativas, setMostrarInativas] = useState(false);
@@ -419,8 +420,72 @@ export function useOrdens() {
         }
     }
 
+    async function alterarPrazoOrdem(
+        novoPrazo: string,
+        justificativa: string,
+    ): Promise<void> {
+        const ordem = ordemSelecionada;
+
+        if (!ordem || alterandoPrazo) return;
+
+        if (!podeGerenciar) {
+            setErro("Apenas gestores podem alterar o prazo final.");
+            return;
+        }
+
+        if (!ordem.ativo) {
+            setErro("Não é possível alterar o prazo de uma OS inativa.");
+            return;
+        }
+
+        if (ordem.status === "bloqueado" || ordem.status === "concluido") {
+            setErro("Esta OS não permite alteração de prazo no estado atual.");
+            return;
+        }
+
+        if (!novoPrazo) return;
+
+        if (!justificativa.trim()) {
+            setErro("Informe o motivo da alteração do prazo.");
+            return;
+        }
+
+        setAlterandoPrazo(true);
+        setErro(null);
+        setMensagem(null);
+
+        try {
+            // Fim do dia no fuso do usuário, enviado como ISO completo
+            const dataLimiteSla = new Date(`${novoPrazo}T23:59:59`).toISOString();
+
+            const atualizada = await ordemServicoService.alterarPrazo(
+                ordem.id,
+                dataLimiteSla,
+                justificativa.trim(),
+            );
+
+            setOrdemSelecionada(atualizada);
+            setOrdens((atuais) =>
+                atuais.map((item) =>
+                    item.id === atualizada.id ? atualizada : item,
+                ),
+            );
+
+            setMensagem(`Prazo da OS #${atualizada.id} alterado com sucesso.`);
+        } catch (error) {
+            setErro(
+                mensagemErro(
+                    error,
+                    "Não foi possível alterar o prazo da ordem de serviço.",
+                ),
+            );
+        } finally {
+            setAlterandoPrazo(false);
+        }
+    }
+
     async function salvarOrdem(dados: OrdemServicoInput): Promise<void> {
-       const autorizado = ordemEmEdicao
+        const autorizado = ordemEmEdicao
             ? podeGerenciar
             : podeCriar;
 
@@ -565,6 +630,8 @@ export function useOrdens() {
 
         detalhesAbertos,
         alterarStatusOrdem,
+        alterarPrazoOrdem,
+        alterandoPrazo,
         alterandoStatusId,
         podeAlterarStatus: Boolean(
             ordemSelecionada &&

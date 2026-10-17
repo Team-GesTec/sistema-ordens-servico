@@ -111,6 +111,9 @@ export interface OrdemServico {
     status: StatusOrdemServico;
     ativo: boolean;
     data_criacao: string;
+    /** Prazo final (SLA) devolvido pela API; ISO ou null quando não definido. */
+    data_limite_sla?: string | null;
+    sla_manual?: boolean;
 }
 
 export interface OrdemServicoInput {
