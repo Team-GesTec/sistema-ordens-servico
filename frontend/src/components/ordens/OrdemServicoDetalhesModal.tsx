@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import Autocomplete, { type AutocompleteOption } from "../common/Autocomplete";
 import type {
     Cliente,
     Departamento,
     OrdemServico,
+    Funcionario,
     StatusOrdemServico,
 } from "../../types/api";
 import {
@@ -17,11 +19,16 @@ interface OrdemServicoDetalhesModalProps {
     ordem: OrdemServico | null;
     clientes: Cliente[];
     departamentos: Departamento[];
+    funcionarios: Funcionario[];
+    funcionariosElegiveis: Funcionario[];
+    atribuindoResponsavel: boolean;
     carregando: boolean;
     erro: string | null;
     podeEditar: boolean;
     podeAlterarStatus: boolean;
     alterandoStatusId: number | null;
+    podeReatribuirResponsavel: boolean;
+    onAtribuirResponsavel: (funcionarioId: number) => void;
     onFechar: () => void;
     onEditar: (ordem: OrdemServico) => void;
     onAlterarStatus: (status: StatusOrdemServico) => void;
@@ -55,11 +62,17 @@ function OrdemServicoDetalhesModal({
     alterandoStatusId,
     clientes,
     departamentos,
+    funcionarios,
+    funcionariosElegiveis,
+    atribuindoResponsavel,
+    podeReatribuirResponsavel,
+    onAtribuirResponsavel,
     onFechar,
     onEditar,
     onAlterarStatus,
 }: OrdemServicoDetalhesModalProps) {
     const [parecerTemporario, setParecerTemporario] = useState("");
+    const [responsavelNovoId, setResponsavelNovoId] = useState<number | null>(null);
     const [statusSelecionado, setStatusSelecionado] =
         useState<StatusOrdemServico>("em_andamento");
 
@@ -72,6 +85,11 @@ function OrdemServicoDetalhesModal({
     useEffect(() => {
         setStatusSelecionado(ordem?.status ?? "em_andamento");
     }, [aberto, ordem?.id, ordem?.status]);
+
+    useEffect(() => {
+        // A troca de O.S. exige uma nova seleção explícita, evitando reenvio acidental.
+        setResponsavelNovoId(null);
+    }, [aberto, ordem?.id, ordem?.responsavel_id]);
 
     // Permite fechar o modal com a tecla Escape.
     useEffect(() => {
@@ -105,6 +123,14 @@ function OrdemServicoDetalhesModal({
     const departamento = ordem
         ? departamentos.find((item) => item.id === ordem.departamento_id)
         : undefined;
+    const responsavelAtual = ordem?.responsavel_id
+        ? funcionarios.find((item) => item.id === ordem.responsavel_id)
+        : undefined;
+    const responsavelOptions: AutocompleteOption[] = funcionariosElegiveis.map((funcionario) => ({
+        value: funcionario.id,
+        label: funcionario.nome || `Funcionário #${funcionario.id}`,
+        description: `${funcionario.usuario} · ${funcionario.ativo ? "Ativo" : "Inativo"}`,
+    }));
 
     return (
         <div
@@ -255,6 +281,44 @@ function OrdemServicoDetalhesModal({
                                     </strong>
                                 </div>
                             </div>
+
+                            <section className="ordem-detalhes-descricao ordem-responsavel-edicao">
+                                <h3>Responsável</h3>
+                                <p className="ordem-responsavel-atual">
+                                    {responsavelAtual
+                                        ? `${responsavelAtual.nome} (${responsavelAtual.usuario})`
+                                        : ordem.responsavel_id !== null
+                                            ? `Funcionário #${ordem.responsavel_id}`
+                                            : "Sem responsável atribuído"}
+                                    {responsavelAtual && !responsavelAtual.ativo && <span className="ordem-responsavel-inativo"> · Inativo — vínculo histórico preservado</span>}
+                                </p>
+                                {podeReatribuirResponsavel && ordem.ativo && ordem.status !== "concluido" && (
+                                    <div className="ordem-reatribuicao-controles">
+                                        <div className="ordem-reatribuicao-campo">
+                                            <label htmlFor="ordem-responsavel-novo">Atribuir ou reatribuir para funcionário ativo</label>
+                                            <Autocomplete
+                                                id="ordem-responsavel-novo"
+                                                options={responsavelOptions}
+                                                value={responsavelNovoId}
+                                                onChange={(value) => setResponsavelNovoId(value === null ? null : Number(value))}
+                                                placeholder="Pesquisar funcionário ativo"
+                                                clearable
+                                                disabled={atribuindoResponsavel}
+                                                emptyMessage="Nenhum funcionário ativo encontrado."
+                                            />
+                                        </div>
+                                        <button
+                                            type="button"
+                                            className="ordens-btn-primary ordem-responsavel-atualizar"
+                                            onClick={() => { if (responsavelNovoId !== null) onAtribuirResponsavel(responsavelNovoId); }}
+                                            disabled={atribuindoResponsavel || responsavelNovoId === null || responsavelNovoId === ordem.responsavel_id}
+                                            aria-busy={atribuindoResponsavel}
+                                        >
+                                            {atribuindoResponsavel ? "Salvando..." : ordem.responsavel_id === null ? "Atribuir responsável" : "Reatribuir responsável"}
+                                        </button>
+                                    </div>
+                                )}
+                            </section>
 
                             {podeAlterarStatus && (
                                 <section className="ordem-detalhes-descricao ordem-status-edicao">

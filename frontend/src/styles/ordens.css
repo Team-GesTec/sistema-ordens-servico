@@ -1457,3 +1457,20 @@
     outline: 3px solid rgba(126, 197, 237, 0.85);
     outline-offset: 2px;
 }
+
+
+/* AJ-03: atribuição/reatribuição de O.S. a funcionário ativo pelo Gestor. */
+.ordem-responsavel-edicao { min-width: 0; }
+.ordem-responsavel-atual { margin: 0; color: var(--text-secondary, #647d8f); font-size: 12px; line-height: 1.6; overflow-wrap: anywhere; }
+.ordem-responsavel-inativo { color: #a05c25; font-size: 11px; font-weight: 650; }
+.ordem-reatribuicao-controles { display: flex; align-items: flex-end; gap: 10px; margin-top: 12px; }
+.ordem-reatribuicao-campo { display: flex; flex: 1 1 auto; flex-direction: column; gap: 6px; min-width: 0; }
+.ordem-reatribuicao-campo label { color: var(--text-secondary, #526d81); font-size: 11px; font-weight: 700; }
+.ordem-reatribuicao-campo .autocomplete { min-width: 0; width: 100%; }
+.ordem-responsavel-atualizar { flex: 0 0 auto; min-height: 38px; white-space: nowrap; }
+.dark-mode .ordem-responsavel-inativo { color: #f2bc87; }
+.dark-mode .ordem-reatribuicao-campo label { color: #c1d4df; }
+@media (max-width: 560px) {
+    .ordem-reatribuicao-controles { align-items: stretch; flex-direction: column; }
+    .ordem-responsavel-atualizar { width: 100%; }
+}

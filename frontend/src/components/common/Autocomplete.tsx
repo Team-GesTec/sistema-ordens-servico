@@ -13,6 +13,7 @@ interface AutocompleteProps {
     options: AutocompleteOption[];
     value: number | string | null;
     onChange: (value: number | string | null) => void;
+    onSearchChange?: (value: string) => void;
     placeholder: string;
     disabled?: boolean;
     clearable?: boolean;
@@ -59,6 +60,7 @@ export default function Autocomplete({
     options,
     value,
     onChange,
+    onSearchChange,
     placeholder,
     disabled = false,
     clearable = false,
@@ -159,6 +161,7 @@ export default function Autocomplete({
         setAberto(false);
         setIndiceAtivo(-1);
         onChange(null);
+        onSearchChange?.("");
     }
 
     function abrirOpcoes() {
@@ -245,6 +248,7 @@ export default function Autocomplete({
                         setBusca(event.target.value);
                         setIndiceAtivo(-1);
                         setAberto(true);
+                        onSearchChange?.(event.target.value);
                     }}
                     onKeyDown={tratarTecla}
                 />

@@ -23,6 +23,7 @@ export interface Funcionario {
     usuario: string;
     nome: string;
     tipo: PerfilFuncionario;
+    ativo: boolean;
 }
 
 export interface LoginResponse {
@@ -70,6 +71,11 @@ export interface FuncionarioInput {
     nome: string;
     tipo: PerfilFuncionario;
 }
+
+/** Edição permite omitir a senha; o backend só altera o hash se uma senha for enviada. */
+export type FuncionarioAtualizacaoInput = Partial<Omit<FuncionarioInput, "senha">> & {
+    senha?: string;
+};
 
 export interface OrdemServicoProjeto {
     id: number;

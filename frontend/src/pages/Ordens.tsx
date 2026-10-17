@@ -144,6 +144,11 @@ function Ordens() {
                 podeEditar={ordens.podeGerenciar}
                 clientes={ordens.clientes}
                 departamentos={ordens.departamentos}
+                funcionarios={ordens.funcionariosConhecidos}
+                funcionariosElegiveis={ordens.funcionariosAtivos}
+                atribuindoResponsavel={ordens.atribuindoResponsavel}
+                podeReatribuirResponsavel={ordens.podeGerenciar}
+                onAtribuirResponsavel={(funcionarioId) => void ordens.atribuirResponsavelOrdem(funcionarioId)}
                 onFechar={ordens.fecharDetalhes}
                 onEditar={ordens.iniciarEdicao}
                 podeAlterarStatus={ordens.podeAlterarStatus}

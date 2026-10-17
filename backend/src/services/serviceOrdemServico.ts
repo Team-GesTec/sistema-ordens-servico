@@ -33,6 +33,7 @@
  */
 
 import { prisma } from '../prisma/client';
+import type { Prisma } from '../prisma/generated/client';
 import { AppError } from '../errors/AppError';
 import { repositoryOrdemServico, type RepositoryOrdemServico } from '../repositories/repositoryOrdemServico';
 import { repositoryFuncionario, type RepositoryFuncionario } from '../repositories/repositoryFuncionario';
@@ -77,6 +78,29 @@ const TOLERANCIA_DATA_PASSADA_MS = 5 * 60 * 1000;
 
 /** Valor gravado na auditoria para identificar a origem do cadastro de O.S. antiga (AJ-06). */
 const ORIGEM_MIGRACAO_MANUAL = 'migracao_manual';
+
+/**
+ * Serializa novas atribuições com a inativação de funcionários. O lock é compartilhado
+ * com RepositoryFuncionario e a verificação usa o banco na mesma transação da O.S.
+ */
+async function bloquearEValidarResponsavelAtivo(
+    conexao: Prisma.TransactionClient,
+    responsavelId: number | null,
+): Promise<void> {
+    if (responsavelId === null) return;
+
+    await conexao.$executeRaw`SELECT pg_advisory_xact_lock(734031, 3)`;
+    const responsavel = await conexao.funcionarios.findUnique({
+        where: { id: responsavelId },
+        select: { id: true, ativo: true },
+    });
+    if (!responsavel) {
+        throw AppError.requisicaoInvalida('responsavel_id não corresponde a um funcionário existente');
+    }
+    if (!responsavel.ativo) {
+        throw AppError.conflito('responsavel_id não pode corresponder a um funcionário inativo');
+    }
+}
 
 
 /** Campos que a edição geral não altera: cada um tem a sua rota (US#2.4, US#2.3 e US#3.1). */
@@ -219,6 +243,9 @@ export class ServiceOrdemServico {
         // Criação e validação do projeto compartilham a mesma transação. O lock da
         // linha do projeto serializa este caminho com a inativação do projeto.
         const criada = await prisma.$transaction(async (conexao) => {
+            // A checagem anterior melhora o feedback; esta verificação transacional fecha a corrida
+            // com a inativação do responsável entre a validação e o commit da O.S.
+            await bloquearEValidarResponsavelAtivo(conexao, novaOS.responsavel_id);
             const projetosBloqueados = await bloquearProjetosRelacionados(conexao, [novaOS.projeto_id]);
             validarProjetoDaOrdem(novaOS.projeto_id, true, novaOS.status, projetosBloqueados);
             return this.repositorio.criarNaTransacao(novaOS, conexao);
@@ -236,6 +263,8 @@ export class ServiceOrdemServico {
      */
     private async criarMigracao(novaOS: DadosCriacaoOrdemServico, usuarioId: number): Promise<OrdemServico> {
         const criada = await prisma.$transaction(async (conexao) => {
+            // Também cobre o caminho AJ-06 de cadastro histórico, sem alterar suas regras.
+            await bloquearEValidarResponsavelAtivo(conexao, novaOS.responsavel_id);
             const projetosBloqueados = await bloquearProjetosRelacionados(conexao, [novaOS.projeto_id]);
             validarProjetoDaOrdem(novaOS.projeto_id, true, novaOS.status, projetosBloqueados);
             const ordemCriada = await this.repositorio.criarNaTransacao(novaOS, conexao);
@@ -451,6 +480,9 @@ export class ServiceOrdemServico {
 
         if (!responsavel) {
             throw AppError.requisicaoInvalida('responsavel_id não corresponde a um funcionário existente');
+        }
+        if (!responsavel.ativo) {
+            throw AppError.conflito('Não é possível atribuir uma O.S. a um funcionário inativo');
         }
 
         return this.repositorio.atribuirResponsavel({
@@ -670,6 +702,9 @@ export class ServiceOrdemServico {
 
         if (!funcionario) {
             throw AppError.requisicaoInvalida(`${campo} não corresponde a um funcionário existente`);
+        }
+        if (!funcionario.ativo) {
+            throw AppError.conflito(`${campo} não pode corresponder a um funcionário inativo`);
         }
     }
 }

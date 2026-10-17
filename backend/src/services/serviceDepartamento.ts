@@ -113,8 +113,14 @@ export class ServiceDepartamento {
      */
     private async validarResponsavel(valor: unknown): Promise<number | null> {
         const responsavelId = inteiroPositivoOpcional(valor, 'responsavel_id');
-        if (responsavelId !== null && !(await this.funcionarios.buscarPorId(responsavelId))) {
-            throw AppError.requisicaoInvalida('responsavel_id não corresponde a um funcionário existente');
+        if (responsavelId !== null) {
+            const responsavel = await this.funcionarios.buscarPorId(responsavelId);
+            if (!responsavel) {
+                throw AppError.requisicaoInvalida('responsavel_id não corresponde a um funcionário existente');
+            }
+            if (!responsavel.ativo) {
+                throw AppError.requisicaoInvalida('responsavel_id não pode corresponder a um funcionário inativo');
+            }
         }
         return responsavelId;
     }

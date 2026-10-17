@@ -73,6 +73,7 @@ model funcionarios {
   senha_hash                                                 String
   nome                                                       String
   tipo                                                       tipo_perfil         @default(tecnico)
+  ativo                                                      Boolean             @default(true)
   apontamento_horas                                          apontamento_horas[]
   auditoria                                                  auditoria[]
   auditoria_projetos                                          auditoria_projetos[]

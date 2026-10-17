@@ -106,7 +106,7 @@ export class RepositoryOrdemServico {
 
     /**
      * Atribui ou substitui o responsável e registra a auditoria na mesma transação.
-     * 
+     *
      * A atualização condicional impede que duas requisições sobrescrevam uma à outra.
     */
     async atribuirResponsavel(dados: DadosAtribuicaoResponsavel): Promise<OrdemServico> {
@@ -118,6 +118,20 @@ export class RepositoryOrdemServico {
         } = dados;
 
         const atualizada = await prisma.$transaction(async (tx) => {
+            // Mesmo lock usado na inativação de funcionários e na abertura de O.S. atribuída.
+            // Assim a validação não corre em paralelo com a mudança ativo=true -> false.
+            await tx.$executeRaw`SELECT pg_advisory_xact_lock(734031, 3)`;
+            const responsavel = await tx.funcionarios.findUnique({
+                where: { id: responsavelId },
+                select: { id: true, ativo: true },
+            });
+            if (!responsavel) {
+                throw AppError.requisicaoInvalida('responsavel_id não corresponde a um funcionário existente');
+            }
+            if (!responsavel.ativo) {
+                throw AppError.conflito('Não é possível atribuir uma O.S. a um funcionário inativo');
+            }
+
             const ordemAtual = await tx.ordens_servico.findUnique({ where: { id: osId } });
 
             if (!ordemAtual) {
@@ -183,4 +197,4 @@ export class RepositoryOrdemServico {
 }
 
 /** Instância única usada pelos services. */
-export const repositoryOrdemServico = new RepositoryOrdemServico();
+export const repositoryOrdemServico = new RepositoryOrdemServico();
