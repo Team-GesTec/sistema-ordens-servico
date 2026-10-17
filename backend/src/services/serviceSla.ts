@@ -8,7 +8,8 @@
  *  - Tolerância: aberta às 16:00 ou depois (horário de Brasília) soma +1 dia útil;
  *  - dias úteis pulam sábados, domingos e os dias da tabela `feriados` (PE-09);
  *  - o prazo termina às 23:59:59.999 do último dia útil, no horário de Brasília (provisório até PE-06);
- *  - a data limite não pode ser enviada pelo cliente: é sempre calculada aqui;
+ *  - gestores podem definir um prazo personalizado por dias úteis ou por data;
+ *  - sem prazo personalizado, a data limite é calculada pela configuração;
  *  - sem configuração para a criticidade → 422.
  *
  * Instalação:
@@ -41,6 +42,8 @@ export interface EntradaDefinicaoSla {
     abertura: Date;
     /** Data limite enviada no corpo da requisição (só aceita para Instalação, pelo Gestor). */
     dataLimiteInformada: Date | null;
+    /** Quantidade personalizada de dias úteis, aceita somente para gestores em manutenção. */
+    prazoDiasUteisPersonalizado?: number | null;
     /** Perfil do usuário logado (vem do token). */
     perfil: PerfilFuncionario;
 }
@@ -67,12 +70,17 @@ export class ServiceSla {
 
     /**
      * Define o SLA de uma O.S. no momento da abertura.
-     * @throws AppError 400 se a data limite for enviada para Manutenção ou for anterior à abertura.
-     * @throws AppError 403 se um não gestor informar a data limite de uma Instalação.
+     * @throws AppError 400 se os dois formatos de prazo personalizado forem enviados juntos.
+     * @throws AppError 403 se um não gestor informar um prazo personalizado.
      * @throws AppError 422 se faltar configuração de SLA ou a data de Instalação passar de 3 meses.
      */
     async definirNaCriacao(entrada: EntradaDefinicaoSla): Promise<DefinicaoSla> {
         if (entrada.tipo === 'instalacao') {
+            if (entrada.prazoDiasUteisPersonalizado != null) {
+                throw AppError.requisicaoInvalida(
+                    'prazo_dias_uteis_custom só pode ser informado para O.S. de manutenção',
+                );
+            }
             return this.definirInstalacao(entrada);
         }
         return this.definirManutencao(entrada);
@@ -83,8 +91,13 @@ export class ServiceSla {
      * @param abertura Data de abertura da O.S.
      * @param diasBase Dias úteis base da configuração.
      */
-    async calcularManutencao(abertura: Date, diasBase: number): Promise<CalculoManutencao> {
-        const tolerancia = partesNoFuso(abertura, FUSO_SLA).hora >= HORA_CORTE_TOLERANCIA;
+    async calcularManutencao(
+        abertura: Date,
+        diasBase: number,
+        aplicarTolerancia = true,
+    ): Promise<CalculoManutencao> {
+        const tolerancia =
+            aplicarTolerancia && partesNoFuso(abertura, FUSO_SLA).hora >= HORA_CORTE_TOLERANCIA;
         const diasUteis = diasBase + (tolerancia ? 1 : 0);
         const diaAbertura = diaNoFuso(abertura, FUSO_SLA);
 
@@ -102,10 +115,50 @@ export class ServiceSla {
     }
 
     private async definirManutencao(entrada: EntradaDefinicaoSla): Promise<DefinicaoSla> {
-        if (entrada.dataLimiteInformada !== null) {
+        const prazoPersonalizado = entrada.prazoDiasUteisPersonalizado ?? null;
+        const dataLimitePersonalizada = entrada.dataLimiteInformada;
+
+        if (prazoPersonalizado !== null && dataLimitePersonalizada !== null) {
             throw AppError.requisicaoInvalida(
-                'data_limite_sla não pode ser informada para O.S. de manutenção: ela é calculada automaticamente',
+                'Informe o prazo personalizado em dias úteis ou uma data limite, não ambos',
             );
+        }
+
+        if (prazoPersonalizado !== null || dataLimitePersonalizada !== null) {
+            if (entrada.perfil !== 'gestor') {
+                throw AppError.acessoNegado('Apenas o gestor pode definir um prazo personalizado para O.S. de manutenção');
+            }
+
+            if (prazoPersonalizado !== null) {
+                if (!Number.isSafeInteger(prazoPersonalizado) || prazoPersonalizado <= 0) {
+                    throw AppError.requisicaoInvalida('prazo_dias_uteis_custom deve ser um número inteiro positivo');
+                }
+
+                const calculo = await this.calcularManutencao(entrada.abertura, prazoPersonalizado, false);
+                return {
+                    data_limite_sla: calculo.dataLimite,
+                    sla_manual: true,
+                    sla_config_id: null,
+                    prazo_dias_uteis: prazoPersonalizado,
+                    descricao: `Prazo personalizado de ${prazoPersonalizado} dia(s) útil(eis) a partir da abertura em ${entrada.abertura.toISOString()}`,
+                };
+            }
+
+            if (dataLimitePersonalizada === null) {
+                throw AppError.requisicaoInvalida('Informe um prazo personalizado válido');
+            }
+
+            if (dataLimitePersonalizada.getTime() <= entrada.abertura.getTime()) {
+                throw AppError.requisicaoInvalida('data_limite_sla deve ser posterior à data de abertura da O.S.');
+            }
+
+            return {
+                data_limite_sla: dataLimitePersonalizada,
+                sla_manual: true,
+                sla_config_id: null,
+                prazo_dias_uteis: null,
+                descricao: `Data limite personalizada informada pelo gestor a partir da abertura em ${entrada.abertura.toISOString()}`,
+            };
         }
 
         const nivel = NIVEL_CRITICIDADE[entrada.criticidade];

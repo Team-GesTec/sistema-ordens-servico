@@ -129,12 +129,88 @@ When(
     }
 );
 
+When(
+    "o gestor define um prazo personalizado de {int} dias úteis com abertura em {string}",
+    async function (this: CustomWorld, dias: number, abertura: string) {
+        const service = new ServiceSla(criarFonteDeTeste(this));
+        this.data.sla = await service.definirNaCriacao({
+            tipo: "manutencao",
+            criticidade: "medio",
+            abertura: new Date(abertura),
+            dataLimiteInformada: null,
+            prazoDiasUteisPersonalizado: dias,
+            perfil: "gestor",
+        });
+    }
+);
+
+When(
+    "um técnico tenta definir um prazo personalizado de {int} dias úteis",
+    async function (this: CustomWorld, dias: number) {
+        const service = new ServiceSla(criarFonteDeTeste(this));
+        try {
+            this.data.sla = await service.definirNaCriacao({
+                tipo: "manutencao",
+                criticidade: "medio",
+                abertura: new Date("2026-10-05T10:00:00-03:00"),
+                dataLimiteInformada: null,
+                prazoDiasUteisPersonalizado: dias,
+                perfil: "tecnico",
+            });
+            this.data.erroSla = undefined;
+        } catch (erro) {
+            this.data.erroSla = erro;
+        }
+    }
+);
+
+When(
+    "o gestor define uma data limite personalizada {string} com abertura em {string}",
+    async function (this: CustomWorld, dataLimite: string, abertura: string) {
+        const service = new ServiceSla(criarFonteDeTeste(this));
+        this.data.sla = await service.definirNaCriacao({
+            tipo: "manutencao",
+            criticidade: "medio",
+            abertura: new Date(abertura),
+            dataLimiteInformada: new Date(dataLimite),
+            perfil: "gestor",
+        });
+    }
+);
+
+When(
+    "o gestor define dias úteis e data limite personalizada ao mesmo tempo",
+    async function (this: CustomWorld) {
+        const service = new ServiceSla(criarFonteDeTeste(this));
+        try {
+            this.data.sla = await service.definirNaCriacao({
+                tipo: "manutencao",
+                criticidade: "medio",
+                abertura: new Date("2026-10-05T10:00:00-03:00"),
+                dataLimiteInformada: new Date("2026-10-20T10:00:00-03:00"),
+                prazoDiasUteisPersonalizado: 5,
+                perfil: "gestor",
+            });
+            this.data.erroSla = undefined;
+        } catch (erro) {
+            this.data.erroSla = erro;
+        }
+    }
+);
+
 Then(
     "a data limite do SLA é o fim do dia {string}",
     function (this: CustomWorld, dia: string) {
         assert.equal(this.data.erroSla, undefined, `O cálculo falhou: ${this.data.erroSla}`);
         assert.equal(this.data.sla.data_limite_sla.getTime(), fimDoDia(dia));
         assert.equal(this.data.sla.sla_manual, false);
+    }
+);
+
+Then(
+    "a data limite do SLA personalizado é o fim do dia {string}",
+    function (this: CustomWorld, dia: string) {
+        assert.equal(this.data.sla.data_limite_sla.getTime(), fimDoDia(dia));
     }
 );
 
@@ -153,7 +229,22 @@ Then(
 );
 
 Then(
+    "o SLA é manual",
+    function (this: CustomWorld) {
+        assert.equal(this.data.sla.sla_manual, true);
+    }
+);
+
+Then(
     "o cálculo do SLA é rejeitado com status {int}",
+    function (this: CustomWorld, status: number) {
+        assert.ok(this.data.erroSla instanceof AppError, "Esperava um AppError");
+        assert.equal(this.data.erroSla.statusCode, status);
+    }
+);
+
+Then(
+    "o cálculo do SLA é negado com status {int}",
     function (this: CustomWorld, status: number) {
         assert.ok(this.data.erroSla instanceof AppError, "Esperava um AppError");
         assert.equal(this.data.erroSla.statusCode, status);

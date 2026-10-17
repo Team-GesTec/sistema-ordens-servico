@@ -29,10 +29,10 @@
  *  - o cadastro e o registro de auditoria da origem (migração manual) são gravados na mesma transação.
  *
  * Regras do SLA na abertura (3.1-BE01) — o cálculo em si fica em serviceSla.ts:
- *  - Manutenção: data_limite_sla é calculada pela configuração de SLA a partir da data de abertura;
+ *  - Manutenção: data_limite_sla é calculada pela configuração, salvo prazo personalizado do Gestor;
+ *  - Manutenção: o Gestor pode substituir o cálculo automático por dias úteis ou uma data específica;
  *  - Instalação: data_limite_sla é a informada pelo Gestor (até 3 meses), ou fica vazia;
- *  - sla_config_id, prazo_dias_uteis, justificativa_sla_manual e sla_manual = true não são aceitos no
- *    corpo: são definidos pelo sistema, sempre com sla_manual = false;
+ *  - sla_config_id, prazo_dias_uteis, justificativa_sla_manual e sla_manual não são aceitos no corpo;
  *  - a definição inicial do SLA é registrada na auditoria, na mesma transação do cadastro.
  *
  * ALTERAÇÕES (17/10/2026):
@@ -116,8 +116,6 @@ export class ServiceOrdemServico {
         this.funcionarios = funcionarios
     }
 
-
-
     /** Lista somente as O.S. ativas. */
     async listar(): Promise<OrdemServico[]> {
         const ordens = await this.repositorio.listar();
@@ -192,6 +190,10 @@ export class ServiceOrdemServico {
         const dataInicio = dataOpcional(dados.data_inicio, 'data_inicio');
         const dataFim = dataOpcional(dados.data_fim, 'data_fim');
         const dataLimiteInformada = dataOpcional(dados.data_limite_sla, 'data_limite_sla');
+        const prazoDiasUteisPersonalizado = inteiroPositivoOpcional(
+            dados.prazo_dias_uteis_custom,
+            'prazo_dias_uteis_custom',
+        );
 
         // AJ-06: data de abertura no passado = cadastro de O.S. antiga (migração manual)
         const migracao = ehDataNoPassado(dataCriacao);
@@ -219,6 +221,7 @@ export class ServiceOrdemServico {
             criticidade,
             abertura: dataCriacao,
             dataLimiteInformada,
+            prazoDiasUteisPersonalizado,
             perfil,
         });
 
@@ -243,7 +246,7 @@ export class ServiceOrdemServico {
             data_fim: dataFim,
             data_limite_sla: sla.data_limite_sla,
             sla_manual: sla.sla_manual,
-            justificativa_sla_manual: null
+            justificativa_sla_manual: sla.sla_manual ? sla.descricao : null
         };
 
         const registros: RegistroAuditoriaCriacao[] = [];

@@ -43,7 +43,7 @@ export const MESES_MAXIMOS_INSTALACAO = 3;
 /** Resultado da definição do SLA na criação de uma O.S. */
 export interface DefinicaoSla {
     data_limite_sla: Date | null;
-    sla_manual: false;
+    sla_manual: boolean;
     sla_config_id: number | null;
     prazo_dias_uteis: number | null;
     /** Texto gravado na auditoria explicando como a data foi definida (null quando não há SLA). */

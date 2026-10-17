@@ -52,6 +52,32 @@ Funcionalidade: Cálculo automático do SLA na abertura da O.S. (3.1-BE01)
         Quando o SLA de manutenção é calculado para a criticidade "alto" com abertura em "2026-10-05T10:00:00-03:00"
         Então o cálculo do SLA é rejeitado com status 422
 
+    @custom-sla
+    Cenário: Gestor define prazo personalizado em dias úteis
+        Dado a configuração de SLA de teste com os valores iniciais
+        Quando o gestor define um prazo personalizado de 5 dias úteis com abertura em "2026-10-05T17:00:00-03:00"
+        Então a data limite do SLA personalizado é o fim do dia "2026-10-12"
+        E o SLA é manual
+
+    @custom-sla
+    Cenário: Gestor define uma data limite personalizada
+        Dado a configuração de SLA de teste com os valores iniciais
+        Quando o gestor define uma data limite personalizada "2026-10-20T18:00:00-03:00" com abertura em "2026-10-05T10:00:00-03:00"
+        Então a data limite do SLA é exatamente "2026-10-20T18:00:00-03:00"
+        E o SLA é manual
+
+    @custom-sla
+    Cenário: SLA personalizado rejeita dias úteis e data ao mesmo tempo
+        Dado a configuração de SLA de teste com os valores iniciais
+        Quando o gestor define dias úteis e data limite personalizada ao mesmo tempo
+        Então o cálculo do SLA é rejeitado com status 400
+
+    @custom-sla
+    Cenário: Técnico não pode definir prazo personalizado
+        Dado a configuração de SLA de teste com os valores iniciais
+        Quando um técnico tenta definir um prazo personalizado de 5 dias úteis
+        Então o cálculo do SLA é negado com status 403
+
     # "O.S. de Instalação não aplica tolerância das 16:00 (mesmo aberta às 17:00)"
     Cenário: Instalação aberta às 17:00 mantém a data informada pelo gestor
         Dado a configuração de SLA de teste com os valores iniciais
