@@ -582,3 +582,250 @@
         width: 100%;
     }
 }
+
+/* AJ-02 — Clientes alinhados ao padrão visual aprovado de Projetos. */
+.clientes-toolbar-modern .clientes-search-wrapper .clientes-search {
+    height: 38px;
+    padding-left: 37px;
+    border: 1px solid #d4e3ec;
+    border-radius: 6px;
+    background: #fff;
+    color: #1b3d52;
+    font-size: 11px;
+    box-shadow: none;
+}
+
+.clientes-toolbar-modern .clientes-search-wrapper .clientes-search:focus {
+    border-color: #2583bd;
+    box-shadow: 0 0 0 3px rgba(37, 131, 189, 0.12);
+}
+
+.clientes-toolbar-modern .clientes-sugestoes {
+    top: calc(100% + 5px);
+    border-color: #d6e7f2;
+    border-radius: 8px;
+}
+
+.clientes-toolbar-modern .clientes-sugestao {
+    min-height: 0;
+    border-radius: 5px;
+}
+
+.cliente-card .cliente-card-header {
+    align-items: flex-start;
+    gap: 11px;
+    min-width: 0;
+}
+
+.cliente-card .cliente-avatar {
+    flex: 0 0 38px;
+    width: 38px;
+    height: 38px;
+    font-size: 14px;
+    font-weight: 800;
+}
+
+.cliente-card .cliente-identificacao {
+    padding-top: 1px;
+}
+
+.cliente-id {
+    display: block;
+    color: #47718a;
+    font-size: 9px;
+    font-weight: 750;
+    letter-spacing: 0.45px;
+}
+
+.cliente-card .cliente-nome {
+    margin-top: 5px;
+    margin-bottom: 4px;
+    color: #183f59;
+    font-size: 15px;
+    line-height: 1.35;
+}
+
+.cliente-card .cliente-razao {
+    color: #637d8f;
+    font-size: 10px;
+    line-height: 1.45;
+}
+
+.cliente-card .cliente-status-badge--inativo {
+    background: #e8ecef;
+    color: #667681;
+}
+
+.cliente-card-metadata {
+    overflow-wrap: anywhere;
+    line-height: 1.5;
+}
+
+.cliente-actions {
+    align-items: center;
+}
+
+.cliente-actions .projeto-btn-primary,
+.cliente-actions .projeto-btn-secondary,
+.cliente-actions .projeto-btn-danger {
+    min-height: 29px;
+    padding: 0 10px;
+    font-size: 10px;
+}
+
+.dark-mode .cliente-id {
+    color: #a9cadc;
+}
+
+.dark-mode .cliente-card .cliente-nome {
+    color: #e1f1fa;
+}
+
+.dark-mode .cliente-card .cliente-razao {
+    color: #b7cbd8;
+}
+
+.dark-mode .cliente-card .cliente-avatar {
+    background: #237ba8;
+    color: #fff;
+}
+
+.dark-mode .cliente-card .cliente-status-badge--inativo {
+    background: #354657;
+    color: #d7e2eb;
+}
+
+.dark-mode .clientes-toolbar-modern .clientes-sugestoes,
+.clientes-sugestoes--dark {
+    background: #182b40;
+    border-color: #40566e;
+}
+
+.dark-mode .clientes-toolbar-modern .clientes-sugestao-nome,
+.clientes-sugestoes--dark .clientes-sugestao-nome {
+    color: #f1f7fb;
+}
+
+.dark-mode .clientes-toolbar-modern .clientes-sugestao-detalhe,
+.clientes-sugestoes--dark .clientes-sugestao-detalhe {
+    color: #c2d1df;
+}
+
+.dark-mode .clientes-toolbar-modern .clientes-search-wrapper .clientes-search {
+    border-color: #475e6f;
+    background: #152d40;
+    color: #eef8fd;
+}
+
+.dark-mode .clientes-toolbar-modern .clientes-search-wrapper .clientes-search::placeholder {
+    color: #bdc9d6;
+}
+
+.projetos-toolbar.clientes-toolbar-modern {
+    grid-template-columns: minmax(220px, 1fr) minmax(160px, 220px);
+}
+
+.projetos-toolbar.clientes-toolbar-modern .clientes-filtro {
+    grid-column: auto;
+    grid-row: auto;
+    justify-self: stretch;
+}
+
+@media (max-width: 560px) {
+    .projetos-toolbar.clientes-toolbar-modern {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
+
+/* Sugestões em portal: escapam do stacking context dos filhos de .container e do overflow da área principal. */
+.clientes-sugestoes {
+    box-sizing: border-box;
+    z-index: 2000;
+    overscroll-behavior: contain;
+}
+
+.clientes-sugestoes .clientes-sugestao.active,
+.clientes-sugestoes .clientes-sugestao[aria-selected="true"],
+.clientes-sugestoes .clientes-sugestao:focus-visible {
+    background: #edf7fd;
+    outline: 2px solid #2583bd;
+    outline-offset: -2px;
+}
+
+.clientes-sugestoes--dark .clientes-sugestao.active,
+.clientes-sugestoes--dark .clientes-sugestao[aria-selected="true"],
+.clientes-sugestoes--dark .clientes-sugestao:focus-visible {
+    background: #30465e;
+    outline-color: #7cb8f0;
+}
+
+/* Os itens ficam em portal (fora de .clientes-search-wrapper), portanto precisam
+   das próprias regras visuais sem depender do ancestral de origem. */
+.clientes-sugestoes .clientes-sugestao {
+    display: flex;
+    width: 100%;
+    min-height: 0;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+    margin: 0;
+    padding: 10px 11px;
+    border: 0;
+    border-radius: 5px;
+    background: transparent;
+    color: #193c55;
+    font-family: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+
+.clientes-sugestoes .clientes-sugestao:hover,
+.clientes-sugestoes .clientes-sugestao.active,
+.clientes-sugestoes .clientes-sugestao:focus-visible {
+    background: #edf7fd;
+    outline: 2px solid #2583bd;
+    outline-offset: -2px;
+}
+
+.clientes-sugestoes--dark .clientes-sugestao {
+    color: #f1f7fb;
+}
+
+.clientes-sugestoes--dark .clientes-sugestao:hover,
+.clientes-sugestoes--dark .clientes-sugestao.active,
+.clientes-sugestoes--dark .clientes-sugestao:focus-visible {
+    background: #30465e;
+    outline-color: #7cb8f0;
+}
+
+/* AJ-02 — O modal de Cliente reutiliza as superfícies e controles aprovados em Projetos. */
+.projeto-modal.cliente-form-modal {
+    width: min(100%, 560px);
+}
+
+.cliente-form-modal .clientes-feedback--error {
+    margin-top: 16px;
+}
+
+.cliente-form-modal button:focus-visible {
+    outline: 3px solid rgba(37, 131, 189, 0.45);
+    outline-offset: 2px;
+}
+
+.dark-mode .cliente-form-modal .clientes-feedback--error {
+    border: 1px solid #85434b;
+    background: #48262e;
+    color: #fecaca;
+}
+
+.dark-mode .cliente-form-modal button:focus-visible {
+    outline-color: rgba(126, 197, 237, 0.85);
+}
+
+@media (max-width: 560px) {
+    .projeto-modal.cliente-form-modal {
+        width: 100%;
+    }
+}
+

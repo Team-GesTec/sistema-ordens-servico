@@ -138,6 +138,20 @@ export class RepositoryOrdemServico {
         } = dados;
 
         const atualizada = await prisma.$transaction(async (tx) => {
+            // Mesmo lock usado na inativação de funcionários e na abertura de O.S. atribuída.
+            // Assim a validação não corre em paralelo com a mudança ativo=true -> false.
+            await tx.$executeRaw`SELECT pg_advisory_xact_lock(734031, 3)`;
+            const responsavel = await tx.funcionarios.findUnique({
+                where: { id: responsavelId },
+                select: { id: true, ativo: true },
+            });
+            if (!responsavel) {
+                throw AppError.requisicaoInvalida('responsavel_id não corresponde a um funcionário existente');
+            }
+            if (!responsavel.ativo) {
+                throw AppError.conflito('Não é possível atribuir uma O.S. a um funcionário inativo');
+            }
+
             const ordemAtual = await tx.ordens_servico.findUnique({ where: { id: osId } });
 
             if (!ordemAtual) {

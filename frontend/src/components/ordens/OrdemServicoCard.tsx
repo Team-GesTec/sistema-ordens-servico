@@ -1,4 +1,3 @@
-
 import type { Cliente, Departamento, OrdemServico } from "../../types/api";
 import { Link } from "react-router-dom";
 import {
@@ -15,10 +14,7 @@ interface OrdemServicoCardProps {
     bloqueado: boolean;
     onAbrir: (ordem: OrdemServico) => void;
     onEditar: (ordem: OrdemServico) => void;
-    onAlterarAtivo: (
-    ordem: OrdemServico,
-    acao: "inativar" | "reativar",
-) => void;
+    onAlterarAtivo: (ordem: OrdemServico, acao: "inativar" | "reativar") => void;
 }
 
 function OrdemServicoCard({
@@ -32,50 +28,44 @@ function OrdemServicoCard({
     onAlterarAtivo,
 }: OrdemServicoCardProps) {
     const podeEditarEstaOrdem =
-        podeEditar &&
-        ordem.status !== "concluido" &&
-        ordem.status !== "bloqueado";
-
+        podeEditar && ordem.status !== "concluido" && ordem.status !== "bloqueado";
     const criticidade = ordem.criticidade ?? "indefinida";
-
-    const cliente = clientes.find(
-        (item) => item.id === ordem.cliente_id,
-    );
-
-    const departamento = departamentos.find(
-        (item) => item.id === ordem.departamento_id,
-    );
+    const criticidadeLabel = ordem.criticidade
+        ? CRITICIDADE_LABELS[ordem.criticidade]
+        : "Sem criticidade";
+    const cliente = clientes.find((item) => item.id === ordem.cliente_id);
+    const departamento = departamentos.find((item) => item.id === ordem.departamento_id);
 
     return (
-        <article className={`ordem-card ordem-card--${criticidade}`}>
+        <article className={`projeto-card ordem-card ordem-card--${criticidade}`}>
             <button
                 type="button"
                 className="ordem-card-main"
                 onClick={() => onAbrir(ordem)}
                 aria-haspopup="dialog"
+                aria-label={`Abrir detalhes da O.S. #${ordem.id}: ${ordem.titulo}`}
                 disabled={bloqueado}
             >
                 <div className="ordem-card-header">
                     <span className="ordem-card-id">OS #{ordem.id}</span>
-
-                    <span
-                        className={`ordem-status-badge ordem-status-badge--${ordem.status}`}
-                    >
-                        {STATUS_LABELS[ordem.status]}
+                    <span className="ordem-card-header-side">
+                        <span className={`ordem-status-badge ordem-status-badge--${ordem.status}`}>
+                            {STATUS_LABELS[ordem.status]}
+                        </span>
+                        <span
+                            className={`ordem-card-priority-dot ordem-card-priority-dot--${criticidade}`}
+                            role="img"
+                            aria-label={`Prioridade: ${criticidadeLabel}`}
+                            title={`Prioridade: ${criticidadeLabel}`}
+                        />
                     </span>
                 </div>
 
                 <h2 className="ordem-card-title">{ordem.titulo}</h2>
-
                 <p className="ordem-card-description">{ordem.descricao}</p>
-
-                                <div className="ordem-card-metadata">
+                <div className="ordem-card-metadata">
                     <span>{TIPO_LABELS[ordem.tipo]}</span>
-                    <span>
-                        {ordem.criticidade
-                            ? CRITICIDADE_LABELS[ordem.criticidade]
-                            : "Sem criticidade"}
-                    </span>
+                    <span>{criticidadeLabel}</span>
                 </div>
             </button>
 
@@ -83,10 +73,7 @@ function OrdemServicoCard({
                 <span>
                     Cliente:{" "}
                     {cliente ? (
-                        <Link
-                            to={`/clientes?visualizar=${cliente.id}`}
-                            className="ordem-relacionamento-link"
-                        >
+                        <Link to={`/clientes?visualizar=${cliente.id}`} className="ordem-relacionamento-link">
                             {cliente.nome}
                         </Link>
                     ) : ordem.cliente_id ? (
@@ -95,14 +82,10 @@ function OrdemServicoCard({
                         "Não associado"
                     )}
                 </span>
-
                 <span>
                     Departamento:{" "}
                     {departamento ? (
-                        <Link
-                            to={`/departamentos?visualizar=${departamento.id}`}
-                            className="ordem-relacionamento-link"
-                        >
+                        <Link to={`/departamentos?visualizar=${departamento.id}`} className="ordem-relacionamento-link">
                             {departamento.nome}
                         </Link>
                     ) : (
@@ -114,32 +97,16 @@ function OrdemServicoCard({
             {podeEditar && (
                 <div className="ordem-card-actions">
                     {podeEditarEstaOrdem && (
-                        <button
-                            type="button"
-                            className="ordens-btn-secondary"
-                            onClick={() => onEditar(ordem)}
-                            disabled={bloqueado}
-                        >
+                        <button type="button" className="projeto-btn-secondary" onClick={() => onEditar(ordem)} disabled={bloqueado}>
                             Editar
                         </button>
                     )}
-
                     {ordem.ativo ? (
-                        <button
-                            type="button"
-                            className="ordens-btn-secondary"
-                            onClick={() => onAlterarAtivo(ordem, "inativar")}
-                            disabled={bloqueado}
-                        >
+                        <button type="button" className="projeto-btn-secondary" onClick={() => onAlterarAtivo(ordem, "inativar")} disabled={bloqueado}>
                             Inativar
                         </button>
                     ) : (
-                        <button
-                            type="button"
-                            className="ordens-btn-primary"
-                            onClick={() => onAlterarAtivo(ordem, "reativar")}
-                            disabled={bloqueado}
-                        >
+                        <button type="button" className="projeto-btn-primary" onClick={() => onAlterarAtivo(ordem, "reativar")} disabled={bloqueado}>
                             Reativar
                         </button>
                     )}

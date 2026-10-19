@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import Autocomplete, { type AutocompleteOption } from "../common/Autocomplete";
 import type {
     Cliente,
     Departamento,
     OrdemServico,
+    Funcionario,
     StatusOrdemServico,
 } from "../../types/api";
 import {
@@ -19,6 +21,9 @@ interface OrdemServicoDetalhesModalProps {
     ordem: OrdemServico | null;
     clientes: Cliente[];
     departamentos: Departamento[];
+    funcionarios: Funcionario[];
+    funcionariosElegiveis: Funcionario[];
+    atribuindoResponsavel: boolean;
     carregando: boolean;
     erro: string | null;
     podeEditar: boolean;
@@ -26,6 +31,8 @@ interface OrdemServicoDetalhesModalProps {
     podeAlterarPrazo?: boolean;
     alterandoStatusId: number | null;
     alterandoPrazo?: boolean;
+    podeReatribuirResponsavel: boolean;
+    onAtribuirResponsavel: (funcionarioId: number) => void;
     onFechar: () => void;
     onEditar: (ordem: OrdemServico) => void;
     onAlterarStatus: (status: StatusOrdemServico) => void;
@@ -70,12 +77,18 @@ function OrdemServicoDetalhesModal({
     alterandoPrazo = false,
     clientes,
     departamentos,
+    funcionarios,
+    funcionariosElegiveis,
+    atribuindoResponsavel,
+    podeReatribuirResponsavel,
+    onAtribuirResponsavel,
     onFechar,
     onEditar,
     onAlterarStatus,
     onAlterarPrazo,
 }: OrdemServicoDetalhesModalProps) {
     const [parecerTemporario, setParecerTemporario] = useState("");
+    const [responsavelNovoId, setResponsavelNovoId] = useState<number | null>(null);
     const [statusSelecionado, setStatusSelecionado] =
         useState<StatusOrdemServico>("em_andamento");
     const [prazoSelecionado, setPrazoSelecionado] = useState("");
@@ -99,7 +112,7 @@ function OrdemServicoDetalhesModal({
     // Sincroniza o seletor de data com o prazo atual da ordem.
     useEffect(() => {
         setPrazoSelecionado(prazoAtual);
-    }, [aberto, ordem?.id, prazoAtual]);
+    }, [aberto, ordem?.id, ordem?.responsavel_id]);
 
     // Permite fechar o modal com a tecla Escape.
     useEffect(() => {
@@ -154,6 +167,14 @@ function OrdemServicoDetalhesModal({
     const departamento = ordem
         ? departamentos.find((item) => item.id === ordem.departamento_id)
         : undefined;
+    const responsavelAtual = ordem?.responsavel_id
+        ? funcionarios.find((item) => item.id === ordem.responsavel_id)
+        : undefined;
+    const responsavelOptions: AutocompleteOption[] = funcionariosElegiveis.map((funcionario) => ({
+        value: funcionario.id,
+        label: funcionario.nome || `Funcionário #${funcionario.id}`,
+        description: `${funcionario.usuario} · ${funcionario.ativo ? "Ativo" : "Inativo"}`,
+    }));
 
     return (
         <div
@@ -300,42 +321,85 @@ function OrdemServicoDetalhesModal({
                                 </div>
                             </div>
 
+                            <section className="ordem-detalhes-descricao ordem-responsavel-edicao">
+                                <h3>Responsável</h3>
+                                <p className="ordem-responsavel-atual">
+                                    {responsavelAtual
+                                        ? `${responsavelAtual.nome} (${responsavelAtual.usuario})`
+                                        : ordem.responsavel_id !== null
+                                            ? `Funcionário #${ordem.responsavel_id}`
+                                            : "Sem responsável atribuído"}
+                                    {responsavelAtual && !responsavelAtual.ativo && <span className="ordem-responsavel-inativo"> · Inativo — vínculo histórico preservado</span>}
+                                </p>
+                                {podeReatribuirResponsavel && ordem.ativo && ordem.status !== "concluido" && (
+                                    <div className="ordem-reatribuicao-controles">
+                                        <div className="ordem-reatribuicao-campo">
+                                            <label htmlFor="ordem-responsavel-novo">Atribuir ou reatribuir para funcionário ativo</label>
+                                            <Autocomplete
+                                                id="ordem-responsavel-novo"
+                                                options={responsavelOptions}
+                                                value={responsavelNovoId}
+                                                onChange={(value) => setResponsavelNovoId(value === null ? null : Number(value))}
+                                                placeholder="Pesquisar funcionário ativo"
+                                                clearable
+                                                disabled={atribuindoResponsavel}
+                                                emptyMessage="Nenhum funcionário ativo encontrado."
+                                            />
+                                        </div>
+                                        <button
+                                            type="button"
+                                            className="ordens-btn-primary ordem-responsavel-atualizar"
+                                            onClick={() => { if (responsavelNovoId !== null) onAtribuirResponsavel(responsavelNovoId); }}
+                                            disabled={atribuindoResponsavel || responsavelNovoId === null || responsavelNovoId === ordem.responsavel_id}
+                                            aria-busy={atribuindoResponsavel}
+                                        >
+                                            {atribuindoResponsavel ? "Salvando..." : ordem.responsavel_id === null ? "Atribuir responsável" : "Reatribuir responsável"}
+                                        </button>
+                                    </div>
+                                )}
+                            </section>
+
                             {podeAlterarStatus && (
                                 <section className="ordem-detalhes-descricao ordem-status-edicao">
                                     <h3>Alterar status</h3>
 
-                                    <select
-                                        id="ordem-status-select"
-                                        className="ordem-status-select"
-                                        aria-label="Selecionar novo status"
-                                        value={statusSelecionado}
-                                        onChange={(event) =>
-                                            setStatusSelecionado(
-                                                event.target.value as StatusOrdemServico,
-                                            )
-                                        }
-                                        disabled={alterandoStatusId !== null}
-                                    >
-                                        {STATUS_EDITAVEIS.map((status) => (
-                                            <option key={status} value={status}>
-                                                {STATUS_LABELS[status]}
-                                            </option>
-                                        ))}
-                                    </select>
+                                    <div className="ordem-status-controls">
+                                        <div className="ordem-status-field">
+                                            <label htmlFor="ordem-status-select">Novo status</label>
+                                            <select
+                                                id="ordem-status-select"
+                                                className="ordem-status-select"
+                                                value={statusSelecionado}
+                                                onChange={(event) =>
+                                                    setStatusSelecionado(
+                                                        event.target.value as StatusOrdemServico,
+                                                    )
+                                                }
+                                                disabled={alterandoStatusId !== null}
+                                            >
+                                                {STATUS_EDITAVEIS.map((status) => (
+                                                    <option key={status} value={status}>
+                                                        {STATUS_LABELS[status]}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                        </div>
 
-                                    <button
-                                        type="button"
-                                        className="ordens-btn-primary ordem-status-atualizar"
-                                        onClick={() => onAlterarStatus(statusSelecionado)}
-                                        disabled={
-                                            alterandoStatusId !== null ||
-                                            statusSelecionado === ordem.status
-                                        }
-                                    >
-                                        {alterandoStatusId === ordem.id
-                                            ? "Atualizando..."
-                                            : "Atualizar status"}
-                                    </button>
+                                        <button
+                                            type="button"
+                                            className="ordens-btn-primary ordem-status-atualizar"
+                                            onClick={() => onAlterarStatus(statusSelecionado)}
+                                            disabled={
+                                                alterandoStatusId !== null ||
+                                                statusSelecionado === ordem.status
+                                            }
+                                            aria-busy={alterandoStatusId === ordem.id}
+                                        >
+                                            {alterandoStatusId === ordem.id
+                                                ? "Atualizando..."
+                                                : "Atualizar status"}
+                                        </button>
+                                    </div>
                                 </section>
                             )}
 

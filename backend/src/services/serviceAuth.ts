@@ -61,7 +61,7 @@ export class ServiceAuth {
 
         const registro = await this.funcionarios.buscarCredenciaisPorUsuario(usuario);
         const senhaConfere = await compararSenha(senha, registro?.senha_hash ?? (await obterHashFalso()));
-        if (!registro || !senhaConfere) {
+        if (!registro || !senhaConfere || !registro.ativo) {
             throw AppError.naoAutenticado(LOGIN_INVALIDO);
         }
 

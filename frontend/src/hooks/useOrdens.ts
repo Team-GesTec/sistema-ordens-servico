@@ -13,11 +13,13 @@ import { clienteService } from "../services/cliente";
 import { departamentoService } from "../services/departamento";
 import { projetoService } from "../services/projeto";
 import { ordemServicoService } from "../services/ordemServico";
+import { funcionarioService } from "../services/funcionario";
 import type {
     Cliente,
     Departamento,
     OrdemServico,
     OrdemServicoInput,
+    Funcionario,
     Projeto,
     StatusOrdemServico,
 } from "../types/api";
@@ -47,6 +49,9 @@ export function useOrdens() {
     const [clientes, setClientes] = useState<Cliente[]>([]);
     const [departamentos, setDepartamentos] = useState<Departamento[]>([]);
     const [projetos, setProjetos] = useState<Projeto[]>([]);
+    const [funcionariosAtivos, setFuncionariosAtivos] = useState<Funcionario[]>([]);
+    const [funcionariosConhecidos, setFuncionariosConhecidos] = useState<Funcionario[]>([]);
+    const [atribuindoResponsavel, setAtribuindoResponsavel] = useState(false);
 
     const [carregando, setCarregando] = useState(true);
     const [salvando, setSalvando] = useState(false);
@@ -114,24 +119,59 @@ export function useOrdens() {
                 setPerfilGestor(gestor);
                 setPodeCriar(podeCriarOS);
 
-                const [
-                    ordensApi,
-                    clientesApi,
-                    departamentosApi,
-                    projetosApi,
-                ] = await Promise.all([
+                const [ordensApi, clientesApi, departamentosApi, projetosApi] = await Promise.all([
                     ordemServicoService.listar(),
                     clienteService.listar(),
                     departamentoService.listar(),
                     projetoService.listar(),
                 ]);
 
+                // Dados auxiliares para mostrar vínculos históricos e permitir reatribuição. Falhas
+                // nesses endpoints não devem impedir a listagem principal das O.S.
+                let projetosConhecidos = projetosApi;
+                if (gestor) {
+                    try {
+                        const projetosInativosApi = await projetoService.listarInativos();
+                        projetosConhecidos = [...projetosApi, ...projetosInativosApi];
+                    } catch (error) {
+                        if (ativo) setErro(mensagemErro(
+                            error,
+                            "Não foi possível carregar os projetos inativos associados a ordens existentes.",
+                        ));
+                    }
+                }
+
+                let funcionariosAtivosApi: Funcionario[] = [];
+                let funcionariosHistoricos: Funcionario[] = [];
+                try {
+                    funcionariosAtivosApi = await funcionarioService.listar();
+                    funcionariosHistoricos = funcionariosAtivosApi;
+                    if (gestor) {
+                        try {
+                            const funcionariosInativosApi = await funcionarioService.listarInativos();
+                            funcionariosHistoricos = [...funcionariosAtivosApi, ...funcionariosInativosApi];
+                        } catch (error) {
+                            if (ativo) setErro(mensagemErro(
+                                error,
+                                "Não foi possível carregar os responsáveis inativos para consulta histórica.",
+                            ));
+                        }
+                    }
+                } catch (error) {
+                    if (ativo) setErro(mensagemErro(
+                        error,
+                        "Não foi possível carregar os funcionários disponíveis para reatribuição.",
+                    ));
+                }
+
                 if (!ativo) return;
 
                 setOrdens(ordensApi);
                 setClientes(clientesApi);
                 setDepartamentos(departamentosApi);
-                setProjetos(projetosApi);
+                setProjetos(projetosConhecidos);
+                setFuncionariosAtivos(funcionariosAtivosApi);
+                setFuncionariosConhecidos(funcionariosHistoricos);
             } catch (error) {
                 if (ativo) {
                     setErro(
@@ -343,10 +383,63 @@ export function useOrdens() {
         }
     }
 
+    async function abrirDetalhesPorId(id: number): Promise<void> {
+        setOrdemSelecionada(null);
+        setDetalhesAbertos(true);
+        setCarregandoDetalhes(true);
+        setErro(null);
+
+        try {
+            const detalhe = await ordemServicoService.buscarPorId(id);
+            setOrdemSelecionada(detalhe);
+
+            // Se a navegação veio do histórico de um projeto para uma O.S. inativa,
+            // mantenha a lista de O.S. inativas selecionada e atualize-a em segundo plano.
+            if (!detalhe.ativo && podeGerenciar) {
+                setMostrarInativas(true);
+                void carregarOrdensInativas();
+            }
+        } catch (error) {
+            setErro(
+                mensagemErro(
+                    error,
+                    `Não foi possível carregar os detalhes da ordem de serviço #${id}.`,
+                ),
+            );
+        } finally {
+            setCarregandoDetalhes(false);
+        }
+    }
+
     function fecharDetalhes() {
         setDetalhesAbertos(false);
         setOrdemSelecionada(null);
         setErro(null);
+    }
+
+    async function atribuirResponsavelOrdem(funcionarioId: number): Promise<void> {
+        if (!podeGerenciar || !ordemSelecionada || atribuindoResponsavel) {
+            setErro("Apenas Gestores podem reatribuir ordens de serviço.");
+            return;
+        }
+        if (!funcionariosAtivos.some((funcionario) => funcionario.id === funcionarioId && funcionario.ativo)) {
+            setErro("Selecione um funcionário ativo para atribuir a ordem.");
+            return;
+        }
+
+        setAtribuindoResponsavel(true);
+        setErro(null);
+        setMensagem(null);
+        try {
+            const atualizada = await ordemServicoService.atribuirResponsavel(ordemSelecionada.id, funcionarioId);
+            setOrdemSelecionada(atualizada);
+            setOrdens((anteriores) => anteriores.map((ordem) => ordem.id === atualizada.id ? atualizada : ordem));
+            setMensagem(`Responsável da OS #${atualizada.id} atualizado com sucesso.`);
+        } catch (error) {
+            setErro(mensagemErro(error, "Não foi possível reatribuir o responsável da ordem de serviço."));
+        } finally {
+            setAtribuindoResponsavel(false);
+        }
     }
 
     async function alterarStatusOrdem(
@@ -604,6 +697,10 @@ export function useOrdens() {
         clientes,
         departamentos,
         projetos,
+        funcionariosAtivos,
+        funcionariosConhecidos,
+        atribuindoResponsavel,
+        atribuirResponsavelOrdem,
 
         carregando,
         carregandoDetalhes,
@@ -643,6 +740,7 @@ export function useOrdens() {
         ),
         ordemSelecionada,
         abrirDetalhes,
+        abrirDetalhesPorId,
         fecharDetalhes,
 
         ordensInativas,

@@ -53,6 +53,19 @@ const CRITICIDADE_LABELS: Record<NivelCriticidade, string> = {
     urgente: "Urgente",
 };
 
+// Peso de cada nível: quanto maior, mais prioritária a O.S. (sem criticidade fica por último).
+const PESO_CRITICIDADE: Record<NivelCriticidade, number> = {
+    baixo: 1,
+    medio: 2,
+    alto: 3,
+    muito_alto: 4,
+    urgente: 5,
+};
+
+function pesoCriticidade(criticidade: NivelCriticidade | null | undefined): number {
+    return criticidade ? PESO_CRITICIDADE[criticidade] : 0;
+}
+
 const statusOptions: SelectOption[] = Object.entries(
     STATUS_LABELS,
 ).map(([value, label]) => ({
@@ -124,32 +137,39 @@ function Home() {
         (item) => item.id === osSelecionada?.responsavel_id,
     );
 
-    // Combina pesquisa por texto, setor e status.
+    // Combina pesquisa por texto, setor e status e ordena por prioridade:
+    // da criticidade mais alta para a mais baixa; em empate, a O.S. mais antiga (menor id) vem primeiro.
     const ordensFiltradas = useMemo(() => {
         const termo = search.trim().toLowerCase();
 
-        return ordens.filter((os) => {
-            const bateSetor =
-                selectedSetor === 0 || os.departamento_id === selectedSetor;
-            const bateStatus =
-                selectedStatus === "todos" || os.status === selectedStatus;
+        return ordens
+            .filter((os) => {
+                const bateSetor =
+                    selectedSetor === 0 || os.departamento_id === selectedSetor;
+                const bateStatus =
+                    selectedStatus === "todos" || os.status === selectedStatus;
 
-            if (!bateSetor || !bateStatus) {
-                return false;
-            }
+                if (!bateSetor || !bateStatus) {
+                    return false;
+                }
 
-            if (!termo) {
-                return true;
-            }
+                if (!termo) {
+                    return true;
+                }
 
-            return (
-                String(os.id).includes(termo) ||
-                (os.titulo ?? "").toLowerCase().includes(termo) ||
-                os.descricao.toLowerCase().includes(termo) ||
-                TIPO_LABELS[os.tipo].toLowerCase().includes(termo) ||
-                STATUS_LABELS[os.status].toLowerCase().includes(termo)
+                return (
+                    String(os.id).includes(termo) ||
+                    (os.titulo ?? "").toLowerCase().includes(termo) ||
+                    os.descricao.toLowerCase().includes(termo) ||
+                    TIPO_LABELS[os.tipo].toLowerCase().includes(termo) ||
+                    STATUS_LABELS[os.status].toLowerCase().includes(termo)
+                );
+            })
+            .sort(
+                (a, b) =>
+                    pesoCriticidade(b.criticidade) - pesoCriticidade(a.criticidade) ||
+                    a.id - b.id,
             );
-        });
     }, [ordens, search, selectedSetor, selectedStatus]);
 
     function abrirModal(os: OrdemServico) {

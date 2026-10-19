@@ -30,6 +30,7 @@ interface OrdemServicoFormModalProps {
     projetos: Projeto[];
     salvando: boolean;
     erro: string | null;
+    carregandoOpcoes?: boolean;
     /** AJ-06: libera o cadastro de O.S. antiga/existente (somente gestor). */
     podeCadastrarAntiga?: boolean;
     onClose: () => void;
@@ -117,6 +118,7 @@ function OrdemServicoFormModal({
     projetos,
     salvando,
     erro,
+    carregandoOpcoes = false,
     podeCadastrarAntiga = false,
     onClose,
     onSave,
@@ -195,17 +197,38 @@ function OrdemServicoFormModal({
         }),
     );
 
-    const projetoOptions: AutocompleteOption[] = projetos
-        .filter(
-            (projeto) =>
-                form.clienteId !== null &&
-                projeto.cliente_id === form.clienteId,
-        )
-        .map((projeto) => ({
+    const projetosAtivosDoCliente = projetos.filter(
+        (projeto) =>
+            projeto.ativo &&
+            form.clienteId !== null &&
+            projeto.cliente_id === form.clienteId,
+    );
+    const projetoAtual = form.projetoId === null
+        ? undefined
+        : projetos.find((projeto) => projeto.id === form.projetoId);
+    const projetoAtualEstaDisponivel = projetosAtivosDoCliente.some(
+        (projeto) => projeto.id === form.projetoId,
+    );
+
+    const projetoOptions: AutocompleteOption[] = [
+        ...projetosAtivosDoCliente.map((projeto) => ({
             value: projeto.id,
-            label: `Projeto #${projeto.id}`,
-            description: `Cliente #${projeto.cliente_id}`,
-        }));
+            label: projeto.nome,
+            description: projeto.cliente?.nome ?? `Cliente #${projeto.cliente_id}`,
+        })),
+        ...(form.projetoId !== null && !projetoAtualEstaDisponivel
+            ? [{
+                  value: form.projetoId,
+                  label: projetoAtual?.nome ?? `Projeto #${form.projetoId}`,
+                  description: projetoAtual
+                      ? projetoAtual.ativo
+                          ? "Associação atual fora do cliente selecionado; escolha outro projeto para substituí-la"
+                          : "Projeto inativo; associação existente preservada até substituição explícita"
+                      : "Projeto associado não consta nas opções disponíveis",
+                  disabled: true,
+              }]
+            : []),
+    ];
 
     function atualizarCampo<K extends keyof FormularioOrdem>(
         campo: K,
@@ -483,6 +506,9 @@ function OrdemServicoFormModal({
                                             : "Buscar projeto do cliente..."
                                     }
                                     disabled={form.clienteId === null}
+                                    loading={carregandoOpcoes}
+                                    loadingMessage="Carregando projetos..."
+                                    emptyMessage="Nenhum projeto ativo disponível para este cliente."
                                     clearable
                                 />
                             </div>
