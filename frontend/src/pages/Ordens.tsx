@@ -1,10 +1,7 @@
-/**
- * Página de O.S.: monta a toolbar, a grade de cards e os modais (detalhes, ativar/inativar e formulário)
- * a partir do estado do hook useOrdens. O cadastro de O.S. antiga (AJ-06) só é liberado para o gestor.
- */
-
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { calcularDiasUteisRestantes } from "../utils/filtroPrazo";
 import { useSearchParams } from "react-router-dom";
+
 import "../styles/variaveis.css";
 import "../styles/global.css";
 import "../styles/layout.css";
@@ -23,8 +20,79 @@ import OrdemServicoDetalhesModal from "../components/ordens/OrdemServicoDetalhes
 import OrdemServicoFormModal from "../components/ordens/OrdemServicoFormModal";
 import { useOrdens } from "../hooks/useOrdens";
 
+import type { NivelCriticidade } from "../types/api";
+
+type FiltroPrazo = "todos" | "proximos3" | "proximos5" | "proximos7";
+
+// Quanto maior o peso, maior a prioridade da O.S.
+const PESO_CRITICIDADE: Record<NivelCriticidade, number> = {
+    baixo: 1,
+    medio: 2,
+    alto: 3,
+    muito_alto: 4,
+    urgente: 5,
+};
+
+function pesoCriticidade(
+    criticidade: NivelCriticidade | null | undefined,
+): number {
+    return criticidade ? PESO_CRITICIDADE[criticidade] : 0;
+}
+
 function Ordens() {
     const ordens = useOrdens();
+
+    const [filtroPrazo, setFiltroPrazo] = useState<FiltroPrazo>("todos");
+
+    const ordensExibidas = useMemo(() => {
+        const limiteDias =
+            filtroPrazo === "todos"
+                ? null
+                : {
+                      proximos3: 3,
+                      proximos5: 5,
+                      proximos7: 7,
+                  }[filtroPrazo];
+
+        // Calcula os dias úteis restantes para cada O.S.
+        const resultado = ordens.ordensFiltradas
+            .map((ordem) => ({
+                ordem,
+                dias: calcularDiasUteisRestantes(ordem.data_limite_sla),
+            }))
+            // Primeiro, prazo mais próximo.
+            // Em empate, maior criticidade.
+            // Persistindo o empate, menor ID.
+            .sort((a, b) => {
+                const diasA = a.dias ?? Number.POSITIVE_INFINITY;
+                const diasB = b.dias ?? Number.POSITIVE_INFINITY;
+
+                return (
+                    diasA - diasB ||
+                    pesoCriticidade(b.ordem.criticidade) -
+                        pesoCriticidade(a.ordem.criticidade) ||
+                    a.ordem.id - b.ordem.id
+                );
+            });
+
+        // "Todos os prazos" mantém todas as O.S.,
+        // inclusive as vencidas e as que não possuem prazo válido.
+        if (limiteDias === null) {
+            return resultado.map((item) => item.ordem);
+        }
+
+        // Os filtros de prazo mostram apenas O.S. com prazo
+        // entre 1 e o limite selecionado, em dias úteis.
+        return resultado
+            .filter(
+                (item) =>
+                    item.dias !== null &&
+                    item.dias >= 1 &&
+                    item.dias <= limiteDias,
+            )
+            .map((item) => item.ordem);
+    }, [ordens.ordensFiltradas, filtroPrazo]);
+
     const [searchParams, setSearchParams] = useSearchParams();
     const idVisualizar = searchParams.get("visualizar");
     const idVisualizarProcessado = useRef<string | null>(null);
@@ -34,24 +102,45 @@ function Ordens() {
             idVisualizarProcessado.current = null;
             return;
         }
-        if (ordens.carregando || idVisualizarProcessado.current === idVisualizar) return;
+
+        if (
+            ordens.carregando ||
+            idVisualizarProcessado.current === idVisualizar
+        ) {
+            return;
+        }
 
         idVisualizarProcessado.current = idVisualizar;
+
         const id = Number(idVisualizar);
+
         if (Number.isSafeInteger(id) && id > 0) {
             void ordens.abrirDetalhesPorId(id);
         }
 
-        // Consome o parâmetro uma única vez sem criar uma nova entrada no histórico.
-        setSearchParams((atuais) => {
-            const proximos = new URLSearchParams(atuais);
-            proximos.delete("visualizar");
-            return proximos;
-        }, { replace: true });
-    }, [idVisualizar, ordens.carregando, ordens.abrirDetalhesPorId, setSearchParams]);
+        // Consome o parâmetro sem criar uma nova entrada no histórico.
+        setSearchParams(
+            (atuais) => {
+                const proximos = new URLSearchParams(atuais);
+                proximos.delete("visualizar");
+                return proximos;
+            },
+            { replace: true },
+        );
+    }, [
+        idVisualizar,
+        ordens.carregando,
+        ordens.abrirDetalhesPorId,
+        setSearchParams,
+    ]);
 
-    const fonteAtual = ordens.mostrarInativas ? ordens.ordensInativas : ordens.ordens;
-    const carregamentoAtual = ordens.carregando || (ordens.mostrarInativas && ordens.carregandoInativas);
+    const fonteAtual = ordens.mostrarInativas
+        ? ordens.ordensInativas
+        : ordens.ordens;
+
+    const carregamentoAtual =
+        ordens.carregando ||
+        (ordens.mostrarInativas && ordens.carregandoInativas);
 
     return (
         <div className="layout">
@@ -61,25 +150,42 @@ function Ordens() {
                         <div>
                             <p className="projetos-eyebrow">GESTÃO DO SGOS</p>
                             <h1>Ordens de Serviço</h1>
-                            <p className="projetos-subtitle">Acompanhe as ordens, prioridades, responsáveis e estados de atendimento.</p>
+                            <p className="projetos-subtitle">
+                                Acompanhe as ordens, prioridades, responsáveis
+                                e estados de atendimento.
+                            </p>
                         </div>
+
                         {ordens.podeCriar && (
-                            <button type="button" className="projeto-btn-primary" onClick={ordens.abrirCadastro}>
+                            <button
+                                type="button"
+                                className="projeto-btn-primary"
+                                onClick={ordens.abrirCadastro}
+                            >
                                 + Nova ordem de serviço
                             </button>
                         )}
                     </header>
 
                     {ordens.mensagem && (
-                        <div className="projetos-feedback projetos-feedback--success" role="status">
+                        <div
+                            className="projetos-feedback projetos-feedback--success"
+                            role="status"
+                        >
                             {ordens.mensagem}
                         </div>
                     )}
-                    {ordens.erro && !ordens.formularioAberto && !ordens.detalhesAbertos && (
-                        <div className="projetos-feedback projetos-feedback--error" role="alert">
-                            {ordens.erro}
-                        </div>
-                    )}
+
+                    {ordens.erro &&
+                        !ordens.formularioAberto &&
+                        !ordens.detalhesAbertos && (
+                            <div
+                                className="projetos-feedback projetos-feedback--error"
+                                role="alert"
+                            >
+                                {ordens.erro}
+                            </div>
+                        )}
 
                     <OrdensToolbar
                         busca={ordens.busca}
@@ -102,38 +208,89 @@ function Ordens() {
 
                     <div className="projetos-list-header">
                         <div>
-                            <h2>{ordens.mostrarInativas ? "Ordens de serviço inativas" : "Ordens de serviço ativas"}</h2>
-                            <p>{ordens.ordensFiltradas.length} resultado(s)</p>
+                            <h2>
+                                {ordens.mostrarInativas
+                                    ? "Ordens de serviço inativas"
+                                    : "Ordens de serviço ativas"}
+                            </h2>
+
+                            <p>{ordensExibidas.length} resultado(s)</p>
                         </div>
-                        {carregamentoAtual && <span className="projetos-loading" role="status">Carregando…</span>}
+
+                        <div className="ordens-prazo-filtro">
+                            <label htmlFor="filtro-prazo">Prazo:</label>
+
+                            <select
+                                id="filtro-prazo"
+                                value={filtroPrazo}
+                                onChange={(evento) =>
+                                    setFiltroPrazo(
+                                        evento.target.value as FiltroPrazo,
+                                    )
+                                }
+                            >
+                                <option value="todos">Todos os prazos</option>
+                                <option value="proximos3">
+                                    1 a 3 dias úteis
+                                </option>
+                                <option value="proximos5">
+                                    1 a 5 dias úteis
+                                </option>
+                                <option value="proximos7">
+                                    1 a 7 dias úteis
+                                </option>
+                            </select>
+                        </div>
                     </div>
 
                     {carregamentoAtual ? (
                         <div className="projetos-empty" role="status">
-                            <span className="projetos-loading-mark" aria-hidden="true" />
-                            {ordens.mostrarInativas ? "Carregando ordens inativas..." : "Carregando ordens de serviço..."}
+                            <span
+                                className="projetos-loading-mark"
+                                aria-hidden="true"
+                            />
+                            {ordens.mostrarInativas
+                                ? "Carregando ordens inativas..."
+                                : "Carregando ordens de serviço..."}
                         </div>
-                    ) : ordens.ordensFiltradas.length === 0 ? (
+                    ) : ordensExibidas.length === 0 ? (
                         <div className="projetos-empty">
-                            <strong>{fonteAtual.length === 0
-                                ? ordens.mostrarInativas ? "Nenhuma O.S. inativa cadastrada" : "Nenhuma O.S. cadastrada"
-                                : "Nenhuma ordem corresponde à busca e aos filtros selecionados."}</strong>
-                            <p>{fonteAtual.length === 0
-                                ? ordens.mostrarInativas ? "Não há registros inativos para exibir." : "Cadastre uma ordem de serviço para começar."
-                                : "Altere a pesquisa ou os filtros para ver outros resultados."}</p>
+                            <strong>
+                                {fonteAtual.length === 0
+                                    ? ordens.mostrarInativas
+                                        ? "Nenhuma O.S. inativa cadastrada"
+                                        : "Nenhuma O.S. cadastrada"
+                                    : filtroPrazo !== "todos"
+                                      ? "Nenhuma ordem corresponde ao filtro de prazo selecionado."
+                                      : "Nenhuma ordem corresponde à busca e aos filtros selecionados."}
+                            </strong>
+
+                            <p>
+                                {fonteAtual.length === 0
+                                    ? ordens.mostrarInativas
+                                        ? "Não há registros inativos para exibir."
+                                        : "Cadastre uma ordem de serviço para começar."
+                                    : filtroPrazo !== "todos"
+                                      ? "Tente selecionar outro intervalo de prazo para visualizar mais ordens."
+                                      : "Altere a pesquisa ou os filtros para ver outros resultados."}
+                            </p>
                         </div>
                     ) : (
                         <div className="projetos-grid ordens-grid">
-                            {ordens.ordensFiltradas.map((ordem) => (
+                            {ordensExibidas.map((ordem) => (
                                 <OrdemServicoCard
                                     key={ordem.id}
                                     ordem={ordem}
-                                    onAlterarAtivo={ordens.solicitarAlteracaoAtivo}
+                                    onAlterarAtivo={
+                                        ordens.solicitarAlteracaoAtivo
+                                    }
                                     clientes={ordens.clientes}
                                     departamentos={ordens.departamentos}
                                     podeEditar={ordens.podeGerenciar}
                                     bloqueado={ordens.salvando}
-                                    onAbrir={(selecionada) => void ordens.abrirDetalhes(selecionada)}
+                                    onAbrir={(selecionada) =>
+                                        void ordens.abrirDetalhes(selecionada)
+                                    }
                                     onEditar={ordens.iniciarEdicao}
                                 />
                             ))}
@@ -154,7 +311,9 @@ function Ordens() {
                 funcionariosElegiveis={ordens.funcionariosAtivos}
                 atribuindoResponsavel={ordens.atribuindoResponsavel}
                 podeReatribuirResponsavel={ordens.podeGerenciar}
-                onAtribuirResponsavel={(funcionarioId) => void ordens.atribuirResponsavelOrdem(funcionarioId)}
+                onAtribuirResponsavel={(funcionarioId) =>
+                    void ordens.atribuirResponsavelOrdem(funcionarioId)
+                }
                 onFechar={ordens.fecharDetalhes}
                 onEditar={ordens.iniciarEdicao}
                 podeAlterarStatus={ordens.podeAlterarStatus}
