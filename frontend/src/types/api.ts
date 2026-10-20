@@ -135,6 +135,9 @@ export interface OrdemServico {
     status: StatusOrdemServico;
     ativo: boolean;
     data_criacao: string;
+    /** US#3.2: Disponibiliza as datas usadas no cálculo dos alertas de SLA. */
+    data_inicio?: string | null;
+    data_limite_sla?: string | null;
 }
 
 export interface OrdemServicoInput {
@@ -154,4 +157,7 @@ export interface OrdemServicoInput {
     parecer_tecnico?: string;
     /** AJ-06 — data de conclusão (ISO), obrigatória quando a O.S. antiga já está concluída. */
     data_fim?: string;
+    /** US#3.2: Define as datas necessárias para calcular os alertas de SLA. */
+    data_inicio?: string | null;
+    data_limite_sla?: string | null;
 }

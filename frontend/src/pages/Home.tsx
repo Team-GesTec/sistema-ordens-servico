@@ -1,3 +1,4 @@
+
 import { useEffect, useMemo, useState } from "react";
 import "../styles/variaveis.css";
 import "../styles/global.css";
@@ -12,9 +13,18 @@ import CustomSelect from "../components/CustomSelect";
 import type { SelectOption } from "../components/CustomSelect";
 import { ApiError } from "../services/api";
 import { ordemServicoService } from "../services/ordemServico";
-import type { NivelCriticidade, OrdemServico, StatusOrdemServico, TipoOrdemServico } from "../types/api";
+import type {
+    NivelCriticidade,
+    OrdemServico,
+    StatusOrdemServico,
+    TipoOrdemServico,
+} from "../types/api";
+import NotificacoesSla from "../components/NotificacoesSla";
+import type { NotificacaoSla } from "../types/notificacao";
 
-const setorOptions: SelectOption[] = [{ value: 0, label: "Todos os setores" }];
+const setorOptions: SelectOption[] = [
+    { value: 0, label: "Todos os setores" },
+];
 
 const STATUS_LABELS: Record<StatusOrdemServico, string> = {
     em_andamento: "Em andamento",
@@ -41,23 +51,33 @@ function Home() {
     const [search, setSearch] = useState("");
     const [selectedSetor, setSelectedSetor] = useState(0);
     const [ordens, setOrdens] = useState<OrdemServico[]>([]);
+    const [notificacoes, setNotificacoes] = useState<NotificacaoSla[]>([]);
     const [carregando, setCarregando] = useState(true);
     const [erro, setErro] = useState<string | null>(null);
 
+    // US#3.2: Carrega as ordens de serviço para exibição na Home.
     useEffect(() => {
         ordemServicoService
             .listar()
             .then(setOrdens)
             .catch((error: unknown) =>
-                setErro(error instanceof ApiError ? error.message : "Não foi possível carregar as ordens de serviço."),
+                setErro(
+                    error instanceof ApiError
+                        ? error.message
+                        : "Não foi possível carregar as ordens de serviço.",
+                ),
             )
             .finally(() => setCarregando(false));
     }, []);
 
+    // US#3.2: Filtra as ordens de serviço conforme a pesquisa e o setor selecionado.
     const ordensFiltradas = useMemo(() => {
         const termo = search.trim().toLowerCase();
+
         return ordens.filter((os) => {
-            const bateSetor = selectedSetor === 0 || os.departamento_id === selectedSetor;
+            const bateSetor =
+                selectedSetor === 0 || os.departamento_id === selectedSetor;
+
             if (!bateSetor) return false;
             if (!termo) return true;
 
@@ -72,6 +92,16 @@ function Home() {
 
     return (
         <div className="layout">
+            {/* US#3.2: Exibe as notificações de SLA recebidas do backend. */}
+            <NotificacoesSla
+                notificacoes={notificacoes}
+                onDispensar={(id) => {
+                    setNotificacoes((atuais) =>
+                        atuais.filter((notificacao) => notificacao.id !== id),
+                    );
+                }}
+            />
+
             <main className="main">
                 <div className="container">
                     <div className="filter">
@@ -86,7 +116,9 @@ function Home() {
                         <CustomSelect
                             options={setorOptions}
                             value={selectedSetor}
-                            onChange={(value) => setSelectedSetor(Number(value))}
+                            onChange={(value) =>
+                                setSelectedSetor(Number(value))
+                            }
                             placeholder="Todos os setores"
                         />
 
@@ -100,7 +132,9 @@ function Home() {
                     {erro && <p className="form-hint">{erro}</p>}
 
                     {carregando ? (
-                        <p className="form-hint">Carregando ordens de serviço...</p>
+                        <p className="form-hint">
+                            Carregando ordens de serviço...
+                        </p>
                     ) : ordensFiltradas.length === 0 ? (
                         <p className="form-hint">
                             {ordens.length === 0
@@ -134,6 +168,7 @@ function Home() {
                     )}
                 </div>
             </main>
+
             <aside className="details" />
         </div>
     );
