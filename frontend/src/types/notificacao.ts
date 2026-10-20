@@ -1,4 +1,8 @@
-/** Representa uma notificação de SLA recebida do backend. */
+/**
+ * US#3.2: Define os tipos e os dados das notificações de SLA
+ * recebidas do backend.
+ */
+
 export type TipoNotificacaoSla = "risco" | "vencido" | "bloqueado";
 
 /** US#3.2: Define os dados necessários para exibir e dispensar uma notificação. */

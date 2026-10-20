@@ -1,3 +1,8 @@
+/**
+ * Define os tipos e contratos de dados utilizados na comunicação
+ * entre o frontend e a API.
+ */
+
 export type PerfilFuncionario = "gestor" | "analista" | "tecnico";
 
 export type StatusProjeto =

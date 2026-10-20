@@ -1,3 +1,7 @@
+/**
+ * US#3.2: Exibe notificações persistentes de SLA na tela inicial,
+ * permitindo que o usuário dispense cada aviso manualmente.
+ */
 
 import type { NotificacaoSla } from "../types/notificacao";
 

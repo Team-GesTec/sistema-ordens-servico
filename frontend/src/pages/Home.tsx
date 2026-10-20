@@ -1,3 +1,7 @@
+/**
+ * Exibe as ordens de serviço na tela inicial 
+ * e integra o componente de notificações visuais de SLA (US#3.2).
+ */
 
 import { useEffect, useMemo, useState } from "react";
 import "../styles/variaveis.css";
