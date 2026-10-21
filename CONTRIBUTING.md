@@ -744,3 +744,14 @@ PR = User Story
 Commit = Subtask
 Merge/Squash = consolidação da User Story na main
 ```
+
+
+## Segurança e uso do banco Supabase compartilhado
+
+- Arquivos `backend/.env` e `frontend/.env` são locais e nunca devem ser commitados. Committe apenas os modelos `.env.example`, sem credenciais válidas.
+- Nunca coloque `DATABASE_URL`, `DIRECT_URL`, senha do PostgreSQL, `JWT_SECRET` ou credenciais do seed em código frontend, variáveis `VITE_*`, issues públicas ou logs enviados ao time.
+- O frontend acessa somente a API Express; o backend acessa o PostgreSQL do Supabase.
+- O schema deve evoluir por migrations versionadas. Não faça alterações manuais de estrutura pelo painel do banco, nem use `prisma db push` como substituto do histórico de migrations.
+- `npx prisma migrate deploy` aplica migrations já versionadas e pendentes; ele não apaga tabelas e não exige shadow database. Antes de executá-lo, confirme que a URL de conexão aponta para o ambiente correto e combine a execução com a pessoa responsável pelo banco compartilhado.
+- **Nunca rode `npx prisma migrate reset` no Supabase compartilhado.** O comando pode apagar dados.
+- A criação de migrations com `prisma migrate dev` ainda exige shadow database, mesmo que `SHADOW_DATABASE_URL` não esteja definida na configuração. Até que o fluxo de autoria de migrations esteja acordado e isolado, não execute esse comando contra o banco compartilhado. Consulte o [Manual de Instalação](./docs/instalacao.md).

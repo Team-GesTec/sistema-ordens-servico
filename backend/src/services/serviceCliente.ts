@@ -121,9 +121,57 @@ export class ServiceCliente {
         return this.repositorio.atualizar(id, alteracoes);
     }
 
-    /** Remove um cliente. */
-    remover(id: number): Promise<void> {
-        return this.repositorio.remover(id);
+    /** Inativa o cliente somente quando não existem vínculos ativos. */
+    async inativar(id: number): Promise<Cliente> {
+        const cliente = await this.repositorio.buscarPorId(id);
+
+        if (!cliente) {
+            throw AppError.naoEncontrado('Cliente não encontrado');
+        }
+
+        if (!cliente.ativo) {
+            return cliente;
+        }
+
+        const [projetosAtivos, ordensAtivas] = await Promise.all([
+            this.repositorio.contarProjetosNaoConcluidos(id),
+            this.repositorio.contarOrdensServicoNaoConcluidas(id),
+        ]);
+
+        if (projetosAtivos > 0 || ordensAtivas > 0) {
+            const vinculos: string[] = [];
+
+            if (projetosAtivos > 0) {
+                vinculos.push(`${projetosAtivos} projeto(s) não concluído(s)`);
+            }
+
+            if (ordensAtivas > 0) {
+                vinculos.push(`${ordensAtivas} ordem(ns) de serviço não concluída(s)`);
+            }
+
+            throw AppError.conflito(
+                `Não é possível inativar o cliente "${cliente.nome}": ` +
+                `existem ${vinculos.join(' e ')} vinculados. ` +
+                'Conclua os vínculos antes de inativar o cliente.',
+            );
+        }
+
+        return this.repositorio.inativar(id);
+    }
+
+    /** Reativa um cliente inativo. */
+    async ativar(id: number): Promise<Cliente> {
+        const cliente = await this.repositorio.buscarPorId(id);
+
+        if (!cliente) {
+            throw AppError.naoEncontrado("Cliente não encontrado");
+        }
+
+        if (cliente.ativo) {
+            return cliente;
+        }
+
+        return this.repositorio.ativar(id);
     }
 
     /** Monta o objeto de alterações conforme o modo (PUT ou PATCH). */

@@ -38,4 +38,7 @@ router.patch('/:id', somenteGestor, (req: Request, res: Response) => controller.
 // DELETE — gestor
 router.delete('/:id', somenteGestor, (req: Request, res: Response) => controller.deleteCliente(req, res));
 
+// PATCH — reativar cliente (gestor)
+router.patch("/:id/ativar", somenteGestor, (req: Request, res: Response) => controller.ativarCliente(req, res));
+
 export default router;

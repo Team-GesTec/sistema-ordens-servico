@@ -1,4 +1,6 @@
+
 import { useEffect, useState, type FormEvent } from "react";
+import { Link, useSearchParams } from "react-router-dom";
 import "../styles/variaveis.css";
 import "../styles/global.css";
 import "../styles/layout.css";
@@ -17,10 +19,33 @@ function Departamentos() {
     const [mensagem, setMensagem] = useState<string | null>(null);
     const [erro, setErro] = useState<string | null>(null);
 
+    const [searchParams] = useSearchParams();
+    const departamentoParam = searchParams.get("visualizar");
+    const departamentoVisualizadoId = Number(departamentoParam);
+
+    const modoVisualizacao =
+        departamentoParam !== null &&
+        Number.isInteger(departamentoVisualizadoId) &&
+        departamentoVisualizadoId > 0;
+
+    const departamentosExibidos = modoVisualizacao
+        ? departamentos.filter(
+              (departamento) =>
+                  departamento.id === departamentoVisualizadoId,
+          )
+        : departamentos;
+
     useEffect(() => {
-        departamentoService.listar()
+        departamentoService
+            .listar()
             .then(setDepartamentos)
-            .catch((error: unknown) => setErro(error instanceof ApiError ? error.message : "Não foi possível carregar os departamentos."))
+            .catch((error: unknown) =>
+                setErro(
+                    error instanceof ApiError
+                        ? error.message
+                        : "Não foi possível carregar os departamentos.",
+                ),
+            )
             .finally(() => setCarregando(false));
     }, []);
 
@@ -31,12 +56,24 @@ function Departamentos() {
         setMensagem(null);
 
         try {
-            const criado = await departamentoService.criar({ nome: nome.trim(), responsavel_id: null });
-            setDepartamentos((prev) => [...prev, criado].sort((a, b) => a.id - b.id));
+            const criado = await departamentoService.criar({
+                nome: nome.trim(),
+                responsavel_id: null,
+            });
+
+            setDepartamentos((prev) =>
+                [...prev, criado].sort((a, b) => a.id - b.id),
+            );
             setNome("");
-            setMensagem(`Departamento "${criado.nome}" cadastrado com sucesso.`);
+            setMensagem(
+                `Departamento "${criado.nome}" cadastrado com sucesso.`,
+            );
         } catch (error) {
-            setErro(error instanceof ApiError ? error.message : "Não foi possível cadastrar o departamento.");
+            setErro(
+                error instanceof ApiError
+                    ? error.message
+                    : "Não foi possível cadastrar o departamento.",
+            );
         } finally {
             setSalvando(false);
         }
@@ -46,49 +83,125 @@ function Departamentos() {
         <div className="layout">
             <main className="main">
                 <div className="container">
-                    <h1 className="form-title">Cadastrar departamento</h1>
-                    {mensagem && <div className="form-feedback success">{mensagem}</div>}
-                    {erro && <div className="form-feedback error">{erro}</div>}
+                    <h1 className="form-title">
+                        {modoVisualizacao
+                            ? "Visualização do departamento"
+                            : "Cadastrar departamento"}
+                    </h1>
 
-                    <form className="form-card" onSubmit={handleSubmit}>
-                        <div className="form-field">
-                            <label htmlFor="nome-departamento">Nome</label>
-                            <input
-                                id="nome-departamento"
-                                type="text"
-                                className="form-input"
-                                value={nome}
-                                onChange={(event) => setNome(event.target.value)}
-                                placeholder="Nome do departamento"
-                                required
-                            />
-                        </div>
-                        <div className="form-actions">
-                            <button type="submit" className="btn-primary" disabled={salvando}>
-                                {salvando ? "Salvando..." : "Salvar departamento"}
-                            </button>
-                            <button type="button" className="btn-secondary" onClick={() => setNome("")} disabled={salvando}>
-                                Cancelar
-                            </button>
-                        </div>
-                    </form>
+                    {modoVisualizacao && (
+                        <>
+                            <p className="form-hint">
+                                Consulta somente leitura.
+                            </p>
 
-                    <div className="form-card" style={{ marginTop: 20 }}>
-                        <strong style={{ color: "#fff" }}>Departamentos carregados da API</strong>
+                            <p>
+                                <Link
+                                    to="/ordens"
+                                    className="btn-secondary"
+                                >
+                                    Voltar às ordens
+                                </Link>
+                            </p>
+                        </>
+                    )}
+
+                    {mensagem && (
+                        <div className="form-feedback success">
+                            {mensagem}
+                        </div>
+                    )}
+
+                    {erro && (
+                        <div className="form-feedback error" role="alert">
+                            {erro}
+                        </div>
+                    )}
+
+                    {!modoVisualizacao && (
+                        <form
+                            className="form-card"
+                            onSubmit={handleSubmit}
+                        >
+                            <div className="form-field">
+                                <label htmlFor="nome-departamento">
+                                    Nome
+                                </label>
+
+                                <input
+                                    id="nome-departamento"
+                                    type="text"
+                                    className="form-input"
+                                    value={nome}
+                                    onChange={(event) =>
+                                        setNome(event.target.value)
+                                    }
+                                    placeholder="Nome do departamento"
+                                    required
+                                />
+                            </div>
+
+                            <div className="form-actions">
+                                <button
+                                    type="submit"
+                                    className="btn-primary"
+                                    disabled={salvando}
+                                >
+                                    {salvando
+                                        ? "Salvando..."
+                                        : "Salvar departamento"}
+                                </button>
+
+                                <button
+                                    type="button"
+                                    className="btn-secondary"
+                                    onClick={() => setNome("")}
+                                    disabled={salvando}
+                                >
+                                    Cancelar
+                                </button>
+                            </div>
+                        </form>
+                    )}
+
+                    <div
+                        className="form-card"
+                        style={{ marginTop: 20 }}
+                    >
+                        <strong style={{ color: "#fff" }}>
+                            {modoVisualizacao
+                                ? "Departamento selecionado"
+                                : "Departamentos carregados da API"}
+                        </strong>
+
                         {carregando ? (
-                            <p className="form-hint">Carregando...</p>
-                        ) : departamentos.length === 0 ? (
-                            <p className="form-hint">Nenhum departamento retornado pelo backend.</p>
+                            <p className="form-hint">
+                                Carregando...
+                            </p>
+                        ) : departamentosExibidos.length === 0 ? (
+                            <p className="form-hint">
+                                {modoVisualizacao
+                                    ? `Departamento #${departamentoVisualizadoId} não encontrado.`
+                                    : "Nenhum departamento retornado pelo backend."}
+                            </p>
                         ) : (
-                            departamentos.map((departamento) => (
-                                <div key={departamento.id} className="form-hint">
-                                    #{departamento.id} — {departamento.nome}
+                            departamentosExibidos.map((departamento) => (
+                                <div
+                                    key={departamento.id}
+                                    className="form-hint"
+                                >
+                                    <strong>
+                                        {departamento.nome}
+                                    </strong>
+                                    {" — "}
+                                    ID #{departamento.id}
                                 </div>
                             ))
                         )}
                     </div>
                 </div>
             </main>
+
             <aside className="details" />
         </div>
     );

@@ -92,7 +92,7 @@ export default function CustomSelect({
                                 setOpen(false);
                             }}
                         >
-                            {option.label}
+                            <span>{option.label}</span>
                         </button>
                     ))}
                 </div>

@@ -12,7 +12,6 @@ import "../styles/modal-os.css";
 
 import CustomSelect from "../components/CustomSelect";
 import type { SelectOption } from "../components/CustomSelect";
-
 import { ApiError } from "../services/api";
 import { getStoredUser } from "../services/auth"; // confirmar o nome real do arquivo do authService
 import { funcionarioService } from "../services/funcionario";
@@ -34,12 +33,10 @@ const setorOptions: SelectOption[] = [
 ];
 
 const STATUS_LABELS: Record<StatusOrdemServico, string> = {
-    pendente: "Pendente",
     em_andamento: "Em andamento",
-    aguardando_embarque: "Aguardando embarque",
+    aguardando: "Aguardando",
     validacao_testes: "Validação de testes",
     bloqueado: "Bloqueado",
-    review: "Review",
     concluido: "Concluído",
 };
 
@@ -56,6 +53,19 @@ const CRITICIDADE_LABELS: Record<NivelCriticidade, string> = {
     urgente: "Urgente",
 };
 
+// Peso de cada nível: quanto maior, mais prioritária a O.S. (sem criticidade fica por último).
+const PESO_CRITICIDADE: Record<NivelCriticidade, number> = {
+    baixo: 1,
+    medio: 2,
+    alto: 3,
+    muito_alto: 4,
+    urgente: 5,
+};
+
+function pesoCriticidade(criticidade: NivelCriticidade | null | undefined): number {
+    return criticidade ? PESO_CRITICIDADE[criticidade] : 0;
+}
+
 const statusOptions: SelectOption[] = Object.entries(
     STATUS_LABELS,
 ).map(([value, label]) => ({
@@ -67,11 +77,13 @@ function Home() {
     const [search, setSearch] = useState("");
     const [selectedSetor, setSelectedSetor] = useState(0);
 
+    // Filtro de status: começa mostrando todas as ordens.
+    const [selectedStatus, setSelectedStatus] = useState<StatusOrdemServico | "todos">("todos");
+
     const [ordens, setOrdens] = useState<OrdemServico[]>([]);
 
     const [carregando, setCarregando] = useState(true);
     const [erro, setErro] = useState<string | null>(null);
-
     const [osSelecionada, setOsSelecionada] =
         useState<OrdemServico | null>(null);
 
@@ -87,7 +99,6 @@ function Home() {
     const [funcionarios, setFuncionarios] = useState<Funcionario[]>([]);
     const [tecnicoResponsavel, setTecnicoResponsavel] = useState<number | null>(null);
     const [salvandoResponsavel, setSalvandoResponsavel] = useState(false);
-
 
     useEffect(() => {
         ordemServicoService
@@ -126,35 +137,40 @@ function Home() {
         (item) => item.id === osSelecionada?.responsavel_id,
     );
 
+    // Combina pesquisa por texto, setor e status e ordena por prioridade:
+    // da criticidade mais alta para a mais baixa; em empate, a O.S. mais antiga (menor id) vem primeiro.
     const ordensFiltradas = useMemo(() => {
         const termo = search.trim().toLowerCase();
 
-        return ordens.filter((os) => {
-            const bateSetor =
-                selectedSetor === 0 ||
-                os.departamento_id === selectedSetor;
+        return ordens
+            .filter((os) => {
+                const bateSetor =
+                    selectedSetor === 0 || os.departamento_id === selectedSetor;
+                const bateStatus =
+                    selectedStatus === "todos" || os.status === selectedStatus;
 
-            if (!bateSetor) {
-                return false;
-            }
+                if (!bateSetor || !bateStatus) {
+                    return false;
+                }
 
-            if (!termo) {
-                return true;
-            }
+                if (!termo) {
+                    return true;
+                }
 
-            return (
-                String(os.id).includes(termo) ||
-                (os.titulo ?? "").toLowerCase().includes(termo) ||
-                os.descricao.toLowerCase().includes(termo) ||
-                TIPO_LABELS[os.tipo]
-                    .toLowerCase()
-                    .includes(termo) ||
-                STATUS_LABELS[os.status]
-                    .toLowerCase()
-                    .includes(termo)
+                return (
+                    String(os.id).includes(termo) ||
+                    (os.titulo ?? "").toLowerCase().includes(termo) ||
+                    os.descricao.toLowerCase().includes(termo) ||
+                    TIPO_LABELS[os.tipo].toLowerCase().includes(termo) ||
+                    STATUS_LABELS[os.status].toLowerCase().includes(termo)
+                );
+            })
+            .sort(
+                (a, b) =>
+                    pesoCriticidade(b.criticidade) - pesoCriticidade(a.criticidade) ||
+                    a.id - b.id,
             );
-        });
-    }, [ordens, search, selectedSetor]);
+    }, [ordens, search, selectedSetor, selectedStatus]);
 
     function abrirModal(os: OrdemServico) {
         setOsSelecionada(os);
@@ -311,10 +327,32 @@ function Home() {
                             placeholder="Todos os setores"
                         />
 
+                        {/* Filtros por status */}
                         <div className="filter-button">
-                            <button disabled></button>
-                            <button disabled></button>
-                            <button disabled></button>
+                            <button
+                                type="button"
+                                className={selectedStatus === "todos" ? "active" : ""}
+                                aria-pressed={selectedStatus === "todos"}
+                                onClick={() => setSelectedStatus("todos")}
+                            >
+                                Todos
+                            </button>
+
+                            {statusOptions.map((status) => {
+                                const valor = status.value as StatusOrdemServico;
+
+                                return (
+                                    <button
+                                        key={valor}
+                                        type="button"
+                                        className={selectedStatus === valor ? "active" : ""}
+                                        aria-pressed={selectedStatus === valor}
+                                        onClick={() => setSelectedStatus(valor)}
+                                    >
+                                        {status.label}
+                                    </button>
+                                );
+                            })}
                         </div>
                     </div>
 

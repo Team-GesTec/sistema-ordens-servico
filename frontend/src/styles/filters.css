@@ -129,21 +129,45 @@
     grid-column: 1 / -1;
 
     display: flex;
-
+    align-items: center;
     gap: 8px;
+
+    min-width: 0;
+    overflow-x: auto;
+    padding: 2px 2px 6px;
 }
 
 .filter-button button {
-    width: 47px;
-    height: 16px;
+    flex: 0 0 auto;
+    width: auto;
+    min-height: 34px;
+    padding: 0 14px;
 
-    border: none;
+    border: 1px solid rgba(12, 63, 87, 0.18);
+    border-radius: 999px;
 
-    border-radius: 10px;
+    background: #ffffff;
+    color: #0c3f57;
 
-    background: #fff;
+    font-family: inherit;
+    font-size: 12px;
+    white-space: nowrap;
 
     cursor: pointer;
+    transition:
+        background 0.2s ease,
+        color 0.2s ease,
+        border-color 0.2s ease;
+}
+
+.filter-button button:hover {
+    border-color: #0b6ea8;
+}
+
+.filter-button button.active {
+    background: #0c3f57;
+    color: #ffffff;
+    border-color: #0c3f57;
 }
 
 
