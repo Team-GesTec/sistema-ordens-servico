@@ -224,32 +224,6 @@ function Dashboard() {
         [funcionariosDepartamento, ordensDepartamento],
     );
 
-    const horasPorDepartamento = useMemo(
-        () =>
-            dados.departamentos.map((departamento) => ({
-                nome: departamento.nome,
-                horas: null as number | null,
-            })),
-        [dados.departamentos],
-    );
-
-    const horasPorProjeto = useMemo(
-        () =>
-            dados.projetos.map((projeto) => ({
-                nome: projeto.nome,
-                horas: null as number | null,
-            })),
-        [dados.projetos],
-    );
-
-    const projetosDoDepartamento = useMemo(
-        () =>
-            dados.projetos.filter((projeto) =>
-                projeto.departamentos.includes(departamentoId ?? -1),
-            ),
-        [dados.projetos, departamentoId],
-    );
-
     const totalHoras = null as number | null;
 
     if (carregando) {

@@ -6,7 +6,7 @@
 import type { funcionarios } from '../prisma/generated/client';
 import { tipo_perfil } from '../prisma/generated/enums';
 
-/** Perfis de acesso válidos (espelho do enum `tipo_perfil`: gestor, analista, tecnico). */
+/** Perfis de acesso válidos (espelho do enum `tipo_perfil`: gestor, tecnico). */
 export const PERFIS_FUNCIONARIO = Object.values(tipo_perfil);
 
 /** Um dos perfis de acesso. */

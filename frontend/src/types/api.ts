@@ -1,4 +1,4 @@
-export type PerfilFuncionario = "gestor" | "analista" | "tecnico";
+export type PerfilFuncionario = "gestor" | "tecnico" | "analista";
 
 export type StatusProjeto =
     | "em_planejamento"

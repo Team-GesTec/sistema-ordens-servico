@@ -70,9 +70,6 @@ export function useOrdens() {
     const [perfilGestor, setPerfilGestor] = useState(
         () => getStoredUser()?.tipo === "gestor",
     );
-    const [perfilAnalista, setPerfilAnalista] = useState(
-        () => getStoredUser()?.tipo === "analista",
-    );
     const [perfilTecnico, setPerfilTecnico] = useState(
         () => getStoredUser()?.tipo === "tecnico",
     );
@@ -84,7 +81,7 @@ export function useOrdens() {
 
     const [podeCriar, setPodeCriar] = useState(() => {
         const tipo = getStoredUser()?.tipo;
-        return tipo === "gestor" || tipo === "analista" || tipo === "tecnico";
+        return tipo === "gestor" || tipo === "tecnico";
     });
 
     const [mensagem, setMensagem] = useState<string | null>(null);
@@ -94,8 +91,8 @@ export function useOrdens() {
     const [baixandoRelatorioId, setBaixandoRelatorioId] = useState<number | null>(null);
 
     const podeGerenciar = perfilGestor;
-    const podeOperarDepartamento = podeGerenciar || perfilAnalista;
-    const podeDuplicarOrdem = podeGerenciar || perfilAnalista;
+    const podeOperarDepartamento = podeGerenciar;
+    const podeDuplicarOrdem = podeGerenciar;
     const funcionarioAtualAtivo = funcionariosAtivos.find(
         (funcionario) => funcionario.id === usuarioAtualId && funcionario.ativo,
     );
@@ -107,7 +104,7 @@ export function useOrdens() {
         funcionarioAtualAtivo &&
         funcionarioAtualAtivo.departamento_id === ordemSelecionada.departamento_id,
     );
-    const podeAtribuirResponsavel = podeGerenciar || perfilAnalista || podeTecnicoAssumirOrdemSelecionada;
+    const podeAtribuirResponsavel = podeGerenciar || podeTecnicoAssumirOrdemSelecionada;
 
     useEffect(() => {
         let ativo = true;
@@ -126,16 +123,14 @@ export function useOrdens() {
                         setUsuarioAtualId(usuario.id);
 
                         gestor = usuario.tipo === "gestor";
-                        setPerfilAnalista(usuario.tipo === "analista");
                         setPerfilTecnico(usuario.tipo === "tecnico");
                         podeCriarOS =
                             usuario.tipo === "gestor" ||
-                            usuario.tipo === "analista" ||
                             usuario.tipo === "tecnico";
+
                     } catch {
                         setUsuarioAtualId(null);
                         gestor = false;
-                        setPerfilAnalista(false);
                         setPerfilTecnico(false);
                         podeCriarOS = false;
                     }
@@ -273,7 +268,7 @@ export function useOrdens() {
 
     function duplicarOrdem(origem: OrdemServico) {
         if (!podeDuplicarOrdem || !podeCriar) {
-            setErro("Somente Gestor/Admin ou Analista/Líder pode duplicar O.S.; Técnicos não podem duplicá-las.");
+            setErro("Somente Gestor/Admin pode duplicar O.S.; Técnicos não podem duplicá-las.");
             return;
         }
         if (!ordemSelecionada || ordemSelecionada.id !== origem.id) {
@@ -293,7 +288,7 @@ export function useOrdens() {
 
     function iniciarEdicao(ordem: OrdemServico) {
         if (!podeOperarDepartamento) {
-            setErro("Apenas Gestor/Admin ou Analista/Líder do departamento podem editar ordens de serviço.");
+            setErro("Apenas Gestor/Admin pode editar ordens de serviço.");
             return;
         }
 
@@ -350,7 +345,7 @@ export function useOrdens() {
         acao: "inativar",
     ): void {
         if (!podeOperarDepartamento) {
-            setErro("Apenas Gestor/Admin ou Analista/Líder do departamento pode inativar ordens.");
+            setErro("Apenas Gestor/Admin pode inativar ordens.");
             return;
         }
 
@@ -509,8 +504,8 @@ export function useOrdens() {
             funcionarioDestino.id === usuarioAtualId &&
             funcionarioDestino.departamento_id === ordemSelecionada.departamento_id,
         );
-        if (!podeGerenciar && !perfilAnalista && !podeTecnicoAssumir) {
-            setErro("Somente Gestor/Admin, Analista/Líder do departamento ou Técnico elegível pode atribuir a O.S.");
+        if (!podeGerenciar && !podeTecnicoAssumir) {
+            setErro("Somente Gestor/Admin ou Técnico elegível pode atribuir a O.S.");
             return;
         }
 
@@ -539,8 +534,8 @@ export function useOrdens() {
     ): Promise<void> {
         const ehResponsavel = ordem.responsavel_id === usuarioAtualId;
 
-        if (!podeGerenciar && !perfilAnalista && !ehResponsavel) {
-            setErro("Apenas Gestor/Admin, Analista/Líder do departamento ou o Técnico responsável pode alterar o status.");
+        if (!podeGerenciar && !ehResponsavel) {
+            setErro("Apenas Gestor/Admin ou o Técnico responsável pode alterar o status.");
             return;
         }
         if (!ordem.ativo) {
@@ -634,7 +629,7 @@ export function useOrdens() {
         if (
             !ordem.ativo ||
             !usuarioAtualId ||
-            (!podeGerenciar && !perfilAnalista && ordem.responsavel_id !== usuarioAtualId) ||
+            (!podeGerenciar && ordem.responsavel_id !== usuarioAtualId) ||
             ordem.status === "bloqueado" ||
             ordem.status === "concluido" ||
             destino === ordem.status
@@ -657,7 +652,7 @@ export function useOrdens() {
         }
         if (destino === "bloqueado") {
             if (!podeOperarDepartamento) {
-                setErro("Somente Gestor/Admin ou Analista/Líder do departamento pode bloquear uma O.S.");
+                setErro("Somente Gestor/Admin pode bloquear uma O.S.");
                 return;
             }
             setAlterandoStatusId(ordem.id);
@@ -736,7 +731,7 @@ export function useOrdens() {
         if (!autorizado) {
             setErro(
                 ordemEmEdicao
-                    ? "Apenas Gestor/Admin ou Analista/Líder do departamento podem editar ordens de serviço."
+                    ? "Apenas Gestor/Admin pode editar ordens de serviço."
                     : "Seu perfil não tem permissão para cadastrar ordens de serviço.",
             );
             return;
@@ -919,7 +914,7 @@ export function useOrdens() {
             ordemSelecionada &&
             ordemSelecionada.ativo &&
             usuarioAtualId !== null &&
-            (podeGerenciar || perfilAnalista || ordemSelecionada.responsavel_id === usuarioAtualId) &&
+            (podeGerenciar || ordemSelecionada.responsavel_id === usuarioAtualId) &&
             ordemSelecionada.status !== "bloqueado" &&
             ordemSelecionada.status !== "concluido",
         ),
