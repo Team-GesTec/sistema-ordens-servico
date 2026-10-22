@@ -1,195 +1,183 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import "../styles/variaveis.css";
 import "../styles/global.css";
 import "../styles/layout.css";
 import "../styles/sidebar.css";
 import "../styles/darkmode.css";
+import "../styles/filters.css";
 import "../styles/forms.css";
-import type { SelectOption } from "../components/CustomSelect";
-import CustomSelect from "../components/CustomSelect";
+import "../styles/autocomplete.css";
+import "../styles/projetos.css";
+import ProjetoAtivoModal from "../components/projetos/ProjetoAtivoModal";
+import ProjetoCard from "../components/projetos/ProjetoCard";
+import ProjetoDetalhesModal from "../components/projetos/ProjetoDetalhesModal";
+import ProjetoFormModal from "../components/projetos/ProjetoFormModal";
+import ProjetosBuscaAutocomplete from "../components/projetos/ProjetosBuscaAutocomplete";
+import { useProjetos } from "../hooks/useProjetos";
+import type { StatusProjeto } from "../types/api";
+import Autocomplete, { type AutocompleteOption } from "../components/common/Autocomplete";
 import { ApiError } from "../services/api";
-import { clienteService } from "../services/cliente";
-import { departamentoService } from "../services/departamento";
 import { projetoService } from "../services/projeto";
-import type { Cliente, Departamento, Projeto, StatusProjeto } from "../types/api";
 
-const STATUS: SelectOption[] = [
-    { value: "em_planejamento", label: "Pendente" },
+const STATUS_OPTIONS: AutocompleteOption[] = [
+    { value: "todos", label: "Todos os status" },
+    { value: "em_planejamento", label: "Em planejamento" },
     { value: "em_andamento", label: "Em andamento" },
     { value: "pausado", label: "Pausado" },
     { value: "concluido", label: "Concluído" },
 ];
 
-interface ProjetoFormState {
-    clienteId: number | null;
-    dataPrazo: string;
-    status: StatusProjeto;
-}
-
-const INITIAL_FORM_STATE: ProjetoFormState = {
-    clienteId: null,
-    dataPrazo: "",
-    status: "pendente",
-};
-
 function Projetos() {
-    const [form, setForm] = useState<ProjetoFormState>(INITIAL_FORM_STATE);
-    const [departamentoAtual, setDepartamentoAtual] = useState<number | null>(null);
-    const [departamentosSelecionados, setDepartamentosSelecionados] = useState<number[]>([]);
-    const [clientes, setClientes] = useState<Cliente[]>([]);
-    const [departamentos, setDepartamentos] = useState<Departamento[]>([]);
-    const [projetos, setProjetos] = useState<Projeto[]>([]);
-    const [carregando, setCarregando] = useState(true);
-    const [salvando, setSalvando] = useState(false);
-    const [mensagem, setMensagem] = useState<string | null>(null);
-    const [erro, setErro] = useState<string | null>(null);
+    const projetos = useProjetos();
+    const [searchParams, setSearchParams] = useSearchParams();
+    const idVisualizar = searchParams.get("visualizar");
+    const idVisualizarProcessado = useRef<string | null>(null);
+    const [erroDetalheDireto, setErroDetalheDireto] = useState<string | null>(null);
+    const [baixandoRelatorioPDF, setBaixandoRelatorioPDF] = useState(false);
+    const [erroRelatorioPDF, setErroRelatorioPDF] = useState<string | null>(null);
+    const modalAberto = projetos.formularioAberto || Boolean(projetos.confirmacaoAtivo);
 
     useEffect(() => {
-        Promise.all([clienteService.listar(), departamentoService.listar(), projetoService.listar()])
-            .then(([clientesApi, departamentosApi, projetosApi]) => {
-                setClientes(clientesApi);
-                setDepartamentos(departamentosApi);
-                setProjetos(projetosApi);
-            })
-            .catch((error: unknown) => setErro(error instanceof ApiError ? error.message : "Não foi possível carregar os dados do projeto."))
-            .finally(() => setCarregando(false));
-    }, []);
-
-    const clienteOptions: SelectOption[] = clientes.map((cliente) => ({ value: cliente.id, label: `#${cliente.id} — ${cliente.nome}` }));
-    const departamentoOptions: SelectOption[] = departamentos.map((departamento) => ({ value: departamento.id, label: `#${departamento.id} — ${departamento.nome}` }));
-
-    function adicionarDepartamento(): void {
-        if (!departamentoAtual || departamentosSelecionados.includes(departamentoAtual)) {
-            setDepartamentoAtual(null);
+        if (!idVisualizar) {
+            idVisualizarProcessado.current = null;
             return;
         }
-        setDepartamentosSelecionados((prev) => [...prev, departamentoAtual]);
-        setDepartamentoAtual(null);
-    }
-
-    async function handleSubmit(event: FormEvent<HTMLFormElement>) {
-        event.preventDefault();
-        if (!form.clienteId || departamentosSelecionados.length === 0) {
-            setErro("Selecione um cliente e pelo menos um departamento.");
-            return;
+        if (projetos.carregando || idVisualizarProcessado.current === idVisualizar) return;
+        idVisualizarProcessado.current = idVisualizar;
+        const id = Number(idVisualizar);
+        if (Number.isSafeInteger(id) && id > 0) {
+            setErroDetalheDireto(null);
+            void projetoService.buscarPorId(id)
+                .then((detalhe) => projetos.setProjetoSelecionado(detalhe))
+                .catch((error: unknown) => setErroDetalheDireto(error instanceof ApiError ? error.message : "Não foi possível abrir os detalhes do projeto no escopo da sua conta."));
+        } else {
+            setErroDetalheDireto("Identificador do projeto inválido.");
         }
+        setSearchParams((atuais) => {
+            const proximos = new URLSearchParams(atuais);
+            proximos.delete("visualizar");
+            return proximos;
+        }, { replace: true });
+    }, [idVisualizar, projetos.carregando, projetos.setProjetoSelecionado, setSearchParams]);
 
-        setSalvando(true);
-        setErro(null);
-        setMensagem(null);
-
+    async function baixarRelatorioPDF(projetoId: number): Promise<void> {
+        setBaixandoRelatorioPDF(true);
+        setErroRelatorioPDF(null);
         try {
-            const criado = await projetoService.criar({
-                cliente_id: form.clienteId,
-                data_prazo: form.dataPrazo ? new Date(`${form.dataPrazo}T00:00:00`).toISOString() : null,
-                status: form.status,
-                departamentos: departamentosSelecionados,
-            });
-            setProjetos((prev) => [...prev, criado].sort((a, b) => a.id - b.id));
-            setForm(INITIAL_FORM_STATE);
-            setDepartamentosSelecionados([]);
-            setMensagem(`Projeto #${criado.id} cadastrado com sucesso.`);
+            await projetoService.baixarRelatorioPDF(projetoId);
         } catch (error) {
-            setErro(error instanceof ApiError ? error.message : "Não foi possível cadastrar o projeto.");
+            setErroRelatorioPDF(error instanceof ApiError ? error.message : "Não foi possível gerar o relatório do projeto.");
         } finally {
-            setSalvando(false);
+            setBaixandoRelatorioPDF(false);
         }
     }
 
     return (
         <div className="layout">
             <main className="main">
-                <div className="container">
-                    <h1 className="form-title">Cadastrar projeto</h1>
-                    {mensagem && <div className="form-feedback success">{mensagem}</div>}
-                    {erro && <div className="form-feedback error">{erro}</div>}
-
-                    <form className="form-card" onSubmit={handleSubmit}>
-                        <div className="form-grid">
-                            <div className="form-field">
-                                <label>Cliente</label>
-                                <CustomSelect
-                                    options={clienteOptions}
-                                    value={form.clienteId}
-                                    onChange={(value) => setForm((prev) => ({ ...prev, clienteId: Number(value) }))}
-                                    placeholder={carregando ? "Carregando..." : "Selecione o cliente"}
-                                />
-                            </div>
-
-                            <div className="form-field">
-                                <label>Status</label>
-                                <CustomSelect
-                                    options={STATUS}
-                                    value={form.status}
-                                    onChange={(value) => setForm((prev) => ({ ...prev, status: String(value) as StatusProjeto }))}
-                                    placeholder="Selecione o status"
-                                />
-                            </div>
-
-                            <div className="form-field">
-                                <label htmlFor="data-prazo">Data de prazo</label>
-                                <input
-                                    id="data-prazo"
-                                    type="date"
-                                    className="form-input"
-                                    value={form.dataPrazo}
-                                    onChange={(event) => setForm((prev) => ({ ...prev, dataPrazo: event.target.value }))}
-                                />
-                            </div>
-
-                            <div className="form-field">
-                                <label>Departamento</label>
-                                <div className="department-group">
-                                    <CustomSelect
-                                        options={departamentoOptions}
-                                        value={departamentoAtual}
-                                        onChange={(value) => setDepartamentoAtual(Number(value))}
-                                        placeholder="Selecione um departamento"
-                                    />
-                                    <button type="button" className="department-confirm" onClick={adicionarDepartamento} aria-label="Adicionar departamento">
-                                        <i className="fa-solid fa-plus"></i>
-                                    </button>
-                                </div>
-                                <div className="department-tags">
-                                    {departamentosSelecionados.map((id) => {
-                                        const departamento = departamentos.find((item) => item.id === id);
-                                        return (
-                                            <div className="department-tag" key={id}>
-                                                {departamento ? departamento.nome : `#${id}`}
-                                                <button type="button" onClick={() => setDepartamentosSelecionados((prev) => prev.filter((item) => item !== id))} aria-label={`Remover ${departamento?.nome ?? id}`}>
-                                                    <i className="fa-solid fa-xmark"></i>
-                                                </button>
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-                            </div>
+                <div className="container projetos-container">
+                    <header className="projetos-page-header">
+                        <div>
+                            <p className="projetos-eyebrow">GESTÃO DO SGOS</p>
+                            <h1>Projetos</h1>
+                            <p className="projetos-subtitle">Acompanhe o andamento, os relacionamentos e as ordens de serviço de cada projeto.</p>
                         </div>
-                        <div className="form-actions">
-                            <button type="submit" className="btn-primary" disabled={salvando || carregando}>
-                                {salvando ? "Salvando..." : "Salvar projeto"}
-                            </button>
-                            <button type="button" className="btn-secondary" onClick={() => { setForm(INITIAL_FORM_STATE); setDepartamentosSelecionados([]); setDepartamentoAtual(null); }} disabled={salvando}>
-                                Cancelar
-                            </button>
-                        </div>
-                    </form>
-
-                    <div className="form-card" style={{ marginTop: 20 }}>
-                        <strong>Projetos carregados da API</strong>
-                        {projetos.length === 0 ? (
-                            <p className="form-hint">Nenhum projeto retornado pelo backend.</p>
-                        ) : (
-                            projetos.map((projeto) => (
-                                <div key={projeto.id} className="form-hint">
-                                    #{projeto.id} — cliente #{projeto.cliente_id} — {projeto.status} — departamentos: {projeto.departamentos.join(", ")}
-                                </div>
-                            ))
+                        {projetos.podeGerenciar && !projetos.mostrarInativos && (
+                            <button type="button" className="projeto-btn-primary" onClick={projetos.abrirCadastro}>+ Novo projeto</button>
                         )}
+                    </header>
+
+                    {projetos.mensagem && !modalAberto && <div className="projetos-feedback projetos-feedback--success" role="status">{projetos.mensagem}</div>}
+                    {projetos.erro && !modalAberto && <div className="projetos-feedback projetos-feedback--error" role="alert">{projetos.erro}</div>}
+                    {erroDetalheDireto && <div className="projetos-feedback projetos-feedback--error" role="alert">{erroDetalheDireto}</div>}
+
+                    <section className="projetos-toolbar" aria-label="Pesquisar e filtrar projetos">
+                        <ProjetosBuscaAutocomplete
+                            projetos={projetos.projetos}
+                            value={projetos.busca}
+                            onChange={projetos.setBusca}
+                        />
+                        <div className="projetos-filter-wrap projetos-status-filter-wrap">
+                            <label htmlFor="projetos-status-filter">Status</label>
+                            <Autocomplete
+                                id="projetos-status-filter"
+                                options={STATUS_OPTIONS}
+                                value={projetos.filtroStatus}
+                                onChange={(value) => projetos.setFiltroStatus(value === null ? "todos" : value as "todos" | StatusProjeto)}
+                                placeholder="Todos os status"
+                                emptyMessage="Nenhum status encontrado."
+                            />
+                        </div>
+                        <button type="button" className="projeto-btn-secondary projetos-toggle-inativos" onClick={() => void projetos.alternarInativos()} aria-pressed={projetos.mostrarInativos}>
+                                {projetos.mostrarInativos ? "Ver projetos ativos" : "Consultar inativos"}
+                            </button>
+                    </section>
+
+                    <div className="projetos-list-header">
+                        <div>
+                            <h2>{projetos.mostrarInativos ? "Projetos inativos" : "Projetos ativos"}</h2>
+                            <p>{projetos.projetos.length} resultado(s)</p>
+                        </div>
+                        {projetos.carregando && <span className="projetos-loading" role="status">Carregando…</span>}
                     </div>
+
+                    {projetos.carregando ? (
+                        <div className="projetos-empty"><span className="projetos-loading-mark" aria-hidden="true" />Carregando projetos...</div>
+                    ) : projetos.projetos.length === 0 ? (
+                        <div className="projetos-empty">
+                            <strong>{projetos.mostrarInativos ? "Nenhum projeto inativo encontrado" : "Nenhum projeto encontrado"}</strong>
+                            <p>{projetos.busca || projetos.filtroStatus !== "todos" ? "Altere a pesquisa ou os filtros para ver outros resultados." : projetos.mostrarInativos ? "Não há registros inativos para consultar." : projetos.podeGerenciar ? "Cadastre um projeto para começar a acompanhar as ordens de serviço." : "Ainda não há projetos ativos disponíveis."}</p>
+                        </div>
+                    ) : (
+                        <div className="projetos-grid">
+                            {projetos.projetos.map((projeto) => (
+                                <ProjetoCard
+                                    key={projeto.id}
+                                    projeto={projeto}
+                                    podeGerenciar={projetos.podeGerenciar}
+                                    bloqueado={projetos.salvando || projetos.alterandoAtivoId !== null}
+                                    onAbrir={(selecionado) => void projetos.abrirDetalhes(selecionado)}
+                                    onEditar={projetos.iniciarEdicao}
+                                    onDuplicar={projetos.duplicarProjeto}
+                                    onAlterarAtivo={projetos.solicitarAlteracaoAtivo}
+                                />
+                            ))}
+                        </div>
+                    )}
                 </div>
             </main>
-            <aside className="details" />
+
+            <ProjetoFormModal
+                aberto={projetos.formularioAberto}
+                projeto={projetos.projetoEmEdicao}
+                modoDuplicacao={projetos.modoDuplicacao}
+                clientes={projetos.clientes}
+                departamentos={projetos.departamentos}
+                salvando={projetos.salvando}
+                erro={projetos.erro}
+                carregandoOpcoes={projetos.carregandoOpcoes}
+                onClose={projetos.fecharFormulario}
+                onSave={projetos.salvarProjeto}
+            />
+            <ProjetoDetalhesModal
+                projeto={projetos.projetoSelecionado}
+                podeGerenciar={projetos.podeGerenciar}
+                onClose={() => projetos.setProjetoSelecionado(null)}
+                onEditar={projetos.iniciarEdicao}
+                onAlterarAtivo={projetos.solicitarAlteracaoAtivo}
+                onBaixarPDF={(id) => void baixarRelatorioPDF(id)}
+                baixandoRelatorioPDF={baixandoRelatorioPDF}
+                erroRelatorioPDF={erroRelatorioPDF}
+            />
+            <ProjetoAtivoModal
+                projeto={projetos.confirmacaoAtivo?.projeto ?? null}
+                acao={projetos.confirmacaoAtivo?.acao ?? null}
+                processando={projetos.alterandoAtivoId !== null}
+                erro={projetos.confirmacaoAtivo ? projetos.erro : null}
+                onClose={projetos.fecharConfirmacaoAtivo}
+                onConfirmar={() => void projetos.confirmarAlteracaoAtivo()}
+            />
         </div>
     );
 }

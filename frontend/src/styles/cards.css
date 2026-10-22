@@ -11,14 +11,21 @@
 
     overflow-y: auto;
 
-    
-    overflow-wrap: anywhere;
-    word-break: break-word;
     padding-right: 8px;
 }
 
 .cards input[type="radio"] {
     display: none;
+}
+
+.card.selected {
+    box-shadow: 0 0 0 2px #007fc4;
+    border-color: #007fc4;
+}
+
+.card[role="button"]:focus-visible {
+    outline: 3px solid #007fc4;
+    outline-offset: 2px;
 }
 
 .card {

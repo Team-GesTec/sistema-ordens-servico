@@ -1,252 +1,255 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import "../styles/variaveis.css";
 import "../styles/global.css";
 import "../styles/layout.css";
 import "../styles/sidebar.css";
 import "../styles/darkmode.css";
 import "../styles/forms.css";
-import type { SelectOption } from "../components/CustomSelect";
-import CustomSelect from "../components/CustomSelect";
-import { ApiError } from "../services/api";
-import { getStoredUser } from "../services/auth"; // confirmar o nome real do arquivo do authService
-import { clienteService } from "../services/cliente";
-import { departamentoService } from "../services/departamento";
-import { funcionarioService } from "../services/funcionario";
-import { projetoService } from "../services/projeto";
-import { ordemServicoService } from "../services/ordemServico";
-import type { Cliente, Departamento, Funcionario, Projeto, TipoOrdemServico } from "../types/api";
+import "../styles/autocomplete.css";
+import "../styles/ordens.css";
+import "../styles/projetos.css";
 
-const TIPOS: SelectOption[] = [
-    { value: "instalacao", label: "Instalação" },
-    { value: "manutencao", label: "Manutenção" },
-];
-
-// TODO: confirmar com o schema (enum nivel_criticidade) se os values batem exatamente.
-const CRITICIDADES: SelectOption[] = [
-    { value: "baixo", label: "Baixo" },
-    { value: "medio", label: "Médio" },
-    { value: "alto", label: "Alto" },
-    { value: "muito_alto", label: "Muito alto" },
-    { value: "urgente", label: "Urgente" },
-];
+import OrdensToolbar from "../components/ordens/OrdensToolbar";
+import OrdemServicoAtivoModal from "../components/ordens/OrdemServicoAtivoModal";
+import OrdemServicoCard from "../components/ordens/OrdemServicoCard";
+import OrdemServicoDetalhesModal from "../components/ordens/OrdemServicoDetalhesModal";
+import OrdemServicoFormModal from "../components/ordens/OrdemServicoFormModal";
+import OrdemServicoKanban from "../components/ordens/OrdemServicoKanban";
+import OrdemServicoVisualizacoesSalvas, { type TipoVisualizacaoOrdens } from "../components/ordens/OrdemServicoVisualizacoesSalvas";
+import { useOrdens } from "../hooks/useOrdens";
 
 function Ordens() {
-    const [titulo, setTitulo] = useState("");
-    const [cliente, setCliente] = useState<number | null>(null);
-    const [departamento, setDepartamento] = useState<number | null>(null);
-    const [projeto, setProjeto] = useState<number | null>(null);
-    const [tipo, setTipo] = useState<TipoOrdemServico | null>(null);
-    const [criticidade, setCriticidade] = useState<string | null>(null);
-    const [descricao, setDescricao] = useState("");
-    const [clientes, setClientes] = useState<Cliente[]>([]);
-    const [departamentos, setDepartamentos] = useState<Departamento[]>([]);
-    const [projetos, setProjetos] = useState<Projeto[]>([]);
-    const [carregando, setCarregando] = useState(true);
-    const [salvando, setSalvando] = useState(false);
-    const [mensagem, setMensagem] = useState<string | null>(null);
-    const [erro, setErro] = useState<string | null>(null);
-
-    const [usuarioLogado] = useState<Funcionario | null>(() => getStoredUser());
-    const isGestor = usuarioLogado?.tipo === "gestor";
-    const isTecnico = usuarioLogado?.tipo === "tecnico";
-    const [funcionarios, setFuncionarios] = useState<Funcionario[]>([]);
-    const [tecnicoResponsavel, setTecnicoResponsavel] = useState<number | null>(null);
+    const ordens = useOrdens();
+    const [visualizacao, setVisualizacao] = useState<TipoVisualizacaoOrdens>("cartoes");
+    const [searchParams, setSearchParams] = useSearchParams();
+    const idVisualizar = searchParams.get("visualizar");
+    const idVisualizarProcessado = useRef<string | null>(null);
 
     useEffect(() => {
-        Promise.all([
-            clienteService.listar(),
-            departamentoService.listar(),
-            projetoService.listar(),
-        ])
-            .then(([clientesApi, departamentosApi, projetosApi]) => {
-                setClientes(clientesApi);
-                setDepartamentos(departamentosApi);
-                setProjetos(projetosApi);
-            })
-            .catch((error: unknown) => setErro(error instanceof ApiError ? error.message : "Não foi possível carregar os dados necessários."))
-            .finally(() => setCarregando(false));
-    }, []);
-
-    // Só o gestor precisa da lista de funcionários
-    useEffect(() => {
-        if (!isGestor) return;
-        funcionarioService
-            .listar()
-            .then(setFuncionarios)
-            .catch((error: unknown) => setErro(error instanceof ApiError ? error.message : "Não foi possível carregar os funcionários."));
-    }, [isGestor]);
-
-    const clienteOptions: SelectOption[] = clientes.map((item) => ({ value: item.id, label: `#${item.id} — ${item.nome}` }));
-    const departamentoOptions: SelectOption[] = departamentos.map((item) => ({ value: item.id, label: `#${item.id} — ${item.nome}` }));
-    const projetoOptions: SelectOption[] = projetos.map((item) => ({ value: item.id, label: `#${item.id} — cliente #${item.cliente_id}` }));
-    // Gestor vê todos os funcionários; técnico vê somente a si mesmo
-    const funcionarioOptions: SelectOption[] =
-        isTecnico && usuarioLogado
-            ? [{ value: usuarioLogado.id, label: `#${usuarioLogado.id} — ${usuarioLogado.nome}` }]
-            : funcionarios.map((item) => ({ value: item.id, label: `#${item.id} — ${item.nome}` }));
-
-    function limparFormulario() {
-        setTitulo("");
-        setCliente(null);
-        setDepartamento(null);
-        setProjeto(null);
-        setTipo(null);
-        setCriticidade(null);
-        setDescricao("");
-        setTecnicoResponsavel(null);
-    }
-
-    async function handleSubmit(event: FormEvent<HTMLFormElement>) {
-        event.preventDefault();
-
-        // Técnico sem seleção assume a própria OS
-        const responsavelId = tecnicoResponsavel ?? (isTecnico ? usuarioLogado?.id ?? null : null);
-
-        if (!titulo.trim() || !cliente || !departamento || !tipo || !descricao.trim() || !responsavelId) {
-            setErro("Informe título, tipo, descrição, cliente, departamento e técnico responsável.");
+        if (!idVisualizar) {
+            idVisualizarProcessado.current = null;
             return;
         }
+        if (ordens.carregando || idVisualizarProcessado.current === idVisualizar) return;
 
-        setSalvando(true);
-        setErro(null);
-        setMensagem(null);
-
-        try {
-            const criada = await ordemServicoService.criar({
-                titulo: titulo.trim(),
-                tipo,
-                descricao: descricao.trim(),
-                cliente_id: cliente,
-                departamento_id: departamento,
-                projeto_id: projeto,
-                anterior_id: null,
-                criticidade: criticidade,
-                responsavel_id: responsavelId,
-            });
-            setTitulo("");
-            setDescricao("");
-            setCriticidade(null);
-            setTecnicoResponsavel(null);
-            setMensagem(`Ordem de serviço #${criada.id} enviada com sucesso.`);
-        } catch (error) {
-            setErro(error instanceof ApiError ? error.message : "Não foi possível criar a ordem de serviço.");
-        } finally {
-            setSalvando(false);
+        idVisualizarProcessado.current = idVisualizar;
+        const id = Number(idVisualizar);
+        if (Number.isSafeInteger(id) && id > 0) {
+            void ordens.abrirDetalhesPorId(id);
         }
-    }
+
+        // Consome o parâmetro uma única vez sem criar uma nova entrada no histórico.
+        setSearchParams((atuais) => {
+            const proximos = new URLSearchParams(atuais);
+            proximos.delete("visualizar");
+            return proximos;
+        }, { replace: true });
+    }, [idVisualizar, ordens.carregando, ordens.abrirDetalhesPorId, setSearchParams]);
+
+    const fonteAtual = ordens.mostrarInativas ? ordens.ordensInativas : ordens.ordens;
+    const carregamentoAtual = ordens.carregando || (ordens.mostrarInativas && ordens.carregandoInativas);
 
     return (
         <div className="layout">
-            <main className="main">
-                <div className="container">
-                    <h1 className="form-title">Cadastrar ordem de serviço</h1>
-                    {mensagem && <div className="form-feedback success">{mensagem}</div>}
-                    {erro && <div className="form-feedback error">{erro}</div>}
-
-                    <form className="form-card" onSubmit={handleSubmit}>
-                        <div className="form-grid">
-                            <div className="form-field full-width">
-                                <label htmlFor="titulo-os">Título da OS</label>
-                                <input
-                                    id="titulo-os"
-                                    type="text"
-                                    className="form-input"
-                                    placeholder="Digite o título da ordem de serviço"
-                                    value={titulo}
-                                    onChange={(event) => setTitulo(event.target.value)}
-                                    maxLength={150}
-                                    aria-label="Título da ordem de serviço"
-                                    required
-                                />
-                            </div>
-
-                            <div className="form-field">
-                                <label>Tipo</label>
-                                <CustomSelect
-                                    options={TIPOS}
-                                    value={tipo}
-                                    onChange={(value) => setTipo(String(value) as TipoOrdemServico)}
-                                    placeholder="Selecione o tipo"
-                                />
-                            </div>
-
-                            <div className="form-field">
-                                <label>Cliente</label>
-                                <CustomSelect
-                                    options={clienteOptions}
-                                    value={cliente}
-                                    onChange={(value) => setCliente(Number(value))}
-                                    placeholder={carregando ? "Carregando..." : "Selecione o cliente"}
-                                />
-                            </div>
-
-                            <div className="form-field">
-                                <label>Departamento</label>
-                                <CustomSelect
-                                    options={departamentoOptions}
-                                    value={departamento}
-                                    onChange={(value) => setDepartamento(Number(value))}
-                                    placeholder={carregando ? "Carregando..." : "Selecione o departamento"}
-                                />
-                            </div>
-
-                            <div className="form-field">
-                                <label>Projeto</label>
-                                <CustomSelect
-                                    options={projetoOptions}
-                                    value={projeto}
-                                    onChange={(value) => setProjeto(Number(value))}
-                                    placeholder="Nenhum projeto / selecione"
-                                />
-                            </div>
-
-                            <div className="form-field">
-                                <label>Criticidade</label>
-                                <CustomSelect
-                                    options={CRITICIDADES}
-                                    value={criticidade}
-                                    onChange={(value) => setCriticidade(String(value))}
-                                    placeholder="Selecione a criticidade"
-                                />
-                            </div>
-
-                            {(isGestor || isTecnico) && (
-                                <div className="form-field">
-                                    <label>Técnico responsável</label>
-                                    <CustomSelect
-                                        options={funcionarioOptions}
-                                        value={tecnicoResponsavel}
-                                        onChange={(value) => setTecnicoResponsavel(Number(value))}
-                                        placeholder="Selecione o funcionário"
-                                    />
-                                </div>
-                            )}
-
-                            <div className="form-field full-width">
-                                <label htmlFor="descricao">Descrição</label>
-                                <textarea
-                                    id="descricao"
-                                    className="form-input form-textarea"
-                                    placeholder="Descreva a solicitação"
-                                    value={descricao}
-                                    onChange={(event) => setDescricao(event.target.value)}
-                                    maxLength={1000}
-                                    required
-                                />
-                            </div>
+            <main className="main ordens-main">
+                <div className="container projetos-container ordens-container">
+                    <header className="projetos-page-header">
+                        <div>
+                            <p className="projetos-eyebrow">GESTÃO DO SGOS</p>
+                            <h1>Ordens de Serviço</h1>
+                            <p className="projetos-subtitle">Acompanhe as ordens, prioridades, responsáveis e estados de atendimento.</p>
                         </div>
-                        <div className="form-actions">
-                            <button type="submit" className="btn-primary" disabled={salvando || carregando}>
-                                {salvando ? "Enviando..." : "Enviar ordem de serviço"}
+                        {ordens.podeCriar && (
+                            <button type="button" className="projeto-btn-primary" onClick={ordens.abrirCadastro}>
+                                + Nova ordem de serviço
                             </button>
-                            <button type="button" className="btn-secondary" onClick={limparFormulario} disabled={salvando}>
-                                Cancelar
-                            </button>
+                        )}
+                    </header>
+
+                    {ordens.mensagem && (
+                        <div className="projetos-feedback projetos-feedback--success" role="status">
+                            {ordens.mensagem}
                         </div>
-                    </form>
+                    )}
+                    {ordens.erro && !ordens.formularioAberto && !ordens.detalhesAbertos && (
+                        <div className="projetos-feedback projetos-feedback--error" role="alert">
+                            {ordens.erro}
+                        </div>
+                    )}
+
+                    <OrdensToolbar
+                        busca={ordens.busca}
+                        onBuscaChange={ordens.setBusca}
+                        filtroStatus={ordens.filtroStatus}
+                        onFiltroStatusChange={ordens.setFiltroStatus}
+                        ordens={fonteAtual}
+                        funcionarios={ordens.funcionariosConhecidos}
+                        filtroResponsavelId={ordens.filtroResponsavelId}
+                        onFiltroResponsavelChange={ordens.setFiltroResponsavelId}
+                        onLimparFiltros={() => {
+                            ordens.setBusca("");
+                            ordens.setFiltroStatus("todos");
+                            ordens.setFiltroResponsavelId("todos");
+                        }}
+                        temFiltrosAplicados={Boolean(
+                            ordens.busca.trim() ||
+                            ordens.filtroStatus !== "todos" ||
+                            ordens.filtroResponsavelId !== "todos"
+                        )}
+                        mostrarInativas={ordens.mostrarInativas}
+                        carregandoInativas={ordens.carregandoInativas}
+                        onAlternarInativas={() => {
+                            if (ordens.mostrarInativas) {
+                                ordens.setMostrarInativas(false);
+                            } else {
+                                ordens.setMostrarInativas(true);
+                                void ordens.carregarOrdensInativas();
+                            }
+                        }}
+                        onExportarCSV={() => void ordens.exportarCSV()}
+                        exportandoCSV={ordens.exportandoCsv}
+                        onExportarXLSX={() => void ordens.exportarXLSX()}
+                        exportandoXLSX={ordens.exportandoXlsx}
+                        visualizacoesSalvas={
+                            <OrdemServicoVisualizacoesSalvas
+                                usuarioId={ordens.usuarioAtualId}
+                                busca={ordens.busca}
+                                status={ordens.filtroStatus}
+                                responsavelId={ordens.filtroResponsavelId}
+                                visualizacao={visualizacao}
+                                        onAplicar={(salva) => {
+                                    ordens.setBusca(salva.busca);
+                                    ordens.setFiltroStatus(salva.status);
+                                    ordens.setFiltroResponsavelId(salva.responsavelId);
+                                    setVisualizacao(salva.visualizacao);
+                                    ordens.limparErro();
+                                }}
+                            />
+                        }
+                    />
+
+                    <div className="projetos-list-header ordens-list-header">
+                        <div>
+                            <h2>{ordens.mostrarInativas ? "Ordens de serviço inativas" : "Ordens de serviço ativas"}</h2>
+                            <p>{ordens.ordensFiltradas.length} resultado(s)</p>
+                        </div>
+                        <div className="ordens-list-header-actions">
+                            <div className="ordens-view-switch" role="group" aria-label="Visualização das ordens de serviço">
+                                <button type="button" className={visualizacao === "cartoes" ? "active" : ""} aria-pressed={visualizacao === "cartoes"} onClick={() => setVisualizacao("cartoes")}>Cartões</button>
+                                <button type="button" className={visualizacao === "kanban" ? "active" : ""} aria-pressed={visualizacao === "kanban"} onClick={() => setVisualizacao("kanban")}>Kanban</button>
+                            </div>
+                            {carregamentoAtual && <span className="projetos-loading" role="status">Carregando…</span>}
+                        </div>
+                    </div>
+
+                    {carregamentoAtual ? (
+                        <div className="projetos-empty" role="status">
+                            <span className="projetos-loading-mark" aria-hidden="true" />
+                            {ordens.mostrarInativas ? "Carregando ordens inativas..." : "Carregando ordens de serviço..."}
+                        </div>
+                    ) : ordens.ordensFiltradas.length === 0 ? (
+                        <div className="projetos-empty">
+                            <strong>{fonteAtual.length === 0
+                                ? ordens.mostrarInativas ? "Nenhuma O.S. inativa cadastrada" : "Nenhuma O.S. cadastrada"
+                                : "Nenhuma ordem corresponde à busca e aos filtros selecionados."}</strong>
+                            <p>{fonteAtual.length === 0
+                                ? ordens.mostrarInativas ? "Não há registros inativos para exibir." : "Cadastre uma ordem de serviço para começar."
+                                : "Altere a pesquisa ou os filtros para ver outros resultados."}</p>
+                        </div>
+                    ) : visualizacao === "kanban" ? (
+                        <OrdemServicoKanban
+                            ordens={ordens.ordensFiltradas}
+                            clientes={ordens.clientes}
+                            departamentos={ordens.departamentos}
+                            funcionarios={ordens.funcionariosConhecidos}
+                            podeEditar={ordens.podeOperarDepartamento}
+                            bloqueado={ordens.salvando || ordens.alterandoStatusId !== null}
+                            podeMoverParaStatus={ordens.podeMoverOrdemParaStatus}
+                            onAbrir={(selecionada) => void ordens.abrirDetalhes(selecionada)}
+                            onEditar={ordens.iniciarEdicao}
+                            onAlterarAtivo={ordens.solicitarAlteracaoAtivo}
+                            onMoverStatus={ordens.moverOrdemKanban}
+                        />
+                    ) : (
+                        <div className="projetos-grid ordens-grid">
+                            {ordens.ordensFiltradas.map((ordem) => (
+                                <OrdemServicoCard
+                                    key={ordem.id}
+                                    ordem={ordem}
+                                    onAlterarAtivo={ordens.solicitarAlteracaoAtivo}
+                                    clientes={ordens.clientes}
+                                    departamentos={ordens.departamentos}
+                                    funcionarios={ordens.funcionariosConhecidos}
+                                    podeEditar={ordens.podeOperarDepartamento}
+                                    bloqueado={ordens.salvando || ordens.alterandoStatusId === ordem.id}
+                                    onAbrir={(selecionada) => void ordens.abrirDetalhes(selecionada)}
+                                    onEditar={ordens.iniciarEdicao}
+                                />
+                            ))}
+                        </div>
+                    )}
                 </div>
             </main>
-            <aside className="details" />
+
+            <OrdemServicoDetalhesModal
+                aberto={ordens.detalhesAbertos}
+                ordem={ordens.ordemSelecionada}
+                carregando={ordens.carregandoDetalhes}
+                erro={ordens.detalhesAbertos ? ordens.erro : null}
+                podeEditar={ordens.podeOperarDepartamento}
+                podeDuplicar={ordens.podeDuplicarOrdem}
+                onDuplicar={ordens.duplicarOrdem}
+                clientes={ordens.clientes}
+                departamentos={ordens.departamentos}
+                funcionarios={ordens.funcionariosConhecidos}
+                funcionariosElegiveis={ordens.podeOperarDepartamento
+                    ? ordens.funcionariosAtivos
+                    : ordens.funcionariosAtivos.filter((funcionario) =>
+                        funcionario.id === ordens.usuarioAtualId &&
+                        funcionario.departamento_id === ordens.ordemSelecionada?.departamento_id
+                    )}
+                atribuindoResponsavel={ordens.atribuindoResponsavel}
+                podeReatribuirResponsavel={ordens.podeAtribuirResponsavel}
+                onAtribuirResponsavel={(funcionarioId) => void ordens.atribuirResponsavelOrdem(funcionarioId)}
+                onFechar={ordens.fecharDetalhes}
+                onEditar={ordens.iniciarEdicao}
+                podeAlterarStatus={ordens.podeAlterarStatus}
+                alterandoStatusId={ordens.alterandoStatusId}
+                onAlterarStatus={ordens.alterarStatusOrdem}
+                podeSalvarParecerTecnico={ordens.podeSalvarParecerTecnico}
+                salvandoParecerTecnicoId={ordens.salvandoParecerTecnicoId}
+                onSalvarParecerTecnico={ordens.salvarParecerTecnicoOrdem}
+                onBaixarPDF={(id) => void ordens.baixarRelatorioPDF(id)}
+                baixandoRelatorioId={ordens.baixandoRelatorioId}
+                statusSugerido={ordens.statusSolicitadoDetalhes}
+            />
+
+            <OrdemServicoAtivoModal
+                ordem={ordens.confirmacaoAtivo?.ordem ?? null}
+                acao={ordens.confirmacaoAtivo?.acao ?? null}
+                processando={ordens.inativandoId !== null}
+                erro={ordens.confirmacaoAtivo ? ordens.erro : null}
+                onFechar={ordens.fecharConfirmacaoAtivo}
+                onConfirmar={ordens.confirmarAlteracaoAtivo}
+            />
+
+            <OrdemServicoFormModal
+                aberto={ordens.formularioAberto}
+                ordem={ordens.ordemEmEdicao}
+                ordemParaDuplicar={ordens.ordemParaDuplicar}
+                clientes={ordens.clientes}
+                departamentos={ordens.departamentos}
+                projetos={ordens.projetos}
+                salvando={ordens.salvando}
+                erro={ordens.formularioAberto ? ordens.erro : null}
+                carregandoOpcoes={ordens.carregando}
+                podeCadastrarAntiga={ordens.podeGerenciar}
+                podeConfigurarPrazoInstalacao={ordens.podeOperarDepartamento}
+                onClose={ordens.fecharFormulario}
+                onSave={ordens.salvarOrdem}
+                onClearError={ordens.limparErro}
+            />
         </div>
     );
 }

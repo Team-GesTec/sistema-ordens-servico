@@ -1,171 +1,157 @@
-import { useEffect, useState, type FormEvent } from "react";
 import "../styles/variaveis.css";
 import "../styles/global.css";
 import "../styles/layout.css";
 import "../styles/sidebar.css";
 import "../styles/filters.css";
 import "../styles/cards.css";
+import "../styles/details.css";
 import "../styles/darkmode.css";
 import "../styles/forms.css";
-import type { SelectOption } from "../components/CustomSelect";
-import CustomSelect from "../components/CustomSelect";
-import { ApiError } from "../services/api";
-import { clienteService } from "../services/cliente";
-import type { Cliente } from "../types/api";
+import "../styles/projetos.css";
+import "../styles/clientes.css";
 
-const CATEGORIAS: SelectOption[] = [
-    { value: "Pessoa Física", label: "Pessoa Física" },
-    { value: "Pessoa Jurídica", label: "Pessoa Jurídica" },
-    { value: "Governo", label: "Governo" },
-];
-
-interface ClienteFormState {
-    nome: string;
-    categoria: string | null;
-    razaoSocial: string;
-    ramoAtuacao: string;
-}
-
-const INITIAL_FORM_STATE: ClienteFormState = {
-    nome: "",
-    categoria: null,
-    razaoSocial: "",
-    ramoAtuacao: "",
-};
+import ClienteCard from "../components/clientes/ClienteCard";
+import ClienteFormModal from "../components/clientes/ClienteFormModal";
+import ClienteStatusModal from "../components/clientes/ClienteStatusModal";
+import ClientesToolbar from "../components/clientes/ClientesToolbar";
+import { useClientes } from "../hooks/useClientes";
+import { Link, useSearchParams } from "react-router-dom";
 
 function Clientes() {
-    const [form, setForm] = useState<ClienteFormState>(INITIAL_FORM_STATE);
-    const [clientes, setClientes] = useState<Cliente[]>([]);
-    const [carregando, setCarregando] = useState(true);
-    const [salvando, setSalvando] = useState(false);
-    const [mensagem, setMensagem] = useState<string | null>(null);
-    const [erro, setErro] = useState<string | null>(null);
+    const clientes = useClientes();
+    const [searchParams] = useSearchParams();
+    const clienteParam = searchParams.get("visualizar");
+    const clienteVisualizadoId = Number(clienteParam);
 
-    useEffect(() => {
-        clienteService.listar()
-            .then(setClientes)
-            .catch((error: unknown) => setErro(error instanceof ApiError ? error.message : "Não foi possível carregar os clientes."))
-            .finally(() => setCarregando(false));
-    }, []);
+    const modoVisualizacao =
+        clienteParam !== null &&
+        Number.isInteger(clienteVisualizadoId) &&
+        clienteVisualizadoId > 0;
 
-    function updateField<K extends keyof ClienteFormState>(field: K, value: ClienteFormState[K]) {
-        setForm((prev) => ({ ...prev, [field]: value }));
-        setMensagem(null);
-        setErro(null);
-    }
+    const clientesExibidos = modoVisualizacao
+        ? clientes.clientes.filter((cliente) => cliente.id === clienteVisualizadoId)
+        : clientes.clientesFiltrados;
+    const podeGerenciarTela = !modoVisualizacao && clientes.podeGerenciar;
+    const modalStatusAberto = Boolean(clientes.clienteConfirmacao && clientes.acaoConfirmacao);
 
-    async function handleSubmit(event: FormEvent<HTMLFormElement>) {
-        event.preventDefault();
-        if (!form.categoria) {
-            setErro("Selecione uma categoria.");
-            return;
-        }
-
-        setSalvando(true);
-        setMensagem(null);
-        setErro(null);
-
-        try {
-            const criado = await clienteService.criar({
-                nome: form.nome.trim(),
-                categoria: form.categoria,
-                razao_social: form.razaoSocial.trim() || null,
-                ramo_atuacao: form.ramoAtuacao.trim() || null,
-                locais_operacionais: [],
-            });
-            setClientes((prev) => [...prev, criado].sort((a, b) => a.id - b.id));
-            setForm(INITIAL_FORM_STATE);
-            setMensagem(`Cliente "${criado.nome}" cadastrado com sucesso.`);
-        } catch (error) {
-            setErro(error instanceof ApiError ? error.message : "Não foi possível cadastrar o cliente.");
-        } finally {
-            setSalvando(false);
-        }
-    }
+    const tituloLista = modoVisualizacao
+        ? "Cliente selecionado"
+        : clientes.filtroSituacao === "ativos"
+          ? "Clientes ativos"
+          : clientes.filtroSituacao === "inativos"
+            ? "Clientes inativos"
+            : "Todos os clientes";
 
     return (
         <div className="layout">
             <main className="main">
-                <div className="container">
-                    <h1 className="form-title">Cadastrar cliente</h1>
-                    {mensagem && <div className="form-feedback success">{mensagem}</div>}
-                    {erro && <div className="form-feedback error">{erro}</div>}
-
-                    <form className="form-card" onSubmit={handleSubmit}>
-                        <div className="form-field">
-                            <label htmlFor="nome">Nome</label>
-                            <input
-                                id="nome"
-                                type="text"
-                                className="form-input"
-                                placeholder="Nome do cliente"
-                                value={form.nome}
-                                onChange={(event) => updateField("nome", event.target.value)}
-                                required
-                            />
+                <div className="container projetos-container clientes-container">
+                    <header className="projetos-page-header">
+                        <div>
+                            <p className="projetos-eyebrow">GESTÃO DO SGOS</p>
+                            <h1>{modoVisualizacao ? "Visualização do cliente" : "Clientes"}</h1>
+                            <p className="projetos-subtitle">
+                                {modoVisualizacao
+                                    ? "Consulta dos dados do cliente relacionado à ordem de serviço."
+                                    : "Gerencie os cadastros de clientes e acompanhe sua situação no sistema."}
+                            </p>
                         </div>
-
-                        <div className="form-field">
-                            <label>Categoria</label>
-                            <CustomSelect
-                                options={CATEGORIAS}
-                                value={form.categoria}
-                                onChange={(value) => updateField("categoria", String(value))}
-                                placeholder="Selecione uma categoria"
-                            />
-                        </div>
-
-                        <div className="form-field">
-                            <label htmlFor="razaoSocial">Razão social</label>
-                            <input
-                                id="razaoSocial"
-                                type="text"
-                                className="form-input"
-                                placeholder="Digite a razão social"
-                                value={form.razaoSocial}
-                                onChange={(event) => updateField("razaoSocial", event.target.value)}
-                            />
-                        </div>
-
-                        <div className="form-field">
-                            <label htmlFor="ramoAtuacao">Ramo de atuação</label>
-                            <input
-                                id="ramoAtuacao"
-                                type="text"
-                                className="form-input"
-                                placeholder="Digite o ramo"
-                                value={form.ramoAtuacao}
-                                onChange={(event) => updateField("ramoAtuacao", event.target.value)}
-                            />
-                        </div>
-
-                        <div className="form-actions">
-                            <button type="submit" className="btn-primary" disabled={salvando || carregando}>
-                                {salvando ? "Salvando..." : "Salvar cliente"}
+                        {modoVisualizacao ? (
+                            <Link to="/ordens" className="projeto-btn-secondary">Voltar às ordens</Link>
+                        ) : podeGerenciarTela ? (
+                            <button type="button" className="projeto-btn-primary" onClick={clientes.abrirCadastro}>
+                                + Novo cliente
                             </button>
-                            <button type="button" className="btn-secondary" onClick={() => setForm(INITIAL_FORM_STATE)} disabled={salvando}>
-                                Cancelar
-                            </button>
-                        </div>
-                    </form>
+                        ) : null}
+                    </header>
 
-                    <div className="form-card" style={{ marginTop: 20 }}>
-                        <strong>Clientes carregados da API</strong>
-                        {carregando ? (
-                            <p className="form-hint">Carregando...</p>
-                        ) : clientes.length === 0 ? (
-                            <p className="form-hint">Nenhum cliente retornado pelo backend.</p>
-                        ) : (
-                            clientes.map((cliente) => (
-                                <div key={cliente.id} className="form-hint">
-                                    #{cliente.id} — {cliente.nome} — {cliente.categoria}
-                                </div>
-                            ))
-                        )}
+                    {clientes.mensagem && (
+                        <div className="projetos-feedback projetos-feedback--success" role="status">
+                            {clientes.mensagem}
+                        </div>
+                    )}
+
+                    {clientes.erro && !clientes.modalAberto && !modalStatusAberto && (
+                        <div className="projetos-feedback projetos-feedback--error" role="alert">
+                            {clientes.erro}
+                        </div>
+                    )}
+
+                    {!modoVisualizacao && (
+                        <ClientesToolbar
+                            busca={clientes.busca}
+                            onBuscaChange={clientes.setBusca}
+                            filtroSituacao={clientes.filtroSituacao}
+                            onFiltroChange={clientes.setFiltroSituacao}
+                            clientes={clientes.clientesPorSituacao}
+                        />
+                    )}
+
+                    <div className="projetos-list-header">
+                        <div>
+                            <h2>{tituloLista}</h2>
+                            <p>{clientesExibidos.length} resultado(s)</p>
+                        </div>
+                        {clientes.carregando && <span className="projetos-loading" role="status">Carregando…</span>}
                     </div>
+
+                    {clientes.carregando ? (
+                        <div className="projetos-empty" role="status">
+                            <span className="projetos-loading-mark" aria-hidden="true" />
+                            Carregando clientes...
+                        </div>
+                    ) : clientesExibidos.length === 0 ? (
+                        <div className="projetos-empty">
+                            <strong>{modoVisualizacao ? `Cliente #${clienteVisualizadoId} não encontrado` : "Nenhum cliente encontrado"}</strong>
+                            <p>
+                                {modoVisualizacao
+                                    ? "Verifique se o cliente ainda está disponível para consulta."
+                                    : clientes.busca.trim()
+                                      ? "Altere a pesquisa ou os filtros para ver outros resultados."
+                                      : clientes.filtroSituacao === "ativos"
+                                        ? "Não há clientes ativos para exibir."
+                                        : clientes.filtroSituacao === "inativos"
+                                          ? "Não há clientes inativos para exibir."
+                                          : "Cadastre um cliente para começar a utilizar o sistema."}
+                            </p>
+                        </div>
+                    ) : (
+                        <div className="projetos-grid clientes-grid">
+                            {clientesExibidos.map((cliente) => (
+                                <ClienteCard
+                                    key={cliente.id}
+                                    cliente={cliente}
+                                    podeGerenciar={podeGerenciarTela}
+                                    bloqueado={clientes.salvando || clientes.inativandoId !== null}
+                                    onEditar={clientes.iniciarEdicao}
+                                    onDuplicar={clientes.duplicarCliente}
+                                    onAlterarStatus={clientes.solicitarAlteracaoStatus}
+                                />
+                            ))}
+                        </div>
+                    )}
                 </div>
             </main>
-            <aside className="details" />
+
+            <ClienteFormModal
+                aberto={clientes.modalAberto}
+                cliente={clientes.clienteEmEdicao}
+                modoDuplicacao={clientes.modoDuplicacao}
+                salvando={clientes.salvando}
+                erro={clientes.erro}
+                onClose={clientes.fecharModal}
+                onSave={clientes.salvarCliente}
+                onClearError={clientes.limparErro}
+            />
+
+            <ClienteStatusModal
+                cliente={clientes.clienteConfirmacao}
+                acao={clientes.acaoConfirmacao}
+                processando={clientes.inativandoId !== null}
+                erro={clientes.erro}
+                onClose={clientes.fecharConfirmacao}
+                onConfirm={clientes.confirmarAlteracaoStatus}
+            />
         </div>
     );
 }

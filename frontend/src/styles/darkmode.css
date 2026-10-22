@@ -67,8 +67,17 @@
     color: #9eb0bd;
 }
 
-.dark-mode button {
-    background: #393739;
+.dark-mode input,
+.dark-mode textarea,
+.dark-mode select {
+    background-color: #202f42;
+    color: #f8fafc;
+    border-color: #526579;
+}
+
+.dark-mode input::placeholder,
+.dark-mode textarea::placeholder {
+    color: #bdc9d6;
 }
 
 /* =========================
@@ -144,4 +153,154 @@
             color-mix(in srgb, var(--azul-escuro) 60%, var(--azul-claro)) 0%,
             color-mix(in srgb, var(--azul-escuro) 85%, black) 78%);
     border-left: 1px solid color-mix(in srgb, var(--azul-claro) 30%, transparent);
+}
+
+/* MODAIS DE ORDENS NO MODO ESCURO */
+.dark-mode .ordem-modal {
+    background: #111f31;
+    color: #f8fafc;
+    border-color: #40566e;
+}
+
+.dark-mode .ordem-modal-header,
+.dark-mode .ordem-modal-actions {
+    background: #182b40;
+    border-color: #40566e;
+}
+
+.dark-mode .ordem-modal-header h2,
+.dark-mode .ordem-detalhe strong,
+.dark-mode .ordem-detalhes-descricao h3,
+.dark-mode .ordem-detalhes-descricao p {
+    color: #f1f5f9;
+}
+
+.dark-mode .ordem-detalhe {
+    background-color: #1b3046;
+    border-color: #40566e;
+}
+
+.dark-mode .ordem-detalhe span {
+    color: #c2d1df;
+}
+
+.dark-mode .ordem-detalhes-descricao {
+    background-color: #1b3046;
+    border-color: #40566e;
+}
+
+.dark-mode .ordem-modal-close {
+    background: #30465e;
+    color: #ffffff;
+}
+
+.dark-mode .ordem-modal-close:hover {
+    background: #405b77;
+}
+
+.dark-mode .ordem-modal .ordens-btn-secondary {
+    background: #30465e;
+    color: #ffffff;
+    border: 1px solid #526b85;
+}
+
+.dark-mode .ordem-modal .ordens-btn-secondary:hover {
+    background: #405b77;
+}
+
+/* =========================
+   FORMULÁRIO DE O.S. NO MODO ESCURO (inclui AJ-06)
+   Seletores com .ordem-modal para vencer as regras de ordens.css,
+   que é importado depois deste arquivo.
+========================= */
+
+.dark-mode .ordem-modal .ordem-form,
+.dark-mode .ordem-modal .ordem-form-field label {
+    color: #e2e8f0;
+}
+
+.dark-mode .ordem-modal .ordem-form-field > input,
+.dark-mode .ordem-modal .ordem-form-field > textarea,
+.dark-mode .ordem-modal .autocomplete-control input {
+    background-color: #202f42;
+    color: #f8fafc;
+    border-color: #526579;
+}
+
+.dark-mode .ordem-modal .ordem-form-field > input:focus,
+.dark-mode .ordem-modal .ordem-form-field > textarea:focus,
+.dark-mode .ordem-modal .autocomplete-control input:focus {
+    border-color: #7cb8f0;
+    box-shadow: 0 0 0 3px rgba(124, 184, 240, 0.2);
+}
+
+.dark-mode .ordem-modal .autocomplete-control input:disabled {
+    background-color: #2a3a4d;
+    color: #c2d1df;
+}
+
+/* Ícone do calendário/relógio do datetime-local legível no fundo escuro */
+.dark-mode .ordem-modal input[type="datetime-local"] {
+    color-scheme: dark;
+}
+
+.dark-mode .ordem-modal .autocomplete-clear {
+    color: #c2d1df;
+}
+
+.dark-mode .ordem-modal .autocomplete-clear:hover {
+    background: #30465e;
+    color: #ffffff;
+}
+
+.dark-mode .ordem-modal .autocomplete-options {
+    background: #182b40;
+    border-color: #40566e;
+}
+
+.dark-mode .ordem-modal .autocomplete-option:hover,
+.dark-mode .ordem-modal .autocomplete-option:focus-visible,
+.dark-mode .ordem-modal .autocomplete-option.selected {
+    background: #26405c;
+}
+
+.dark-mode .ordem-modal .autocomplete-option-label {
+    color: #f1f5f9;
+}
+
+.dark-mode .ordem-modal .autocomplete-option-description,
+.dark-mode .ordem-modal .autocomplete-empty {
+    color: #c2d1df;
+}
+
+/* Bloco "O.S. antiga / existente" (AJ-06) */
+.dark-mode .ordem-modal .ordem-form-antiga {
+    background: #1b3046;
+    border-color: #40566e;
+}
+
+.dark-mode .ordem-modal .ordem-form-antiga-legenda,
+.dark-mode .ordem-modal .ordem-form-check {
+    color: #f1f5f9;
+}
+
+.dark-mode .ordem-modal .ordem-form-check input {
+    accent-color: #7cb8f0;
+}
+
+/* Mensagens dentro do modal */
+.dark-mode .ordem-modal .ordens-feedback {
+    background: #1d3a55;
+    color: #e0f0fb;
+}
+
+.dark-mode .ordem-modal .ordens-feedback--error {
+    background: #4a1f24;
+    color: #ffd7d7;
+}
+
+.dark-mode .ordem-modal .ordens-feedback--aviso {
+    border-color: #c9962a;
+    background: #3d3010;
+    color: #ffe9a8;
 }

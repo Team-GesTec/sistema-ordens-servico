@@ -1,0 +1,943 @@
+import { useEffect, useMemo, useState } from "react";
+import { authService, getStoredUser } from "../services/auth";
+import { ApiError } from "../services/api";
+import { clienteService } from "../services/cliente";
+import { departamentoService } from "../services/departamento";
+import { projetoService } from "../services/projeto";
+import { ordemServicoService } from "../services/ordemServico";
+import { funcionarioService } from "../services/funcionario";
+import type {
+    Cliente,
+    Departamento,
+    OrdemServico,
+    OrdemServicoInput,
+    Funcionario,
+    Projeto,
+    StatusOrdemServico,
+} from "../types/api";
+import {
+    correspondeBuscaOrdem,
+    type FiltroResponsavelOrdem,
+    type FiltroStatusOrdem,
+} from "../utils/ordemServicoUtils";
+
+function mensagemErro(error: unknown, fallback: string): string {
+    return error instanceof ApiError ? error.message : fallback;
+}
+
+export function useOrdens() {
+    const [ordens, setOrdens] = useState<OrdemServico[]>([]);
+    const [alterandoStatusId, setAlterandoStatusId] = useState<number | null>(null);
+    const [ordensInativas, setOrdensInativas] = useState<OrdemServico[]>([]);
+    const [carregandoInativas, setCarregandoInativas] = useState(false);
+    const [mostrarInativas, setMostrarInativas] = useState(false);
+
+    const [confirmacaoAtivo, setConfirmacaoAtivo] = useState<{
+        ordem: OrdemServico;
+        acao: "inativar";
+    } | null>(null);
+
+    const [inativandoId, setInativandoId] = useState<number | null>(null);
+    const [clientes, setClientes] = useState<Cliente[]>([]);
+    const [departamentos, setDepartamentos] = useState<Departamento[]>([]);
+    const [projetos, setProjetos] = useState<Projeto[]>([]);
+    const [funcionariosAtivos, setFuncionariosAtivos] = useState<Funcionario[]>([]);
+    const [funcionariosConhecidos, setFuncionariosConhecidos] = useState<Funcionario[]>([]);
+    const [atribuindoResponsavel, setAtribuindoResponsavel] = useState(false);
+
+    const [carregando, setCarregando] = useState(true);
+    const [salvando, setSalvando] = useState(false);
+    const [carregandoDetalhes, setCarregandoDetalhes] = useState(false);
+
+    const [busca, setBusca] = useState("");
+    const [filtroStatus, setFiltroStatus] =
+        useState<FiltroStatusOrdem>("todos");
+    const [filtroResponsavelId, setFiltroResponsavelId] =
+        useState<FiltroResponsavelOrdem>("todos");
+
+    const [formularioAberto, setFormularioAberto] = useState(false);
+    const [ordemEmEdicao, setOrdemEmEdicao] =
+        useState<OrdemServico | null>(null);
+    const [ordemParaDuplicar, setOrdemParaDuplicar] =
+        useState<OrdemServico | null>(null);
+
+    const [detalhesAbertos, setDetalhesAbertos] = useState(false);
+    const [ordemSelecionada, setOrdemSelecionada] =
+        useState<OrdemServico | null>(null);
+    const [statusSolicitadoDetalhes, setStatusSolicitadoDetalhes] =
+        useState<StatusOrdemServico | null>(null);
+
+    const [perfilGestor, setPerfilGestor] = useState(
+        () => getStoredUser()?.tipo === "gestor",
+    );
+    const [perfilAnalista, setPerfilAnalista] = useState(
+        () => getStoredUser()?.tipo === "analista",
+    );
+    const [perfilTecnico, setPerfilTecnico] = useState(
+        () => getStoredUser()?.tipo === "tecnico",
+    );
+    const [salvandoParecerTecnicoId, setSalvandoParecerTecnicoId] = useState<number | null>(null);
+
+    const [usuarioAtualId, setUsuarioAtualId] = useState<number | null>(
+        () => getStoredUser()?.id ?? null,
+    );
+
+    const [podeCriar, setPodeCriar] = useState(() => {
+        const tipo = getStoredUser()?.tipo;
+        return tipo === "gestor" || tipo === "analista" || tipo === "tecnico";
+    });
+
+    const [mensagem, setMensagem] = useState<string | null>(null);
+    const [erro, setErro] = useState<string | null>(null);
+    const [exportandoCsv, setExportandoCsv] = useState(false);
+    const [exportandoXlsx, setExportandoXlsx] = useState(false);
+    const [baixandoRelatorioId, setBaixandoRelatorioId] = useState<number | null>(null);
+
+    const podeGerenciar = perfilGestor;
+    const podeOperarDepartamento = podeGerenciar || perfilAnalista;
+    const podeDuplicarOrdem = podeGerenciar || perfilAnalista;
+    const funcionarioAtualAtivo = funcionariosAtivos.find(
+        (funcionario) => funcionario.id === usuarioAtualId && funcionario.ativo,
+    );
+    const podeTecnicoAssumirOrdemSelecionada = Boolean(
+        !podeGerenciar &&
+        ordemSelecionada?.ativo &&
+        ordemSelecionada.status !== "concluido" &&
+        ordemSelecionada.responsavel_id === null &&
+        funcionarioAtualAtivo &&
+        funcionarioAtualAtivo.departamento_id === ordemSelecionada.departamento_id,
+    );
+    const podeAtribuirResponsavel = podeGerenciar || perfilAnalista || podeTecnicoAssumirOrdemSelecionada;
+
+    useEffect(() => {
+        let ativo = true;
+
+        async function carregarDados() {
+            try {
+                let gestor = false;
+                let podeCriarOS = false;
+
+                if (authService.hasSession()) {
+                    try {
+                        const usuario = await authService.me();
+
+
+
+                        setUsuarioAtualId(usuario.id);
+
+                        gestor = usuario.tipo === "gestor";
+                        setPerfilAnalista(usuario.tipo === "analista");
+                        setPerfilTecnico(usuario.tipo === "tecnico");
+                        podeCriarOS =
+                            usuario.tipo === "gestor" ||
+                            usuario.tipo === "analista" ||
+                            usuario.tipo === "tecnico";
+                    } catch {
+                        setUsuarioAtualId(null);
+                        gestor = false;
+                        setPerfilAnalista(false);
+                        setPerfilTecnico(false);
+                        podeCriarOS = false;
+                    }
+                }
+
+                if (!ativo) return;
+
+                setPerfilGestor(gestor);
+                setPodeCriar(podeCriarOS);
+
+                const [ordensApi, clientesApi, departamentosApi, projetosApi] = await Promise.all([
+                    ordemServicoService.listar(),
+                    clienteService.listar(),
+                    departamentoService.listar(),
+                    projetoService.listar(),
+                ]);
+
+                // Dados auxiliares para mostrar vínculos históricos e permitir reatribuição. Falhas
+                // nesses endpoints não devem impedir a listagem principal das O.S.
+                let projetosConhecidos = projetosApi;
+                try {
+                    const projetosInativosApi = await projetoService.listarInativos();
+                    projetosConhecidos = [...projetosApi, ...projetosInativosApi];
+                } catch (error) {
+                    if (ativo) setErro(mensagemErro(
+                        error,
+                        "Não foi possível carregar os projetos inativos associados a ordens existentes.",
+                    ));
+                }
+
+                let funcionariosAtivosApi: Funcionario[] = [];
+                let funcionariosHistoricos: Funcionario[] = [];
+                try {
+                    funcionariosAtivosApi = await funcionarioService.listar();
+                    funcionariosHistoricos = funcionariosAtivosApi;
+                    try {
+                        const funcionariosInativosApi = await funcionarioService.listarInativos();
+                        funcionariosHistoricos = [...funcionariosAtivosApi, ...funcionariosInativosApi];
+                    } catch (error) {
+                        if (ativo) setErro(mensagemErro(
+                            error,
+                            "Não foi possível carregar os responsáveis inativos para consulta histórica.",
+                        ));
+                    }
+                } catch (error) {
+                    if (ativo) setErro(mensagemErro(
+                        error,
+                        "Não foi possível carregar os funcionários disponíveis para reatribuição.",
+                    ));
+                }
+
+                if (!ativo) return;
+
+                setOrdens(ordensApi);
+                setClientes(clientesApi);
+                setDepartamentos(departamentosApi);
+                setProjetos(projetosConhecidos);
+                setFuncionariosAtivos(funcionariosAtivosApi);
+                setFuncionariosConhecidos(funcionariosHistoricos);
+            } catch (error) {
+                if (ativo) {
+                    setErro(
+                        mensagemErro(
+                            error,
+                            "Não foi possível carregar os dados das ordens de serviço.",
+                        ),
+                    );
+                }
+            } finally {
+                if (ativo) {
+                    setCarregando(false);
+                }
+            }
+        }
+
+        void carregarDados();
+
+        return () => {
+            ativo = false;
+        };
+    }, []);
+
+
+    const ordensFiltradas = useMemo(() => {
+        const fonte = mostrarInativas ? ordensInativas : ordens;
+
+        return fonte.filter((ordem) => {
+            const correspondeStatus =
+                filtroStatus === "todos" ||
+                ordem.status === filtroStatus;
+            const correspondeResponsavel =
+                filtroResponsavelId === "todos" ||
+                (filtroResponsavelId === "sem_responsavel"
+                    ? ordem.responsavel_id === null
+                    : ordem.responsavel_id === filtroResponsavelId);
+            const responsavel = funcionariosConhecidos.find(
+                (funcionario) => funcionario.id === ordem.responsavel_id,
+            );
+            const textoResponsavel = responsavel
+                ? `${responsavel.nome} ${responsavel.usuario}`
+                : "";
+
+            return (
+                correspondeStatus &&
+                correspondeResponsavel &&
+                correspondeBuscaOrdem(ordem, busca, textoResponsavel)
+            );
+        });
+    }, [
+        ordens,
+        ordensInativas,
+        mostrarInativas,
+        busca,
+        filtroStatus,
+        filtroResponsavelId,
+        funcionariosConhecidos,
+    ]);
+
+    function limparErro() {
+        setErro(null);
+    }
+
+    function abrirCadastro() {
+        if (!podeCriar) {
+            setErro("Seu perfil não tem permissão para cadastrar ordens de serviço.");
+            return;
+        }
+
+        setOrdemEmEdicao(null);
+        setOrdemParaDuplicar(null);
+        setErro(null);
+        setMensagem(null);
+        setFormularioAberto(true);
+    }
+
+    function duplicarOrdem(origem: OrdemServico) {
+        if (!podeDuplicarOrdem || !podeCriar) {
+            setErro("Somente Gestor/Admin ou Analista/Líder pode duplicar O.S.; Técnicos não podem duplicá-las.");
+            return;
+        }
+        if (!ordemSelecionada || ordemSelecionada.id !== origem.id) {
+            setErro("Abra os detalhes autorizados da O.S. antes de iniciar a duplicação.");
+            return;
+        }
+
+        setOrdemEmEdicao(null);
+        setOrdemParaDuplicar(origem);
+        setErro(null);
+        setMensagem(null);
+        setDetalhesAbertos(false);
+        setOrdemSelecionada(null);
+        setStatusSolicitadoDetalhes(null);
+        setFormularioAberto(true);
+    }
+
+    function iniciarEdicao(ordem: OrdemServico) {
+        if (!podeOperarDepartamento) {
+            setErro("Apenas Gestor/Admin ou Analista/Líder do departamento podem editar ordens de serviço.");
+            return;
+        }
+
+        setDetalhesAbertos(false);
+        setOrdemSelecionada(null);
+
+        if (ordem.status === "concluido" || ordem.status === "bloqueado") {
+            setErro("Esta ordem de serviço não pode ser editada no estado atual.");
+            return;
+        }
+
+        setOrdemEmEdicao(ordem);
+        setOrdemParaDuplicar(null);
+        setErro(null);
+        setMensagem(null);
+        setFormularioAberto(true);
+    }
+
+    function fecharFormulario() {
+        if (salvando) return;
+
+        setFormularioAberto(false);
+        setOrdemEmEdicao(null);
+        setOrdemParaDuplicar(null);
+        setErro(null);
+    }
+
+    async function carregarOrdens(): Promise<void> {
+        const resultado = await ordemServicoService.listar();
+        setOrdens(resultado);
+    }
+
+    async function carregarOrdensInativas(): Promise<void> {
+        setCarregandoInativas(true);
+        setErro(null);
+
+        try {
+            const resultado = await ordemServicoService.listarInativas();
+            setOrdensInativas(resultado);
+        } catch (error) {
+            setErro(
+                mensagemErro(
+                    error,
+                    "Não foi possível carregar as ordens inativas.",
+                ),
+            );
+        } finally {
+            setCarregandoInativas(false);
+        }
+    }
+
+    function solicitarAlteracaoAtivo(
+        ordem: OrdemServico,
+        acao: "inativar",
+    ): void {
+        if (!podeOperarDepartamento) {
+            setErro("Apenas Gestor/Admin ou Analista/Líder do departamento pode inativar ordens.");
+            return;
+        }
+
+        if (!ordem.ativo) {
+            setErro("Esta ordem já está inativa; a inativação é permanente.");
+            return;
+        }
+
+        setErro(null);
+        setMensagem(null);
+        setConfirmacaoAtivo({ ordem, acao });
+    }
+
+    function fecharConfirmacaoAtivo(): void {
+        if (inativandoId !== null) return;
+
+        setConfirmacaoAtivo(null);
+        setErro(null);
+    }
+
+    async function confirmarAlteracaoAtivo(): Promise<void> {
+        if (!podeOperarDepartamento || !confirmacaoAtivo || inativandoId !== null) {
+            return;
+        }
+
+        const { ordem } = confirmacaoAtivo;
+
+        setInativandoId(ordem.id);
+        setErro(null);
+        setMensagem(null);
+
+        try {
+            await ordemServicoService.inativar(ordem.id);
+
+            setMensagem(`OS #${ordem.id} inativada com sucesso.`);
+
+            setConfirmacaoAtivo(null);
+
+            const ordensAtivasAtualizadas = await ordemServicoService.listar();
+            setOrdens(ordensAtivasAtualizadas);
+
+            const ordensInativasAtualizadas =
+                await ordemServicoService.listarInativas();
+            setOrdensInativas(ordensInativasAtualizadas);
+        } catch (error) {
+            setErro(
+                mensagemErro(
+                    error,
+                    "Não foi possível alterar a situação da ordem de serviço.",
+                ),
+            );
+        } finally {
+            setInativandoId(null);
+        }
+    }
+
+    async function abrirDetalhes(
+        ordem: OrdemServico,
+        statusSugerido: StatusOrdemServico | null = null,
+    ): Promise<void> {
+        setStatusSolicitadoDetalhes(statusSugerido);
+        setOrdemSelecionada(ordem);
+        setDetalhesAbertos(true);
+        setCarregandoDetalhes(true);
+        setErro(null);
+
+        try {
+            const detalhe = await ordemServicoService.buscarPorId(ordem.id);
+            setOrdemSelecionada(detalhe);
+        } catch (error) {
+            setErro(
+                mensagemErro(
+                    error,
+                    "Não foi possível carregar os detalhes da ordem de serviço.",
+                ),
+            );
+        } finally {
+            setCarregandoDetalhes(false);
+        }
+    }
+
+    async function abrirDetalhesPorId(id: number): Promise<void> {
+        setStatusSolicitadoDetalhes(null);
+        setOrdemSelecionada(null);
+        setDetalhesAbertos(true);
+        setCarregandoDetalhes(true);
+        setErro(null);
+
+        try {
+            const detalhe = await ordemServicoService.buscarPorId(id);
+            setOrdemSelecionada(detalhe);
+
+            // Se a navegação veio do histórico de um projeto para uma O.S. inativa,
+            // mantenha a lista de O.S. inativas selecionada e atualize-a em segundo plano.
+            if (!detalhe.ativo) {
+                setMostrarInativas(true);
+                void carregarOrdensInativas();
+            }
+        } catch (error) {
+            setErro(
+                mensagemErro(
+                    error,
+                    `Não foi possível carregar os detalhes da ordem de serviço #${id}.`,
+                ),
+            );
+        } finally {
+            setCarregandoDetalhes(false);
+        }
+    }
+
+    function fecharDetalhes() {
+        setDetalhesAbertos(false);
+        setStatusSolicitadoDetalhes(null);
+        setOrdemSelecionada(null);
+        setErro(null);
+    }
+
+    /** Atualiza campos exclusivos dos detalhes depois de uma mutação confirmada. */
+    async function recarregarDetalheAposMutacao(
+        ordemAtualizada: OrdemServico,
+        fallbackDetalhe: OrdemServico,
+    ): Promise<void> {
+        try {
+            const detalhe = await ordemServicoService.buscarPorId(ordemAtualizada.id);
+            setOrdemSelecionada(detalhe);
+        } catch (error) {
+            // A mutação já foi confirmada pela API; uma falha no refresh não a desfaz.
+            setOrdemSelecionada(fallbackDetalhe);
+            setMensagem(null);
+            setErro(
+                `A alteração foi salva, mas não foi possível atualizar os detalhes. ${mensagemErro(
+                    error,
+                    "Tente reabrir os detalhes para consultar os dados mais recentes.",
+                )}`,
+            );
+        }
+    }
+
+    async function atribuirResponsavelOrdem(funcionarioId: number): Promise<void> {
+        if (!ordemSelecionada || atribuindoResponsavel) return;
+
+        const funcionarioDestino = funcionariosAtivos.find(
+            (funcionario) => funcionario.id === funcionarioId && funcionario.ativo,
+        );
+        if (!funcionarioDestino) {
+            setErro("Selecione um funcionário ativo para atribuir a ordem.");
+            return;
+        }
+
+        const podeTecnicoAssumir = Boolean(
+            !podeGerenciar &&
+            ordemSelecionada.ativo &&
+            ordemSelecionada.status !== "concluido" &&
+            ordemSelecionada.responsavel_id === null &&
+            funcionarioId === usuarioAtualId &&
+            funcionarioDestino.id === usuarioAtualId &&
+            funcionarioDestino.departamento_id === ordemSelecionada.departamento_id,
+        );
+        if (!podeGerenciar && !perfilAnalista && !podeTecnicoAssumir) {
+            setErro("Somente Gestor/Admin, Analista/Líder do departamento ou Técnico elegível pode atribuir a O.S.");
+            return;
+        }
+
+        const detalheAnterior = ordemSelecionada;
+        setAtribuindoResponsavel(true);
+        setErro(null);
+        setMensagem(null);
+        try {
+            const atualizada = await ordemServicoService.atribuirResponsavel(detalheAnterior.id, funcionarioId);
+            const fallbackDetalhe = { ...detalheAnterior, ...atualizada };
+            setOrdemSelecionada(fallbackDetalhe);
+            setOrdens((anteriores) => anteriores.map((ordem) => ordem.id === atualizada.id ? atualizada : ordem));
+            setMensagem(`Responsável da OS #${atualizada.id} atualizado com sucesso.`);
+            await recarregarDetalheAposMutacao(atualizada, fallbackDetalhe);
+        } catch (error) {
+            setErro(mensagemErro(error, "Não foi possível reatribuir o responsável da ordem de serviço."));
+        } finally {
+            setAtribuindoResponsavel(false);
+        }
+    }
+
+    async function executarAlteracaoStatus(
+        ordem: OrdemServico,
+        novoStatus: StatusOrdemServico,
+        parecerTecnico?: string,
+    ): Promise<void> {
+        const ehResponsavel = ordem.responsavel_id === usuarioAtualId;
+
+        if (!podeGerenciar && !perfilAnalista && !ehResponsavel) {
+            setErro("Apenas Gestor/Admin, Analista/Líder do departamento ou o Técnico responsável pode alterar o status.");
+            return;
+        }
+        if (!ordem.ativo) {
+            setErro("Não é possível alterar o status de uma O.S. inativa.");
+            return;
+        }
+        if (ordem.status === "bloqueado" || ordem.status === "concluido") {
+            setErro("Esta O.S. não permite alteração de status por esta operação.");
+            return;
+        }
+        if (novoStatus === "bloqueado") {
+            setErro("O bloqueio deve utilizar a operação específica de bloqueio.");
+            return;
+        }
+        const parecerFinal = parecerTecnico?.trim();
+        if (novoStatus === "concluido" && !parecerFinal) {
+            setErro("Informe o parecer técnico para concluir a O.S.");
+            return;
+        }
+        if (ordem.status === novoStatus) return;
+
+        setAlterandoStatusId(ordem.id);
+        setErro(null);
+        setMensagem(null);
+        try {
+            const atualizada = await ordemServicoService.alterarStatus(
+                ordem.id,
+                novoStatus,
+                novoStatus === "concluido" ? parecerFinal : undefined,
+            );
+            const fallbackDetalhe = { ...ordem, ...atualizada };
+            setOrdens((atuais) => atuais.map((item) => item.id === atualizada.id ? atualizada : item));
+            setOrdensInativas((atuais) => atuais.map((item) => item.id === atualizada.id ? atualizada : item));
+            if (detalhesAbertos && ordemSelecionada?.id === ordem.id) {
+                setOrdemSelecionada(fallbackDetalhe);
+            }
+            setMensagem(`Status da O.S. #${atualizada.id} alterado com sucesso.`);
+            if (detalhesAbertos && ordemSelecionada?.id === ordem.id) {
+                await recarregarDetalheAposMutacao(atualizada, fallbackDetalhe);
+            }
+        } catch (error) {
+            setErro(mensagemErro(error, "Não foi possível alterar o status da ordem de serviço."));
+        } finally {
+            setAlterandoStatusId(null);
+        }
+    }
+
+    async function alterarStatusOrdem(
+        novoStatus: StatusOrdemServico,
+        parecerTecnico?: string,
+    ): Promise<void> {
+        if (!ordemSelecionada) return;
+        await executarAlteracaoStatus(ordemSelecionada, novoStatus, parecerTecnico);
+    }
+
+    async function salvarParecerTecnicoOrdem(parecerTecnico: string): Promise<void> {
+        const ordem = ordemSelecionada;
+        if (!ordem) return;
+        if (!perfilTecnico || !usuarioAtualId || ordem.responsavel_id !== usuarioAtualId) {
+            setErro("Somente o Técnico responsável pode salvar o parecer técnico de forma independente.");
+            return;
+        }
+        if (!ordem.ativo || ordem.status === "bloqueado" || ordem.status === "concluido") {
+            setErro("O parecer não pode ser alterado em uma O.S. inativa, bloqueada ou concluída.");
+            return;
+        }
+        if (parecerTecnico.length > 1000) {
+            setErro("O parecer técnico deve ter no máximo 1.000 caracteres.");
+            return;
+        }
+
+        setSalvandoParecerTecnicoId(ordem.id);
+        setErro(null);
+        setMensagem(null);
+        try {
+            const atualizada = await ordemServicoService.salvarParecerTecnico(ordem.id, parecerTecnico);
+            const fallbackDetalhe = { ...ordem, ...atualizada };
+            setOrdens((atuais) => atuais.map((item) => item.id === atualizada.id ? atualizada : item));
+            setOrdensInativas((atuais) => atuais.map((item) => item.id === atualizada.id ? atualizada : item));
+            setOrdemSelecionada(fallbackDetalhe);
+            setMensagem(`Parecer técnico da O.S. #${atualizada.id} salvo. O status e os demais campos foram preservados.`);
+            await recarregarDetalheAposMutacao(atualizada, fallbackDetalhe);
+        } catch (error) {
+            setErro(mensagemErro(error, "Não foi possível salvar o parecer técnico."));
+        } finally {
+            setSalvandoParecerTecnicoId(null);
+        }
+    }
+
+    function podeMoverOrdemParaStatus(ordem: OrdemServico, destino: StatusOrdemServico): boolean {
+        if (
+            !ordem.ativo ||
+            !usuarioAtualId ||
+            (!podeGerenciar && !perfilAnalista && ordem.responsavel_id !== usuarioAtualId) ||
+            ordem.status === "bloqueado" ||
+            ordem.status === "concluido" ||
+            destino === ordem.status
+        ) return false;
+        if (destino === "bloqueado") return podeOperarDepartamento;
+        return ["em_andamento", "aguardando", "validacao_testes", "concluido"].includes(destino);
+    }
+
+    async function moverOrdemKanban(ordem: OrdemServico, destino: StatusOrdemServico): Promise<void> {
+        if (!podeMoverOrdemParaStatus(ordem, destino)) {
+            setErro("Você não tem permissão para mover esta O.S. para o status selecionado.");
+            return;
+        }
+        setErro(null);
+        setMensagem(null);
+        if (destino === "concluido") {
+            // A conclusão continua exigindo o parecer persistido pela rota autorizada.
+            await abrirDetalhes(ordem, "concluido");
+            return;
+        }
+        if (destino === "bloqueado") {
+            if (!podeOperarDepartamento) {
+                setErro("Somente Gestor/Admin ou Analista/Líder do departamento pode bloquear uma O.S.");
+                return;
+            }
+            setAlterandoStatusId(ordem.id);
+            try {
+                const atualizada = await ordemServicoService.bloquear(ordem.id);
+                const fallbackDetalhe = { ...ordem, ...atualizada };
+                setOrdens((atuais) => atuais.map((item) => item.id === atualizada.id ? atualizada : item));
+                setOrdensInativas((atuais) => atuais.map((item) => item.id === atualizada.id ? atualizada : item));
+                setMensagem(`O.S. #${atualizada.id} bloqueada com sucesso.`);
+                if (detalhesAbertos && ordemSelecionada?.id === ordem.id) {
+                    setOrdemSelecionada(fallbackDetalhe);
+                    await recarregarDetalheAposMutacao(atualizada, fallbackDetalhe);
+                }
+            } catch (error) {
+                setErro(mensagemErro(error, "Não foi possível bloquear a O.S.; a coluna foi preservada."));
+            } finally {
+                setAlterandoStatusId(null);
+            }
+            return;
+        }
+        await executarAlteracaoStatus(ordem, destino);
+    }
+
+    async function exportarCSV(): Promise<void> {
+        setExportandoCsv(true);
+        setErro(null);
+        try {
+            await ordemServicoService.exportarCSV({
+                busca,
+                status: filtroStatus,
+                responsavel_id: filtroResponsavelId === "todos" ? undefined : filtroResponsavelId,
+                inativas: mostrarInativas,
+            });
+            setMensagem("Arquivo CSV gerado com os filtros atuais e o escopo de acesso autorizado.");
+        } catch (error) {
+            setErro(mensagemErro(error, "Não foi possível gerar a exportação CSV."));
+        } finally {
+            setExportandoCsv(false);
+        }
+    }
+
+    async function exportarXLSX(): Promise<void> {
+        setExportandoXlsx(true);
+        setErro(null);
+        try {
+            await ordemServicoService.exportarXLSX({
+                busca,
+                status: filtroStatus,
+                responsavel_id: filtroResponsavelId === "todos" ? undefined : filtroResponsavelId,
+                inativas: mostrarInativas,
+            });
+            setMensagem("Arquivo XLSX gerado com os filtros atuais e o escopo de acesso autorizado.");
+        } catch (error) {
+            setErro(mensagemErro(error, "Não foi possível gerar a exportação XLSX."));
+        } finally {
+            setExportandoXlsx(false);
+        }
+    }
+
+    async function baixarRelatorioPDF(osId: number): Promise<void> {
+        setBaixandoRelatorioId(osId);
+        setErro(null);
+        try {
+            await ordemServicoService.baixarRelatorioPDF(osId);
+            setMensagem(`Relatório da O.S. #${osId} gerado.`);
+        } catch (error) {
+            setErro(mensagemErro(error, "Não foi possível gerar o PDF da O.S."));
+        } finally {
+            setBaixandoRelatorioId(null);
+        }
+    }
+
+    async function salvarOrdem(dados: OrdemServicoInput): Promise<void> {
+        const autorizado = ordemEmEdicao ? podeOperarDepartamento : podeCriar;
+
+        if (!autorizado) {
+            setErro(
+                ordemEmEdicao
+                    ? "Apenas Gestor/Admin ou Analista/Líder do departamento podem editar ordens de serviço."
+                    : "Seu perfil não tem permissão para cadastrar ordens de serviço.",
+            );
+            return;
+        }
+
+        if (
+            !dados.titulo.trim() ||
+            !dados.descricao.trim() ||
+            !dados.tipo ||
+            !dados.cliente_id ||
+            !dados.departamento_id
+        ) {
+            setErro("Preencha título, descrição, tipo, cliente e departamento.");
+            return;
+        }
+
+        if (
+            ordemEmEdicao &&
+            (ordemEmEdicao.status === "concluido" || ordemEmEdicao.status === "bloqueado")
+        ) {
+            setErro("Esta ordem de serviço não pode ser editada no estado atual.");
+            return;
+        }
+
+        // AJ-06 envia o status atual junto com a data histórica. O cadastro comum
+        // também envia data_criacao, mas mantém o status inicial padrão da API.
+        const cadastroAntiga =
+            !ordemEmEdicao &&
+            dados.data_criacao !== undefined &&
+            dados.status !== undefined;
+
+        if (cadastroAntiga && !podeGerenciar) {
+            setErro("Apenas gestores podem cadastrar ordens de serviço antigas.");
+            return;
+        }
+
+        if (
+            cadastroAntiga &&
+            dados.status === "concluido" &&
+            !dados.parecer_tecnico?.trim()
+        ) {
+            setErro("O parecer técnico é obrigatório para cadastrar uma O.S. concluída.");
+            return;
+        }
+
+        setSalvando(true);
+        setErro(null);
+        setMensagem(null);
+
+        const payload: OrdemServicoInput = {
+            ...dados,
+            titulo: dados.titulo.trim(),
+            descricao: dados.descricao.trim(),
+        };
+        let ordemSalva: OrdemServico;
+
+        try {
+            // O feedback de falha desta etapa representa exclusivamente a operação de gravação.
+            if (ordemEmEdicao) {
+                ordemSalva = await ordemServicoService.atualizar(ordemEmEdicao.id, payload);
+            } else {
+                ordemSalva = await ordemServicoService.criar(payload);
+            }
+        } catch (error) {
+            setErro(
+                mensagemErro(
+                    error,
+                    ordemEmEdicao
+                        ? "Não foi possível atualizar a ordem de serviço."
+                        : "Não foi possível cadastrar a ordem de serviço.",
+                ),
+            );
+            setSalvando(false);
+            return;
+        }
+
+        // Atualiza a UI com os valores efetivamente retornados pela API, inclusive as datas.
+        if (ordemEmEdicao) {
+            setOrdens((anteriores) => anteriores.map((item) => item.id === ordemSalva.id ? ordemSalva : item));
+            setOrdensInativas((anteriores) => anteriores.map((item) => item.id === ordemSalva.id ? ordemSalva : item));
+            setMensagem(`Ordem de serviço #${ordemSalva.id} atualizada com sucesso.`);
+        } else {
+            setOrdens((anteriores) => [ordemSalva, ...anteriores.filter((item) => item.id !== ordemSalva.id)]);
+            setMensagem(
+                cadastroAntiga
+                    ? `Ordem de serviço antiga #${ordemSalva.id} cadastrada com sucesso.`
+                    : `Ordem de serviço #${ordemSalva.id} cadastrada com sucesso.`,
+            );
+            setBusca("");
+            setFiltroStatus("todos");
+        }
+
+        // Mantém o modal aberto e bloqueado até concluir também a tentativa de refresh.
+        // A falha desta etapa não altera o resultado confirmado da gravação.
+        try {
+            await carregarOrdens();
+        } catch {
+            setErro(
+                `A O.S. #${ordemSalva.id} foi salva, mas não foi possível atualizar a listagem. Recarregue a tela para sincronizar os dados.`,
+            );
+        }
+
+        setFormularioAberto(false);
+        setOrdemEmEdicao(null);
+        setOrdemParaDuplicar(null);
+        setSalvando(false);
+
+        // AJ-06: abre detalhes com os dados reais da API (abertura e SLA calculado).
+        if (cadastroAntiga) {
+            void abrirDetalhes(ordemSalva);
+        }
+    }
+
+    return {
+        ordens,
+        ordensFiltradas,
+        clientes,
+        departamentos,
+        projetos,
+        funcionariosAtivos,
+        funcionariosConhecidos,
+        atribuindoResponsavel,
+        atribuirResponsavelOrdem,
+        podeAtribuirResponsavel,
+
+        carregando,
+        carregandoDetalhes,
+        salvando,
+        exportandoCsv,
+        exportandoXlsx,
+        baixandoRelatorioId,
+        exportarCSV,
+        exportarXLSX,
+        baixarRelatorioPDF,
+
+        busca,
+        setBusca,
+        filtroStatus,
+        setFiltroStatus,
+        filtroResponsavelId,
+        setFiltroResponsavelId,
+
+        podeGerenciar,
+        podeOperarDepartamento,
+        podeDuplicarOrdem,
+        perfilTecnico,
+        usuarioAtualId,
+        podeCriar,
+        mensagem,
+        erro,
+        limparErro,
+
+        formularioAberto,
+        ordemEmEdicao,
+        ordemParaDuplicar,
+        abrirCadastro,
+        duplicarOrdem,
+        iniciarEdicao,
+        fecharFormulario,
+        salvarOrdem,
+
+        detalhesAbertos,
+        statusSolicitadoDetalhes,
+        alterarStatusOrdem,
+        moverOrdemKanban,
+        podeMoverOrdemParaStatus,
+        alterandoStatusId,
+        salvarParecerTecnicoOrdem,
+        salvandoParecerTecnicoId,
+        podeSalvarParecerTecnico: Boolean(
+            perfilTecnico &&
+            ordemSelecionada &&
+            ordemSelecionada.ativo &&
+            usuarioAtualId !== null &&
+            ordemSelecionada.responsavel_id === usuarioAtualId &&
+            ordemSelecionada.status !== "bloqueado" &&
+            ordemSelecionada.status !== "concluido",
+        ),
+        podeAlterarStatus: Boolean(
+            ordemSelecionada &&
+            ordemSelecionada.ativo &&
+            usuarioAtualId !== null &&
+            (podeGerenciar || perfilAnalista || ordemSelecionada.responsavel_id === usuarioAtualId) &&
+            ordemSelecionada.status !== "bloqueado" &&
+            ordemSelecionada.status !== "concluido",
+        ),
+        ordemSelecionada,
+        abrirDetalhes,
+        abrirDetalhesPorId,
+        fecharDetalhes,
+
+        ordensInativas,
+        carregandoInativas,
+        mostrarInativas,
+        setMostrarInativas,
+
+        carregarOrdensInativas,
+        confirmacaoAtivo,
+        inativandoId,
+        solicitarAlteracaoAtivo,
+        fecharConfirmacaoAtivo,
+        confirmarAlteracaoAtivo,
+    };
+}
