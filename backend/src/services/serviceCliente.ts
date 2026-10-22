@@ -48,6 +48,11 @@ export class ServiceCliente {
         return this.repositorio.listar();
     }
 
+    /** Lista clientes inativos. */
+    listarInativos(): Promise<Cliente[]> {
+        return this.repositorio.listarInativos();
+    }
+
     /**
      * Busca um cliente pelo id.
      * @throws AppError 404 se não existir.

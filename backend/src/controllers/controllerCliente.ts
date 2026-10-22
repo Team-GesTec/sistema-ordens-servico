@@ -51,6 +51,10 @@ export class ControllerCliente {
         await serviceCliente.remover(id);
         return resp.status(200).json({ mensagem: 'Cliente excluído com sucesso' });
     }
+
+    public async getInativos(_req: Request, resp: Response): Promise<Response> {
+        return resp.status(200).json(await serviceCliente.listarInativos());
+    }
 }
 
 /** Instância única usada pelas rotas. */
