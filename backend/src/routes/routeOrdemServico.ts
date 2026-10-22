@@ -15,10 +15,15 @@ const gestorOuTecnico = autorizar('gestor', 'tecnico');
 /** Somente gestores podem bloquear uma O.S. e modificá-la livremente. */
 const somenteGestor = autorizar('gestor');
 
-// GET ALL — qualquer usuário autenticado (o `autenticar` global já é aplicado no app.ts)
+// GET ALL
 router.get('/', (req: Request, res: Response) => controllerOrdemServico.getAll(req, res));
 
-// GET BY ID — qualquer usuário autenticado
+// GET HISTORICO
+router.get('/:id/historico', (req: Request, res: Response) =>
+    controllerOrdemServico.listarHistorico(req, res),
+);
+
+// GET BY ID
 router.get('/:id', (req: Request, res: Response) => controllerOrdemServico.getById(req, res));
 
 // POST - gestor / técnico
