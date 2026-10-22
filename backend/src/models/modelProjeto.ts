@@ -27,6 +27,7 @@ export type Projeto = projetos & { departamentos: number[] };
 
 /** Dados validados para criar um projeto. */
 export interface DadosCriacaoProjeto {
+    nome: string;
     cliente_id: number;
     data_inicio: Date | null;
     data_fim: Date | null;

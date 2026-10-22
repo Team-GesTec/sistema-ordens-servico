@@ -8,7 +8,7 @@
  *     (letras, números e . _ - @ — dá para usar o e-mail como usuário).
  *   - `senha`: mínimo de 8 caracteres; é guardada só como hash bcrypt (`senha_hash`).
  *     No PUT/PATCH a senha é opcional: se não vier, a atual é mantida.
- *   - `tipo` (perfil): gestor | analista | tecnico. No cadastro, o padrão é `tecnico`.
+ *   - `tipo` (perfil): gestor | tecnico. No cadastro, o padrão é `tecnico`.
  *     No PUT é obrigatório — assim um PUT sem `tipo` não rebaixa um gestor sem querer.
  *   - `departamento_id` precisa existir.
  *   - Ninguém pode excluir o próprio usuário, e o sistema nunca fica sem nenhum gestor

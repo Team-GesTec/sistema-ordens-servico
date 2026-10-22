@@ -7,9 +7,9 @@ export const funcionarioService = {
         return apiRequest<Funcionario[]>("/funcionario");
     },
 
-    /** Lista inativos para administração; o backend limita o endpoint a Gestores. */
-    listarInativos(): Promise<Funcionario[]> {
-        return apiRequest<Funcionario[]>("/funcionario/inativos");
+    async listarInativos(): Promise<Funcionario[]> {
+        const funcionarios = await apiRequest<Funcionario[]>("/funcionario");
+        return funcionarios.filter((funcionario) => !funcionario.ativo);
     },
 
     buscarPorId(id: number): Promise<Funcionario> {

@@ -75,9 +75,15 @@ export class ServiceProjeto {
      */
     async criar(corpo: unknown): Promise<Projeto> {
         const dados = lerCorpo(corpo);
+        if (typeof dados.nome !== 'string' || !dados.nome.trim()) {
+            throw AppError.requisicaoInvalida('nome é obrigatório');
+        }
+
+        const nome = dados.nome.trim();
         const clienteId = exigirInteiroPositivo(dados.cliente_id, 'cliente_id');
         const departamentos = exigirListaDeIds(dados.departamentos, 'departamentos');
         const novo: DadosCriacaoProjeto = {
+            nome,
             cliente_id: clienteId,
             departamentos,
             data_inicio: dataOpcional(dados.data_inicio, 'data_inicio'),

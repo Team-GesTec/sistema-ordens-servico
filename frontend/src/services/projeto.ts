@@ -6,8 +6,9 @@ export const projetoService = {
         return apiRequest<Projeto[]>("/projeto");
     },
 
-    listarInativos(): Promise<Projeto[]> {
-        return apiRequest<Projeto[]>("/projeto/inativos");
+    async listarInativos(): Promise<Projeto[]> {
+        const projetos = await apiRequest<Projeto[]>("/projeto");
+        return projetos.filter((projeto) => !projeto.ativo);
     },
 
     buscarPorId(id: number): Promise<ProjetoDetalhe> {
