@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
     ResponsiveContainer,
     PieChart,
@@ -95,51 +95,48 @@ function Dashboard() {
     });
 
     const [carregando, setCarregando] = useState(true);
+    const [atualizando, setAtualizando] = useState(false);
     const [erro, setErro] = useState<string | null>(null);
 
-    useEffect(() => {
-        let ativo = true;
-
-        async function carregar() {
+    const carregarDados = useCallback(async (inicial = false) => {
+        if (inicial) {
             setCarregando(true);
-            setErro(null);
-
-            try {
-                const [ordens, departamentos, funcionarios, projetos] =
-                    await Promise.all([
-                        ordemServicoService.listar(),
-                        departamentoService.listar(),
-                        funcionarioService.listar(),
-                        projetoService.listar(),
-                    ]);
-
-                if (ativo) {
-                    setDados({
-                        ordens,
-                        departamentos,
-                        funcionarios,
-                        projetos,
-                    });
-                }
-            } catch (error: unknown) {
-                if (ativo) {
-                    setErro(
-                        error instanceof ApiError
-                            ? error.message
-                            : "Não foi possível carregar os dados do dashboard.",
-                    );
-                }
-            } finally {
-                if (ativo) setCarregando(false);
-            }
+        } else {
+            setAtualizando(true);
         }
 
-        void carregar();
+        setErro(null);
 
-        return () => {
-            ativo = false;
-        };
+        try {
+            const [ordens, departamentos, funcionarios, projetos] =
+                await Promise.all([
+                    ordemServicoService.listar(),
+                    departamentoService.listar(),
+                    funcionarioService.listar(),
+                    projetoService.listar(),
+                ]);
+
+            setDados({
+                ordens,
+                departamentos,
+                funcionarios,
+                projetos,
+            });
+        } catch (error: unknown) {
+            setErro(
+                error instanceof ApiError
+                    ? error.message
+                    : "Não foi possível carregar os dados do dashboard.",
+            );
+        } finally {
+            setCarregando(false);
+            setAtualizando(false);
+        }
     }, []);
+
+    useEffect(() => {
+        void carregarDados(true);
+    }, [carregarDados]);
 
     const departamentoId = usuario?.departamento_id;
 
@@ -185,19 +182,21 @@ function Dashboard() {
         [ordensVisiveis],
     );
 
+    // Usa as mesmas ordens visíveis ao usuário para calcular a criticidade.
     const criticidadeData = useMemo(
         () =>
             contar(
-                ordensDepartamento
+                ordensVisiveis
                     .map((ordem) => ordem.criticidade)
                     .filter(
-                        (valor): valor is NivelCriticidade => valor !== null,
+                        (valor): valor is NivelCriticidade =>
+                            valor !== null,
                     ),
                 Object.keys(ROTULOS_CRITICIDADE) as NivelCriticidade[],
                 ROTULOS_CRITICIDADE,
                 CORES_CRITICIDADE,
             ),
-        [ordensDepartamento],
+        [ordensVisiveis],
     );
 
     const statusTecnicoData = useMemo(
@@ -265,7 +264,15 @@ function Dashboard() {
     if (erro) {
         return (
             <main className="dashboard">
-                <div className="dashboard-erro">{erro}</div>
+                <div className="dashboard-erro">
+                    <p>{erro}</p>
+                    <button
+                        type="button"
+                        onClick={() => void carregarDados()}
+                    >
+                        Tentar novamente
+                    </button>
+                </div>
             </main>
         );
     }
@@ -290,11 +297,12 @@ function Dashboard() {
           : "Visão geral do departamento";
 
     const totalOrdens = ordensVisiveis.length;
+
     const totalConcluidas = ordensVisiveis.filter(
         (ordem) => ordem.status === "concluido",
     ).length;
 
-    const totalCriticas = ordensDepartamento.filter(
+    const totalCriticas = ordensVisiveis.filter(
         (ordem) =>
             ordem.criticidade === "muito_alto" ||
             ordem.criticidade === "urgente",
@@ -315,6 +323,7 @@ function Dashboard() {
                     <span className="dashboard-avatar">
                         {usuario.nome.charAt(0).toUpperCase()}
                     </span>
+
                     <div>
                         <strong>{usuario.nome}</strong>
                         <span>
@@ -342,7 +351,9 @@ function Dashboard() {
                     <strong>{totalConcluidas}</strong>
                     <small>
                         {totalOrdens > 0
-                            ? `${Math.round((totalConcluidas / totalOrdens) * 100)}% das O.S.`
+                            ? `${Math.round(
+                                  (totalConcluidas / totalOrdens) * 100,
+                              )}% das O.S.`
                             : "Nenhuma O.S. cadastrada"}
                     </small>
                 </article>
@@ -552,7 +563,9 @@ function Dashboard() {
                             <div className="dashboard-card-header">
                                 <div>
                                     <h2>Horas por departamento</h2>
-                                    <p>Total de horas efetivamente registradas</p>
+                                    <p>
+                                        Total de horas efetivamente registradas
+                                    </p>
                                 </div>
                                 <span className="dashboard-card-icone">◷</span>
                             </div>
