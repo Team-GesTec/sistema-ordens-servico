@@ -16,6 +16,7 @@
  *     com `autenticar`; o perfil permitido (gestor ou técnico) é checado no próprio router.
  */
 
+import notificacaoRoutes from './routes/routeNotificacao';
 import express, { type Express, type Request, type Response } from 'express';
 import cors, { type CorsOptions } from 'cors';
 import { env } from './config/env';
@@ -67,7 +68,7 @@ export function criarApp(): Express {
     app.use('/funcionario', autenticar, funcionarioRoutes);
     app.use('/projeto', autenticar, projetoRoutes);
     app.use('/ordens-servico', autenticar, ordensServicoRoutes);
-
+    app.use('/notificacoes', autenticar, notificacaoRoutes);
     // Precisam ser os últimos: 404 para rotas inexistentes e tratamento central de erros.
     app.use(rotaNaoEncontrada);
     app.use(tratarErros);
