@@ -38,6 +38,7 @@ import { AppError } from '../errors/AppError';
 import { repositoryOrdemServico, type RepositoryOrdemServico } from '../repositories/repositoryOrdemServico';
 import { repositoryFuncionario, type RepositoryFuncionario } from '../repositories/repositoryFuncionario';
 import { serviceAuditoria } from './serviceAuditoria';
+import { calcularEstadoSla, type EstadoSla } from '../utils/estadoSla';
 import { bloquearOrdemServico, bloquearProjetosRelacionados, validarProjetoDaOrdem } from '../utils/projetoOsInvariant';
 import type { PerfilFuncionario } from '../models/modelFuncionario';
 import {
@@ -115,6 +116,14 @@ const CAMPOS_PROIBIDOS_NA_EDICAO = [
     'justificativa_sla_manual',
 ] as const;
 
+/** Uma O.S. com o estado do SLA calculado no momento da leitura (US#3.2). */
+type OrdemServicoComSla = OrdemServico & { estado_sla: EstadoSla };
+
+/** Devolve uma cópia da O.S. com o estado do SLA. Não altera a O.S. original (que pode estar no cache). */
+function comEstadoSla(ordem: OrdemServico, agora: Date): OrdemServicoComSla {
+    return {...ordem, estado_sla: calcularEstadoSla(ordem,agora)}
+}
+
 export class ServiceOrdemServico {
     private readonly repositorio: RepositoryOrdemServico;
     private readonly funcionarios: RepositoryFuncionario;
@@ -126,10 +135,12 @@ export class ServiceOrdemServico {
 
 
 
-    /** Lista somente as O.S. ativas. */
-    async listar(): Promise<OrdemServico[]> {
+    /** Lista somente as O.S. ativas, cada uma com o estado do SLA. */
+    async listar(): Promise<OrdemServicoComSla[]> {
         const ordens = await this.repositorio.listar();
-        return ordens.filter((ordem) => ordem.ativo);
+        const ativas = ordens.filter((ordem) => ordem.ativo);
+        const agora = new Date();
+        return ativas.map((ordem) => comEstadoSla(ordem,agora));
     }
 
     /** Lista somente as O.S. inativas, para consulta do histórico. */
@@ -138,15 +149,15 @@ export class ServiceOrdemServico {
         return ordens.filter((ordem) => !ordem.ativo);
     }
 
-    /** Busca uma O.S. pelo id.
+    /** Busca uma O.S. pelo id, com o estado do SLA.
      * @throws AppError 404 se não existir.
      */
-    async buscarPorId(id: number): Promise<OrdemServico> {
+    async buscarPorId(id: number): Promise<OrdemServicoComSla> {
         const ordem = await this.repositorio.buscarPorId(id);
         if(!ordem) {
             throw AppError.naoEncontrado('OS não encontrada');
         }
-        return ordem;
+        return comEstadoSla(ordem, new Date());
     }
 
     /**
