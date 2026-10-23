@@ -14,6 +14,14 @@
   * ALTERAÇÕES (20/09/2026):
  *   - nova rota `/ordens-servico` (US#2.1, abertura de O.S.): `routerOS` importado e registrado
  *     com `autenticar`; o perfil permitido (gestor ou técnico) é checado no próprio router.
+ *
+ * ALTERAÇÕES (19/10/2026):
+ *   - 2.6-BE01: nova rota `/ordens-servico/:id/anexos` (upload multipart), com `autenticar`.
+ *     O limite de 100kb do JSON não vale para o multipart: o limite de 50MB do anexo é aplicado
+ *     no `uploadMiddleware`.
+ *
+ * ALTERAÇÕES (23/10/2026):
+ *   - integração com o frontend: `/anexos/configuracao` (regras dos anexos para a tela).
  */
 
 import express, { type Express, type Request, type Response } from 'express';
@@ -27,6 +35,7 @@ import departamentoRoutes from './routes/routeDepartamento';
 import funcionarioRoutes from './routes/routeFuncionario';
 import projetoRoutes from './routes/routeProjeto';
 import ordensServicoRoutes from './routes/routeOrdemServico';
+import anexoRoutes, { rotasConfiguracaoAnexo } from './routes/routeAnexo';
 
 /** Tamanho máximo aceito para o corpo JSON das requisições. */
 const LIMITE_JSON = '100kb';
@@ -66,6 +75,8 @@ export function criarApp(): Express {
     app.use('/departamento', autenticar, departamentoRoutes);
     app.use('/funcionario', autenticar, funcionarioRoutes);
     app.use('/projeto', autenticar, projetoRoutes);
+    app.use('/ordens-servico/:id/anexos', autenticar, anexoRoutes);
+    app.use('/anexos', autenticar, rotasConfiguracaoAnexo);
     app.use('/ordens-servico', autenticar, ordensServicoRoutes);
 
     // Precisam ser os últimos: 404 para rotas inexistentes e tratamento central de erros.

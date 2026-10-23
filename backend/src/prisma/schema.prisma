@@ -11,12 +11,17 @@ datasource db {
 model anexos {
   id             Int            @id @default(autoincrement())
   os_id          Int
+  funcionario_id Int
   nome           String         @db.VarChar(255)
   tipo           String
   tamanho_bytes  BigInt
-  caminho        String
+  caminho        String         @unique
   data_upload    DateTime       @default(now()) @db.Timestamptz(6)
+  relato         String?
+  funcionarios   funcionarios   @relation(fields: [funcionario_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   ordens_servico ordens_servico @relation(fields: [os_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([os_id, data_upload], map: "idx_anexos_os_data")
 }
 
 model auditoria {
@@ -74,6 +79,7 @@ model funcionarios {
   nome                                                       String
   tipo                                                       tipo_perfil         @default(tecnico)
   ativo                                                      Boolean             @default(true)
+  anexos                                                     anexos[]
   apontamento_horas                                          apontamento_horas[]
   auditoria                                                  auditoria[]
   auditoria_projetos                                          auditoria_projetos[]
