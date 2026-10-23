@@ -13,13 +13,15 @@
  */
 import { pipeline } from 'node:stream/promises';
 import type { NextFunction, Request, Response } from 'express';
-import { serviceAnexo } from '../services/serviceAnexo';
+import { serviceAnexo, type ServiceAnexo } from '../services/serviceAnexo';
 import { usuarioAutenticado } from '../middlewares/authMiddleware';
 import { lerId } from '../utils/validacao';
 import { montarContentDisposition } from '../utils/arquivo';
 import { CAMPO_RELATO_ANEXO, type ArquivoRecebido } from '../models/modelAnexo';
 
 export class ControllerAnexo {
+    constructor(private readonly service: ServiceAnexo = serviceAnexo) {}
+
     /**
      * Antes de receber o arquivo: confere se a O.S. existe, se o usuário pode vê-la e se ainda há vaga.
      * Evita transferir até 50MB para depois responder 403/404/422.
@@ -27,7 +29,7 @@ export class ControllerAnexo {
     public async verificarPermissaoUpload(req: Request, _resp: Response, next: NextFunction): Promise<void> {
         const usuario = usuarioAutenticado(req);
         const osId = lerId(req.params.id);
-        await serviceAnexo.verificarPermissaoParaAnexar(osId, usuario);
+        await this.service.verificarPermissaoParaAnexar(osId, usuario);
         next();
     }
 
@@ -47,19 +49,19 @@ export class ControllerAnexo {
         // Campos de texto do multipart chegam em req.body (o multer sempre cria o objeto)
         const relato: unknown = (req.body as Record<string, unknown> | undefined)?.[CAMPO_RELATO_ANEXO];
 
-        return resp.status(201).json(await serviceAnexo.anexar(osId, arquivo, usuario, relato));
+        return resp.status(201).json(await this.service.anexar(osId, arquivo, usuario, relato));
     }
 
     /** GET /anexos/configuracao — regras dos anexos para a tela validar antes do envio (200). */
     public configuracao(_req: Request, resp: Response): Response {
-        return resp.status(200).json(serviceAnexo.configuracaoPublica());
+        return resp.status(200).json(this.service.configuracaoPublica());
     }
 
     /** GET /ordens-servico/:id/anexos — lista os anexos da O.S. (200). */
     public async listar(req: Request, resp: Response): Promise<Response> {
         const usuario = usuarioAutenticado(req);
         const osId = lerId(req.params.id);
-        return resp.status(200).json(await serviceAnexo.listar(osId, usuario));
+        return resp.status(200).json(await this.service.listar(osId, usuario));
     }
 
     /**
@@ -70,7 +72,7 @@ export class ControllerAnexo {
         const usuario = usuarioAutenticado(req);
         const osId = lerId(req.params.id);
         const anexoId = lerId(req.params.anexoId, 'anexoId');
-        const { anexo, conteudo } = await serviceAnexo.baixar(osId, anexoId, usuario);
+        const { anexo, conteudo } = await this.service.baixar(osId, anexoId, usuario);
 
         resp.setHeader('Content-Disposition', montarContentDisposition(anexo.nome));
         resp.setHeader('Content-Type', anexo.tipo);

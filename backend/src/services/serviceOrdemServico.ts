@@ -5,7 +5,7 @@
  * e alteração de status (US#2.4).
  *
  * Regras da abertura e da edição:
- *  - tipo, titulo, descricao e departamento_id são obrigatórios;
+ *  - tipo, titulo, descricao, departamento_id e sla_manual são obrigatórios;
  *  - data_criacao assume a data atual quando não informada;
  *  - campos opcionais ausentes recebem null no cadastro;
  *  - anterior_id, se informado, deve apontar para uma O.S. existente;
@@ -49,6 +49,7 @@ import { repositoryFuncionario, type RepositoryFuncionario } from '../repositori
 import { serviceAuditoria } from './serviceAuditoria';
 import { serviceSla } from './serviceSla';
 import type { DadosRegistroAuditoria } from '../models/modelAuditoria';
+import { calcularEstadoSla, type EstadoSla } from '../utils/estadoSla';
 import { bloquearOrdemServico, bloquearProjetosRelacionados, validarProjetoDaOrdem } from '../utils/projetoOsInvariant';
 import type { PerfilFuncionario } from '../models/modelFuncionario';
 import {
@@ -132,6 +133,14 @@ const CAMPOS_PROIBIDOS_NA_EDICAO = [
     'justificativa_sla_manual',
 ] as const;
 
+/** Uma O.S. com o estado do SLA calculado no momento da leitura (US#3.2). */
+type OrdemServicoComSla = OrdemServico & { estado_sla: EstadoSla };
+
+/** Devolve uma cópia da O.S. com o estado do SLA. Não altera a O.S. original (que pode estar no cache). */
+function comEstadoSla(ordem: OrdemServico, agora: Date): OrdemServicoComSla {
+    return {...ordem, estado_sla: calcularEstadoSla(ordem,agora)}
+}
+
 export class ServiceOrdemServico {
     private readonly repositorio: RepositoryOrdemServico;
     private readonly funcionarios: RepositoryFuncionario;
@@ -141,10 +150,14 @@ export class ServiceOrdemServico {
         this.funcionarios = funcionarios
     }
 
-    /** Lista somente as O.S. ativas. */
-    async listar(): Promise<OrdemServico[]> {
+
+
+    /** Lista somente as O.S. ativas, cada uma com o estado do SLA. */
+    async listar(): Promise<OrdemServicoComSla[]> {
         const ordens = await this.repositorio.listar();
-        return ordens.filter((ordem) => ordem.ativo);
+        const ativas = ordens.filter((ordem) => ordem.ativo);
+        const agora = new Date();
+        return ativas.map((ordem) => comEstadoSla(ordem,agora));
     }
 
     /** Lista somente as O.S. inativas, para consulta do histórico. */
@@ -153,15 +166,15 @@ export class ServiceOrdemServico {
         return ordens.filter((ordem) => !ordem.ativo);
     }
 
-    /** Busca uma O.S. pelo id.
+    /** Busca uma O.S. pelo id, com o estado do SLA.
      * @throws AppError 404 se não existir.
      */
-    async buscarPorId(id: number): Promise<OrdemServico> {
+    async buscarPorId(id: number): Promise<OrdemServicoComSla> {
         const ordem = await this.repositorio.buscarPorId(id);
         if(!ordem) {
             throw AppError.naoEncontrado('OS não encontrada');
         }
-        return ordem;
+        return comEstadoSla(ordem, new Date());
     }
 
     /**
@@ -271,7 +284,7 @@ export class ServiceOrdemServico {
             data_fim: dataFim,
             data_limite_sla: sla.data_limite_sla,
             sla_manual: sla.sla_manual,
-            justificativa_sla_manual: sla.sla_manual ? sla.descricao : null
+            justificativa_sla_manual: sla.sla_manual ? sla.descricao : null,
         };
 
         const registros: RegistroAuditoriaCriacao[] = [];
@@ -543,24 +556,6 @@ export class ServiceOrdemServico {
      */
     async bloquear(id: number, usuarioId: number): Promise<OrdemServico> {
         const idOS = exigirInteiroPositivo(id, "id");
-        const ordem = await this.repositorio.buscarPorId(idOS);
-
-        if (!ordem) {
-            throw AppError.naoEncontrado(`O.S. ${idOS} não encontrada`);
-        }
-
-        if (ordem.status === "concluido") {
-            throw AppError.requisicaoInvalida(
-                "Uma O.S. concluída não pode ser bloqueada.",
-            );
-        }
-
-        if (ordem.status === "bloqueado") {
-            throw AppError.requisicaoInvalida(
-                "A O.S. já está bloqueada.",
-            );
-        }
-
         const atualizada = await prisma.$transaction(async (conexao) => {
             await bloquearOrdemServico(conexao, idOS);
             const ordemAtual = await conexao.ordens_servico.findUnique({ where: { id: idOS } });
@@ -651,7 +646,6 @@ export class ServiceOrdemServico {
         return this.repositorio.remover(id);
     }
 
-
     /**
      * Ativa ou inativa uma O.S. sem apagar seu registro.
      * Registra a alteração na auditoria dentro da mesma transação.
@@ -696,8 +690,18 @@ export class ServiceOrdemServico {
         this.repositorio.atualizarCache(atualizada);
         return atualizada;
     }
+    private async garantirFuncionarioExiste(funcionarioId: number, campo: string): Promise<void> {
+        const funcionario = await this.funcionarios.buscarPorId(funcionarioId);
 
-        /** Monta o objeto de alterações conforme o modo (PUT ou PATCH). */
+        if (!funcionario) {
+            throw AppError.requisicaoInvalida(`${campo} não corresponde a um funcionário existente`);
+        }
+        if (!funcionario.ativo) {
+            throw AppError.conflito(`${campo} não pode corresponder a um funcionário inativo`);
+        }
+    }
+
+    /** Monta o objeto de alterações conforme o modo (PUT ou PATCH). */
     private async montarAlteracoes(dados: CorpoRequisicao, parcial: boolean): Promise<DadosAtualizacaoOrdemServico> {
         const alteracoes: DadosAtualizacaoOrdemServico = {};
 
@@ -811,17 +815,6 @@ export class ServiceOrdemServico {
         }
 
         return alteracoes;
-    }
-
-    private async garantirFuncionarioExiste(funcionarioId: number, campo: string): Promise<void> {
-        const funcionario = await this.funcionarios.buscarPorId(funcionarioId);
-
-        if (!funcionario) {
-            throw AppError.requisicaoInvalida(`${campo} não corresponde a um funcionário existente`);
-        }
-        if (!funcionario.ativo) {
-            throw AppError.conflito(`${campo} não pode corresponder a um funcionário inativo`);
-        }
     }
 }
 

@@ -109,6 +109,7 @@ Given(
 // Envio
 When(
     /^o (gestor|técnico) envia o anexo "([^"]+)" do tipo "([^"]+)" com (\d+) bytes$/,
+    { timeout: 60_000 },
     async function (this: CustomWorld, quem: string, nome: string, tipo: string, tamanho: string) {
         const perfil = quem === "gestor" ? "gestor" : "tecnico";
         await enviarAnexo(this, perfil, this.data.osId, nome, tipo, montarArquivo(tipo, Number(tamanho)));
@@ -253,6 +254,7 @@ Then(
 // Consulta e download (2.6-BE02)
 Given(
     "que a O.S. já possui os anexos {string} e {string}",
+    { timeout: 30_000 },
     async function (this: CustomWorld, primeiro: string, segundo: string) {
         this.data.anexos = {};
         for (const [nome, tipo] of [[primeiro, "application/pdf"], [segundo, "image/png"]] as const) {

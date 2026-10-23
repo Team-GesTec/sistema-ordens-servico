@@ -1,30 +1,26 @@
 # language: pt
 
 # US#2.6 — Anexos da O.S. com limite de 50MB (2.6-BE01 inclusão; 2.6-BE02 consulta e download).
-# Cenários com @supabase-storage precisam do Supabase Storage configurado no backend/.env
-# (SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY e bucket privado). Para rodar sem o Storage:
-#   npx cucumber-js --tags "not @supabase-storage"
-# Cenários com @arquivo-grande enviam ~50MB (mais lentos).
+# A API de teste usa armazenamento em memória, sem depender do Supabase Storage.
+# Cenários com @arquivo-grande enviam ~50MB.
 
 Funcionalidade: Anexos da Ordem de Serviço
 
     Contexto:
         Dado que o gestor e o técnico estão autenticados para os testes de anexo
 
-    @supabase-storage
     Cenário: Gestor anexa um arquivo dentro do limite
         Dado que existe uma O.S. ativa sem responsável no departamento do técnico
         Quando o gestor envia o anexo "laudo técnico.pdf" do tipo "application/pdf" com 1024 bytes
         Então o anexo é gravado com nome, tamanho, autor e data
         E a auditoria registra a inclusão do anexo
 
-    @supabase-storage
     Cenário: Técnico anexa em uma O.S. atribuída a ele
         Dado que existe uma O.S. ativa atribuída ao técnico
         Quando o técnico envia o anexo "foto do painel.png" do tipo "image/png" com 2048 bytes
         Então o anexo é gravado com nome, tamanho, autor e data
 
-    @supabase-storage @arquivo-grande
+    @arquivo-grande
     Cenário: Arquivo com exatamente 50 x 1024 x 1024 bytes é aceito
         Dado que existe uma O.S. ativa sem responsável no departamento do técnico
         Quando o gestor envia o anexo "limite.pdf" do tipo "application/pdf" com 52428800 bytes
@@ -70,7 +66,6 @@ Funcionalidade: Anexos da Ordem de Serviço
         Então o arquivo enviado é removido do armazenamento
         E nenhum anexo fica gravado na O.S.
 
-    @supabase-storage
     Cenário: Listagem devolve exatamente os anexos gravados da O.S.
         Dado que existe uma O.S. ativa sem responsável no departamento do técnico
         E que a O.S. já possui os anexos "laudo.pdf" e "foto.png"
@@ -78,7 +73,6 @@ Funcionalidade: Anexos da Ordem de Serviço
         Então a lista contém exatamente os anexos gravados com nome, tamanho, autor e data
         E a consulta não gera registro de auditoria
 
-    @supabase-storage
     Cenário: Download entrega o arquivo íntegro a quem pode ver a O.S.
         Dado que existe uma O.S. ativa sem responsável no departamento do técnico
         E que a O.S. já possui os anexos "relatório técnico.pdf" e "foto.png"
@@ -105,7 +99,6 @@ Funcionalidade: Anexos da Ordem de Serviço
         Então a API rejeita o anexo com status 404
         E o anexo registrado continua gravado
 
-    @supabase-storage
     Cenário: Relato enviado junto com o anexo fica registrado
         Dado que existe uma O.S. ativa sem responsável no departamento do técnico
         Quando o gestor envia o anexo "laudo.pdf" com o relato "Troca do rádio concluída"

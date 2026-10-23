@@ -35,3 +35,5 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
+# Notificações geradas localmente pela rotina de SLA (MVP em JSON)
+backend/data/

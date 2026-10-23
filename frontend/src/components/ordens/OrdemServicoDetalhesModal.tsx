@@ -187,6 +187,11 @@ function OrdemServicoDetalhesModal({
     // Sincroniza o seletor de data com o prazo atual da ordem.
     useEffect(() => {
         setPrazoSelecionado(prazoAtual);
+    }, [prazoAtual]);
+
+    useEffect(() => {
+        // Trocar a OS exige uma nova selecao explicita para evitar reenvio acidental.
+        setResponsavelNovoId(null);
     }, [aberto, ordem?.id, ordem?.responsavel_id]);
 
     // Permite fechar o modal com a tecla Escape.

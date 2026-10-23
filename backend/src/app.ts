@@ -24,6 +24,7 @@
  *   - integração com o frontend: `/anexos/configuracao` (regras dos anexos para a tela).
  */
 
+import notificacaoRoutes from './routes/routeNotificacao';
 import express, { type Express, type Request, type Response } from 'express';
 import cors, { type CorsOptions } from 'cors';
 import { env } from './config/env';
@@ -35,7 +36,8 @@ import departamentoRoutes from './routes/routeDepartamento';
 import funcionarioRoutes from './routes/routeFuncionario';
 import projetoRoutes from './routes/routeProjeto';
 import ordensServicoRoutes from './routes/routeOrdemServico';
-import anexoRoutes, { rotasConfiguracaoAnexo } from './routes/routeAnexo';
+import { ControllerAnexo, controllerAnexo as controllerAnexoPadrao } from './controllers/controllerAnexo';
+import { criarRotasAnexo, criarRotasConfiguracaoAnexo } from './routes/routeAnexo';
 
 /** Tamanho máximo aceito para o corpo JSON das requisições. */
 const LIMITE_JSON = '100kb';
@@ -55,7 +57,7 @@ function opcoesCors(): CorsOptions {
  * Cria e configura a aplicação Express.
  * @returns A aplicação pronta para receber `listen` (ver server.ts).
  */
-export function criarApp(): Express {
+export function criarApp(controllerAnexo: ControllerAnexo = controllerAnexoPadrao): Express {
     const app = express();
 
     app.disable('x-powered-by');
@@ -75,10 +77,10 @@ export function criarApp(): Express {
     app.use('/departamento', autenticar, departamentoRoutes);
     app.use('/funcionario', autenticar, funcionarioRoutes);
     app.use('/projeto', autenticar, projetoRoutes);
-    app.use('/ordens-servico/:id/anexos', autenticar, anexoRoutes);
-    app.use('/anexos', autenticar, rotasConfiguracaoAnexo);
+    app.use('/ordens-servico/:id/anexos', autenticar, criarRotasAnexo(controllerAnexo));
+    app.use('/anexos', autenticar, criarRotasConfiguracaoAnexo(controllerAnexo));
     app.use('/ordens-servico', autenticar, ordensServicoRoutes);
-
+    app.use('/notificacoes', autenticar, notificacaoRoutes);
     // Precisam ser os últimos: 404 para rotas inexistentes e tratamento central de erros.
     app.use(rotaNaoEncontrada);
     app.use(tratarErros);

@@ -303,19 +303,6 @@ npx prisma migrate deploy
 npm run db:status
 ```
 
-Preencha as variáveis de ambiente no `.env` com as informações do banco PostgreSQL.
-
-> [!NOTE]
-> Caso esteja utilizando um banco PostgreSQL local, informe no `.env` os dados correspondentes à sua conexão.
->
-> As variáves necessárias estão disponíveis no arquivo `.env.example`.
-
-Com o banco configurado, gere o client do Prisma:
-
-```bash
-npx prisma generate
-```
-
 `migrate deploy` aplica o SQL das migrations já versionadas e pendentes; não faz reset automático, não gera migrations novas e não executa o seed. Revise migrations antes de aplicá-las, pois o SQL de uma migration pode conter alterações destrutivas. **Nunca use `prisma migrate reset` no banco Supabase compartilhado.** O seed deve ser executado uma única vez na preparação inicial do ambiente, por uma pessoa responsável, depois de configurar as variáveis `SEED_*`:
 
 ```bash
