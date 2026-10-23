@@ -1,20 +1,36 @@
 import { useEffect, useMemo, useState } from "react";
+
 import "../styles/variaveis.css";
 import "../styles/global.css";
 import "../styles/layout.css";
 import "../styles/sidebar.css";
 import "../styles/filters.css";
 import "../styles/cards.css";
-import "../styles/details.css";
 import "../styles/darkmode.css";
 import "../styles/forms.css";
+import "../styles/modal-os.css";
+
 import CustomSelect from "../components/CustomSelect";
 import type { SelectOption } from "../components/CustomSelect";
 import { ApiError } from "../services/api";
+import { getStoredUser } from "../services/auth"; // confirmar o nome real do arquivo do authService
+import { funcionarioService } from "../services/funcionario";
 import { ordemServicoService } from "../services/ordemServico";
-import type { NivelCriticidade, OrdemServico, StatusOrdemServico, TipoOrdemServico } from "../types/api";
 
-const setorOptions: SelectOption[] = [{ value: 0, label: "Todos os setores" }];
+import type {
+    Funcionario,
+    NivelCriticidade,
+    OrdemServico,
+    StatusOrdemServico,
+    TipoOrdemServico,
+} from "../types/api";
+
+const setorOptions: SelectOption[] = [
+    {
+        value: 0,
+        label: "Todos os setores",
+    },
+];
 
 const STATUS_LABELS: Record<StatusOrdemServico, string> = {
     em_andamento: "Em andamento",
@@ -37,38 +53,255 @@ const CRITICIDADE_LABELS: Record<NivelCriticidade, string> = {
     urgente: "Urgente",
 };
 
+// Peso de cada nível: quanto maior, mais prioritária a O.S. (sem criticidade fica por último).
+const PESO_CRITICIDADE: Record<NivelCriticidade, number> = {
+    baixo: 1,
+    medio: 2,
+    alto: 3,
+    muito_alto: 4,
+    urgente: 5,
+};
+
+function pesoCriticidade(criticidade: NivelCriticidade | null | undefined): number {
+    return criticidade ? PESO_CRITICIDADE[criticidade] : 0;
+}
+
+const statusOptions: SelectOption[] = Object.entries(
+    STATUS_LABELS,
+).map(([value, label]) => ({
+    value,
+    label,
+}));
+
 function Home() {
     const [search, setSearch] = useState("");
     const [selectedSetor, setSelectedSetor] = useState(0);
+
+    // Filtro de status: começa mostrando todas as ordens.
+    const [selectedStatus, setSelectedStatus] = useState<StatusOrdemServico | "todos">("todos");
+
     const [ordens, setOrdens] = useState<OrdemServico[]>([]);
+
     const [carregando, setCarregando] = useState(true);
     const [erro, setErro] = useState<string | null>(null);
+    const [osSelecionada, setOsSelecionada] =
+        useState<OrdemServico | null>(null);
+
+    const [modalParecerAberto, setModalParecerAberto] =
+        useState(false);
+
+    const [parecerTecnico, setParecerTecnico] =
+        useState("");
+
+    const [usuarioLogado] = useState<Funcionario | null>(() => getStoredUser());
+    const isGestor = usuarioLogado?.tipo === "gestor";
+    const isTecnico = usuarioLogado?.tipo === "tecnico";
+    const [funcionarios, setFuncionarios] = useState<Funcionario[]>([]);
+    const [tecnicoResponsavel, setTecnicoResponsavel] = useState<number | null>(null);
+    const [salvandoResponsavel, setSalvandoResponsavel] = useState(false);
 
     useEffect(() => {
         ordemServicoService
             .listar()
             .then(setOrdens)
             .catch((error: unknown) =>
-                setErro(error instanceof ApiError ? error.message : "Não foi possível carregar as ordens de serviço."),
+                setErro(
+                    error instanceof ApiError
+                        ? error.message
+                        : "Não foi possível carregar as ordens de serviço.",
+                ),
             )
             .finally(() => setCarregando(false));
     }, []);
 
+    // Todos os perfis precisam da lista para mostrar o nome do técnico responsável
+    useEffect(() => {
+        funcionarioService
+            .listar()
+            .then(setFuncionarios)
+            .catch((error: unknown) =>
+                setErro(
+                    error instanceof ApiError
+                        ? error.message
+                        : "Não foi possível carregar os funcionários.",
+                ),
+            );
+    }, []);
+
+    const funcionarioOptions: SelectOption[] = funcionarios.map((item) => ({
+        value: item.id,
+        label: `#${item.id} — ${item.nome}`,
+    }));
+
+    const tecnicoDaOS = funcionarios.find(
+        (item) => item.id === osSelecionada?.responsavel_id,
+    );
+
+    // Combina pesquisa por texto, setor e status e ordena por prioridade:
+    // da criticidade mais alta para a mais baixa; em empate, a O.S. mais antiga (menor id) vem primeiro.
     const ordensFiltradas = useMemo(() => {
         const termo = search.trim().toLowerCase();
-        return ordens.filter((os) => {
-            const bateSetor = selectedSetor === 0 || os.departamento_id === selectedSetor;
-            if (!bateSetor) return false;
-            if (!termo) return true;
 
-            return (
-                String(os.id).includes(termo) ||
-                os.descricao.toLowerCase().includes(termo) ||
-                TIPO_LABELS[os.tipo].toLowerCase().includes(termo) ||
-                STATUS_LABELS[os.status].toLowerCase().includes(termo)
+        return ordens
+            .filter((os) => {
+                const bateSetor =
+                    selectedSetor === 0 || os.departamento_id === selectedSetor;
+                const bateStatus =
+                    selectedStatus === "todos" || os.status === selectedStatus;
+
+                if (!bateSetor || !bateStatus) {
+                    return false;
+                }
+
+                if (!termo) {
+                    return true;
+                }
+
+                return (
+                    String(os.id).includes(termo) ||
+                    (os.titulo ?? "").toLowerCase().includes(termo) ||
+                    os.descricao.toLowerCase().includes(termo) ||
+                    TIPO_LABELS[os.tipo].toLowerCase().includes(termo) ||
+                    STATUS_LABELS[os.status].toLowerCase().includes(termo)
+                );
+            })
+            .sort(
+                (a, b) =>
+                    pesoCriticidade(b.criticidade) - pesoCriticidade(a.criticidade) ||
+                    a.id - b.id,
             );
+    }, [ordens, search, selectedSetor, selectedStatus]);
+
+    function abrirModal(os: OrdemServico) {
+        setOsSelecionada(os);
+        setTecnicoResponsavel(os.responsavel_id ?? null);
+    }
+
+    function fecharModal() {
+        setOsSelecionada(null);
+        setTecnicoResponsavel(null);
+    }
+
+    // Recarrega a lista do servidor e atualiza a OS aberta no modal.
+    // Devolve false se a OS não vier mais na listagem.
+    async function sincronizarOrdens(idSelecionado: number): Promise<boolean> {
+        const lista = await ordemServicoService.listar();
+        setOrdens(lista);
+
+        const osAtual = lista.find((os) => os.id === idSelecionado);
+
+        if (!osAtual) {
+            setOsSelecionada(null);
+            setTecnicoResponsavel(null);
+            return false;
+        }
+
+        setOsSelecionada(osAtual);
+        setTecnicoResponsavel(osAtual.responsavel_id ?? null);
+        return true;
+    }
+
+    // Grava o responsável (PATCH /ordens-servico/atribuir/:id) e SEMPRE relista
+    // em seguida, dando certo ou não, para a tela refletir o que está no servidor
+    async function salvarResponsavel(funcionarioId: number) {
+        if (!osSelecionada || salvandoResponsavel) {
+            return;
+        }
+
+        const osId = osSelecionada.id;
+        let idAtual = osId;
+
+        setSalvandoResponsavel(true);
+        setErro(null);
+
+        try {
+            const atualizada = await ordemServicoService.atribuirResponsavel(
+                osId,
+                funcionarioId,
+            );
+
+            // Se o backend devolver a OS com outro id, acompanha o id novo
+            idAtual = atualizada?.id ?? osId;
+        } catch (error) {
+            setErro(
+                error instanceof ApiError
+                    ? error.message
+                    : "Não foi possível atribuir o responsável.",
+            );
+        }
+
+        try {
+            const encontrada = await sincronizarOrdens(idAtual);
+
+            if (!encontrada) {
+                setErro(
+                    (anterior) =>
+                        anterior ??
+                        `A O.S. #${idAtual} não veio na listagem do servidor.`,
+                );
+            }
+        } catch (error) {
+            setErro(
+                error instanceof ApiError
+                    ? error.message
+                    : "Não foi possível recarregar as ordens de serviço.",
+            );
+        } finally {
+            setSalvandoResponsavel(false);
+        }
+    }
+
+    function atribuirTecnico(value: string | number) {
+        void salvarResponsavel(Number(value));
+    }
+
+    function assumirOS() {
+        if (!usuarioLogado) {
+            return;
+        }
+
+        void salvarResponsavel(usuarioLogado.id);
+    }
+
+    function alterarStatus(value: string | number) {
+        if (!osSelecionada) {
+            return;
+        }
+
+        const novoStatus = value as StatusOrdemServico;
+
+        if (novoStatus === "concluido") {
+            setParecerTecnico("");
+            setModalParecerAberto(true);
+            return;
+        }
+
+        setOsSelecionada({
+            ...osSelecionada,
+            status: novoStatus,
         });
-    }, [ordens, search, selectedSetor]);
+    }
+
+    function cancelarParecer() {
+        setModalParecerAberto(false);
+        setParecerTecnico("");
+    }
+
+    function confirmarConclusao() {
+        const parecer = parecerTecnico.trim();
+
+        if (!parecer || !osSelecionada) {
+            return;
+        }
+
+        setOsSelecionada({
+            ...osSelecionada,
+            status: "concluido",
+        });
+
+        setModalParecerAberto(false);
+        setParecerTecnico("");
+    }
 
     return (
         <div className="layout">
@@ -79,28 +312,60 @@ function Home() {
                             type="text"
                             placeholder="Pesquisar ordem de serviço"
                             value={search}
-                            onChange={(event) => setSearch(event.target.value)}
+                            onChange={(event) =>
+                                setSearch(event.target.value)
+                            }
                             aria-label="Pesquisar ordem de serviço"
                         />
 
                         <CustomSelect
                             options={setorOptions}
                             value={selectedSetor}
-                            onChange={(value) => setSelectedSetor(Number(value))}
+                            onChange={(value) =>
+                                setSelectedSetor(Number(value))
+                            }
                             placeholder="Todos os setores"
                         />
 
+                        {/* Filtros por status */}
                         <div className="filter-button">
-                            <button disabled></button>
-                            <button disabled></button>
-                            <button disabled></button>
+                            <button
+                                type="button"
+                                className={selectedStatus === "todos" ? "active" : ""}
+                                aria-pressed={selectedStatus === "todos"}
+                                onClick={() => setSelectedStatus("todos")}
+                            >
+                                Todos
+                            </button>
+
+                            {statusOptions.map((status) => {
+                                const valor = status.value as StatusOrdemServico;
+
+                                return (
+                                    <button
+                                        key={valor}
+                                        type="button"
+                                        className={selectedStatus === valor ? "active" : ""}
+                                        aria-pressed={selectedStatus === valor}
+                                        onClick={() => setSelectedStatus(valor)}
+                                    >
+                                        {status.label}
+                                    </button>
+                                );
+                            })}
                         </div>
                     </div>
 
-                    {erro && <p className="form-hint">{erro}</p>}
+                    {erro && (
+                        <p className="form-hint">
+                            {erro}
+                        </p>
+                    )}
 
                     {carregando ? (
-                        <p className="form-hint">Carregando ordens de serviço...</p>
+                        <p className="form-hint">
+                            Carregando ordens de serviço...
+                        </p>
                     ) : ordensFiltradas.length === 0 ? (
                         <p className="form-hint">
                             {ordens.length === 0
@@ -112,18 +377,26 @@ function Home() {
                             {ordensFiltradas.map((os) => (
                                 <div
                                     key={os.id}
-                                    className={`card ${os.criticidade}`}
+                                    className={`card ${os.criticidade ?? ""
+                                        }`}
+                                    onClick={() => abrirModal(os)}
                                 >
                                     <span className="card-title">
-                                        #{os.id} — {TIPO_LABELS[os.tipo]}
+                                        #{os.id} — {os.titulo || TIPO_LABELS[os.tipo]}
+
                                         <br />
+
                                         {os.descricao.length > 80
-                                            ? `${os.descricao.slice(0, 80)}...`
+                                            ? `${os.descricao.slice(
+                                                0,
+                                                80,
+                                            )}...`
                                             : os.descricao}
                                     </span>
 
                                     <span className="card-status">
                                         {STATUS_LABELS[os.status]}
+
                                         {os.criticidade
                                             ? ` · ${CRITICIDADE_LABELS[os.criticidade]}`
                                             : ""}
@@ -134,7 +407,252 @@ function Home() {
                     )}
                 </div>
             </main>
-            <aside className="details" />
+
+            {osSelecionada && (
+                <div
+                    className="modal-overlay"
+                    onClick={fecharModal}
+                >
+                    <div
+                        className="modal-os"
+                        onClick={(event) =>
+                            event.stopPropagation()
+                        }
+                    >
+                        <button
+                            className="modal-close"
+                            type="button"
+                            onClick={fecharModal}
+                            aria-label="Fechar detalhes da ordem de serviço"
+                        >
+                            ×
+                        </button>
+
+                        <div className="modal-header">
+                            <span className="modal-id">
+                                O.S. #{osSelecionada.id}
+                            </span>
+
+                            <p className="modal-projeto">
+                                {TIPO_LABELS[
+                                    osSelecionada.tipo
+                                ]}
+                            </p>
+
+                            <p className="modal-projeto">
+                                Ordem de serviço
+                            </p>
+                        </div>
+
+                        <div className="modal-body">
+                            {erro && (
+                                <p className="form-hint">
+                                    {erro}
+                                </p>
+                            )}
+
+                            <div className="modal-datas">
+                                <div className="modal-info-item">
+                                    <span className="modal-label">
+                                        Data de criação
+                                    </span>
+
+                                    <p>
+                                        Ainda não registrada
+                                    </p>
+                                </div>
+
+                                <div className="modal-info-item">
+                                    <span className="modal-label">
+                                        Prazo de entrega
+                                    </span>
+
+                                    <p>
+                                        Ainda não definido
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div className="modal-status">
+                                <CustomSelect
+                                    options={statusOptions}
+                                    value={osSelecionada.status}
+                                    onChange={alterarStatus}
+                                    placeholder="Selecione o status"
+                                    className="modal-status-select"
+                                />
+                            </div>
+
+                            <div className="modal-detalhes">
+                                <div>
+                                    <span className="modal-label">
+                                        Criticidade
+                                    </span>
+
+                                    <p
+                                        className={`modal-criticidade ${osSelecionada.criticidade ??
+                                            ""
+                                            }`}
+                                    >
+                                        {osSelecionada.criticidade
+                                            ? CRITICIDADE_LABELS[
+                                            osSelecionada
+                                                .criticidade
+                                            ]
+                                            : "Não definida"}
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div className="modal-detalhes">
+                                <div>
+                                    <span className="modal-label">
+                                        Descrição
+                                    </span>
+
+                                    <p className="modal-descricao">
+                                        {osSelecionada.descricao ||
+                                            "Nenhuma descrição informada."}
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div className="modal-detalhes">
+                                <div>
+                                    <span className="modal-label">
+                                        Departamento
+                                    </span>
+
+                                    <div className="modal-departamentos">
+                                        {osSelecionada.departamento_id ? (
+                                            <span>
+                                                Departamento{" "}
+                                                {
+                                                    osSelecionada.departamento_id
+                                                }
+                                            </span>
+                                        ) : (
+                                            <span>
+                                                Não informado
+                                            </span>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="modal-detalhes">
+                                <div>
+                                    <span className="modal-label">
+                                        Técnico responsável
+                                    </span>
+
+                                    <p>
+                                        {tecnicoDaOS
+                                            ? `#${tecnicoDaOS.id} — ${tecnicoDaOS.nome}`
+                                            : osSelecionada.responsavel_id
+                                                ? `Técnico #${osSelecionada.responsavel_id}`
+                                                : "Nenhum técnico atribuído"}
+                                    </p>
+                                </div>
+                            </div>
+
+                            {isGestor && (
+                                <div className="modal-detalhes">
+                                    <div>
+                                        <span className="modal-label">
+                                            Alterar técnico
+                                        </span>
+
+                                        <CustomSelect
+                                            className="modal-tecnico"
+                                            options={funcionarioOptions}
+                                            value={tecnicoResponsavel}
+                                            onChange={atribuirTecnico}
+                                            placeholder="Selecione o funcionário"
+                                        />
+                                    </div>
+                                </div>
+                            )}
+
+                            {isTecnico && !osSelecionada.responsavel_id && (
+                                <div className="">
+                                    <button
+                                        type="button"
+                                        className="btn-primary modal-tecnico"
+                                        onClick={assumirOS}
+                                        disabled={salvandoResponsavel}
+                                    >
+                                        Assumir OS
+                                    </button>
+                                </div>
+                            )}
+
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {modalParecerAberto && (
+                <div
+                    className="modal-overlay"
+                    onClick={cancelarParecer}
+                >
+                    <div
+                        className="modal-parecer"
+                        onClick={(event) => event.stopPropagation()}
+                    >
+                        <button
+                            className="modal-close"
+                            type="button"
+                            onClick={cancelarParecer}
+                            aria-label="Fechar parecer técnico"
+                        >
+                            ×
+                        </button>
+
+                        <div className="modal-parecer-header">
+                            <span>PARECER TÉCNICO</span>
+
+                            <h2>
+                                Concluir O.S. #{osSelecionada?.id}
+                            </h2>
+                        </div>
+
+                        <div className="modal-parecer-body">
+                            <label htmlFor="parecer-tecnico">
+                                Parecer técnico
+                            </label>
+
+                            <textarea
+                                id="parecer-tecnico"
+                                value={parecerTecnico}
+                                onChange={(event) =>
+                                    setParecerTecnico(event.target.value)
+                                }
+                                placeholder="Descreva o parecer técnico da O.S..."
+                                rows={6}
+                            />
+
+                            <div className="modal-parecer-actions">
+                                <button
+                                    type="button"
+                                    onClick={cancelarParecer}
+                                >
+                                    Cancelar
+                                </button>
+
+                                <button
+                                    type="button"
+                                    disabled={!parecerTecnico.trim()}
+                                    onClick={confirmarConclusao}
+                                >
+                                    Concluir O.S.
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

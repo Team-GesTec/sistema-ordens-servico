@@ -1,9 +1,9 @@
 /**
  * utils/estadoSla.ts
- * 
+ *
  * Cálculo do estado de SLA de uma O.S. (US#3.2-BE01).
  * Fila, detalhe e dashboard utilizam esta função
- * 
+ *
  * Regras:
  * - O.S. concluída ou bloqueada: nao retorna erro. Retorna sem_sla
  * - sem data_limite_sla: retorna sem_sla (sem_erro)
@@ -52,7 +52,7 @@ export function calcularEstadoSla(ordem: DadosSla, agora: Date): EstadoSla {    
         return 'vencido'
     }
 
-    const limiarRisco = 
+    const limiarRisco =
         ordem.tipo === 'instalacao'
             ? inicio + PERCENTUAL_RISCO_INSTALACAO * (limite - inicio)
             : limite - HORAS_RISCO_MANUTENCAO * MS_POR_HORA

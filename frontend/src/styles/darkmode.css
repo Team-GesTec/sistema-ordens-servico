@@ -1,5 +1,6 @@
 /* =========================
-   BASE
+   MODO ESCURO: sobrescreve cores das telas quando o layout recebe .dark-mode
+   (inclui o formulário de O.S. e o bloco de O.S. antiga da AJ-06)
 ========================= */
 
 .dark-mode {

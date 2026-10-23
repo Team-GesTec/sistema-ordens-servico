@@ -1,3 +1,9 @@
+/**
+ * Página de O.S.: monta a toolbar, a grade de cards e os modais (detalhes, ativar/inativar e formulário)
+ * a partir do estado do hook useOrdens. O cadastro de O.S. antiga (AJ-06) só é liberado para o gestor.
+ * US#2.6: os anexos da O.S. aberta nos detalhes vêm do hook useAnexosOrdem.
+ */
+
 import { useEffect, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
 import "../styles/variaveis.css";
@@ -7,6 +13,7 @@ import "../styles/sidebar.css";
 import "../styles/darkmode.css";
 import "../styles/forms.css";
 import "../styles/autocomplete.css";
+import "../styles/details.css";
 import "../styles/ordens.css";
 import "../styles/projetos.css";
 
@@ -16,9 +23,11 @@ import OrdemServicoCard from "../components/ordens/OrdemServicoCard";
 import OrdemServicoDetalhesModal from "../components/ordens/OrdemServicoDetalhesModal";
 import OrdemServicoFormModal from "../components/ordens/OrdemServicoFormModal";
 import { useOrdens } from "../hooks/useOrdens";
+import { useAnexosOrdem } from "../hooks/useAnexosOrdem";
 
 function Ordens() {
     const ordens = useOrdens();
+    const anexosOrdem = useAnexosOrdem(ordens.detalhesAbertos ? ordens.ordemSelecionada : null);
     const [searchParams, setSearchParams] = useSearchParams();
     const idVisualizar = searchParams.get("visualizar");
     const idVisualizarProcessado = useRef<string | null>(null);
@@ -154,6 +163,15 @@ function Ordens() {
                 podeAlterarStatus={ordens.podeAlterarStatus}
                 alterandoStatusId={ordens.alterandoStatusId}
                 onAlterarStatus={ordens.alterarStatusOrdem}
+                podeAlterarPrazo={ordens.podeGerenciar}
+                alterandoPrazo={ordens.alterandoPrazo}
+                onAlterarPrazo={ordens.alterarPrazoOrdem}
+                anexos={anexosOrdem.anexos}
+                carregandoAnexos={anexosOrdem.carregandoAnexos}
+                erroAnexos={anexosOrdem.erroAnexos}
+                tiposPermitidos={anexosOrdem.tiposPermitidos}
+                onEnviarAnexo={anexosOrdem.enviarAnexo}
+                onBaixarAnexo={anexosOrdem.baixarAnexo}
             />
 
             <OrdemServicoAtivoModal

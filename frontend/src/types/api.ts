@@ -1,3 +1,9 @@
+/**
+ * Tipos das entidades e dos payloads trocados com a API (formato snake_case do backend).
+ * AJ-06: OrdemServicoInput aceita os campos opcionais do cadastro de O.S. antiga.
+ * US#2.6: Anexo e ConfiguracaoAnexos (anexos da O.S.).
+ */
+
 export type PerfilFuncionario = "gestor" | "analista" | "tecnico";
 
 export type StatusProjeto =
@@ -135,6 +141,9 @@ export interface OrdemServico {
     status: StatusOrdemServico;
     ativo: boolean;
     data_criacao: string;
+    /** Prazo final (SLA) devolvido pela API; ISO ou null quando não definido. */
+    data_limite_sla?: string | null;
+    sla_manual?: boolean;
 }
 
 export interface OrdemServicoInput {
@@ -146,6 +155,7 @@ export interface OrdemServicoInput {
     projeto_id: number | null;
     anterior_id: number | null;
     criticidade: string | null;
+    responsavel_id?: number;
     /** AJ-06 — cadastro de O.S. antiga (somente gestor): data de abertura no passado, em ISO. */
     data_criacao?: string;
     /** AJ-06 — status atual da O.S. antiga. */
@@ -154,4 +164,30 @@ export interface OrdemServicoInput {
     parecer_tecnico?: string;
     /** AJ-06 — data de conclusão (ISO), obrigatória quando a O.S. antiga já está concluída. */
     data_fim?: string;
+}
+
+/** Anexo de uma O.S., como a API devolve (US#2.6). */
+export interface Anexo {
+    id: number;
+    os_id: number;
+    /** Nome original do arquivo. */
+    nome: string;
+    /** MIME type (ex.: "application/pdf"). */
+    tipo: string;
+    /** Tamanho em bytes. */
+    tamanho: number;
+    autor: { id: number; nome: string };
+    /** Data/hora da inclusão (ISO). */
+    data: string;
+    relato: string | null;
+}
+
+/** Regras dos anexos definidas no servidor (GET /anexos/configuracao). */
+export interface ConfiguracaoAnexos {
+    tipos_permitidos: string[];
+    /** Extensões aceitas, sem ponto. Vazio = a tela não restringe (o backend valida). */
+    extensoes_permitidas: string[];
+    tamanho_maximo_bytes: number;
+    quantidade_maxima_por_os: number;
+    tamanho_maximo_relato: number;
 }
