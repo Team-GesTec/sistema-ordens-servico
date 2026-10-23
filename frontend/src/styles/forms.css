@@ -287,3 +287,27 @@
         width: 100%;
     }
 }
+
+/* LINKS COM APARÊNCIA DE BOTÃO */
+a.btn-secondary,
+a.clientes-btn-secondary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.dark-mode a.btn-secondary,
+.dark-mode a.clientes-btn-secondary {
+    background: #164e73;
+    color: #ffffff;
+    border: 1px solid #4a96bd;
+}
+
+.dark-mode a.btn-secondary:hover,
+.dark-mode a.clientes-btn-secondary:hover {
+    background: #1e638f;
+    color: #ffffff;
+}

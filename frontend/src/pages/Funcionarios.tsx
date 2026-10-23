@@ -1,193 +1,131 @@
-import { useEffect, useState, type FormEvent } from "react";
 import "../styles/variaveis.css";
 import "../styles/global.css";
 import "../styles/layout.css";
 import "../styles/sidebar.css";
 import "../styles/darkmode.css";
 import "../styles/forms.css";
-import type { SelectOption } from "../components/CustomSelect";
-import CustomSelect from "../components/CustomSelect";
-import { ApiError } from "../services/api";
-import { departamentoService } from "../services/departamento";
-import { funcionarioService } from "../services/funcionario";
-import type { Departamento, Funcionario } from "../types/api";
-
-const PERFIS: SelectOption[] = [
-    { value: "gestor", label: "Gestor" },
-    { value: "analista", label: "Analista" },
-    { value: "tecnico", label: "Técnico" },
-];
-
-interface FuncionarioFormState {
-    nome: string;
-    usuario: string;
-    departamento: number | null;
-    tipo: string | null;
-    senha: string;
-}
-
-const INITIAL_FORM_STATE: FuncionarioFormState = {
-    nome: "",
-    usuario: "",
-    departamento: null,
-    tipo: null,
-    senha: "",
-};
+import "../styles/autocomplete.css";
+import "../styles/filters.css";
+import "../styles/projetos.css";
+import "../styles/clientes.css";
+import "../styles/funcionarios.css";
+import FuncionariosToolbar from "../components/funcionarios/FuncionariosToolbar";
+import FuncionarioCard from "../components/funcionarios/FuncionarioCard";
+import FuncionarioFormModal from "../components/funcionarios/FuncionarioFormModal";
+import FuncionarioDetalhesModal from "../components/funcionarios/FuncionarioDetalhesModal";
+import FuncionarioStatusModal from "../components/funcionarios/FuncionarioStatusModal";
+import { useFuncionarios } from "../hooks/useFuncionarios";
 
 function Funcionarios() {
-    const [form, setForm] = useState<FuncionarioFormState>(INITIAL_FORM_STATE);
-    const [departamentos, setDepartamentos] = useState<Departamento[]>([]);
-    const [funcionarios, setFuncionarios] = useState<Funcionario[]>([]);
-    const [carregando, setCarregando] = useState(true);
-    const [salvando, setSalvando] = useState(false);
-    const [mensagem, setMensagem] = useState<string | null>(null);
-    const [erro, setErro] = useState<string | null>(null);
-
-    useEffect(() => {
-        Promise.all([departamentoService.listar(), funcionarioService.listar()])
-            .then(([departamentosApi, funcionariosApi]) => {
-                setDepartamentos(departamentosApi);
-                setFuncionarios(funcionariosApi);
-            })
-            .catch((error: unknown) => setErro(error instanceof ApiError ? error.message : "Não foi possível carregar os dados."))
-            .finally(() => setCarregando(false));
-    }, []);
-
-    function updateField<K extends keyof FuncionarioFormState>(field: K, value: FuncionarioFormState[K]) {
-        setForm((prev) => ({ ...prev, [field]: value }));
-        setMensagem(null);
-        setErro(null);
-    }
-
-    async function handleSubmit(event: FormEvent<HTMLFormElement>) {
-        event.preventDefault();
-        if (!form.departamento || !form.tipo) {
-            setErro("Selecione o departamento e o perfil do funcionário.");
-            return;
-        }
-
-        setSalvando(true);
-        setErro(null);
-        setMensagem(null);
-
-        try {
-            const criado = await funcionarioService.criar({
-                departamento_id: form.departamento,
-                usuario: form.usuario.trim(),
-                senha: form.senha,
-                nome: form.nome.trim(),
-                tipo: form.tipo as "gestor" | "analista" | "tecnico",
-            });
-            setFuncionarios((prev) => [...prev, criado].sort((a, b) => a.id - b.id));
-            setForm(INITIAL_FORM_STATE);
-            setMensagem(`Funcionário "${criado.nome}" cadastrado com sucesso.`);
-        } catch (error) {
-            setErro(error instanceof ApiError ? error.message : "Não foi possível cadastrar o funcionário.");
-        } finally {
-            setSalvando(false);
-        }
-    }
-
-    const departamentoOptions: SelectOption[] = departamentos.map((departamento) => ({
-        value: departamento.id,
-        label: `#${departamento.id} — ${departamento.nome}`,
-    }));
+    const funcionarios = useFuncionarios();
+    const modalAberto = funcionarios.formularioAberto || funcionarios.detalhesAbertos || Boolean(funcionarios.confirmacaoStatus);
+    const departamentoSelecionado = funcionarios.funcionarioSelecionado
+        ? funcionarios.departamentosPorId.get(funcionarios.funcionarioSelecionado.departamento_id)
+        : undefined;
 
     return (
         <div className="layout">
             <main className="main">
-                <div className="container">
-                    <h1 className="form-title">Cadastrar funcionário</h1>
-                    {mensagem && <div className="form-feedback success">{mensagem}</div>}
-                    {erro && <div className="form-feedback error">{erro}</div>}
-
-                    <form className="form-card" onSubmit={handleSubmit} autoComplete="off">
-                        <div className="form-grid">
-                            <div className="form-field">
-                                <label htmlFor="nome-funcionario">Nome</label>
-                                <input
-                                    id="nome-funcionario"
-                                    type="text"
-                                    className="form-input"
-                                    value={form.nome}
-                                    onChange={(event) => updateField("nome", event.target.value)}
-                                    required
-                                />
-                            </div>
-
-                            <div className="form-field">
-                                <label htmlFor="usuario-funcionario">Usuário</label>
-                                <input
-                                    id="usuario-funcionario"
-                                    type="text"
-                                    className="form-input"
-                                    placeholder="login do funcionário"
-                                    value={form.usuario}
-                                    onChange={(event) => updateField("usuario", event.target.value)}
-                                    required
-                                />
-                            </div>
-
-                            <div className="form-field">
-                                <label>Departamento</label>
-                                <CustomSelect
-                                    options={departamentoOptions}
-                                    value={form.departamento}
-                                    onChange={(value) => updateField("departamento", Number(value))}
-                                    placeholder={carregando ? "Carregando..." : "Selecione um departamento"}
-                                />
-                            </div>
-
-                            <div className="form-field">
-                                <label>Perfil</label>
-                                <CustomSelect
-                                    options={PERFIS}
-                                    value={form.tipo}
-                                    onChange={(value) => updateField("tipo", String(value))}
-                                    placeholder="Selecione um perfil"
-                                />
-                            </div>
-
-                            <div className="form-field">
-                                <label htmlFor="senha-funcionario">Senha</label>
-                                <input
-                                    id="senha-funcionario"
-                                    type="password"
-                                    className="form-input"
-                                    value={form.senha}
-                                    onChange={(event) => updateField("senha", event.target.value)}
-                                    autoComplete="new-password"
-                                    minLength={8}
-                                    required
-                                />
-                            </div>
+                <div className="container projetos-container funcionarios-container">
+                    <header className="projetos-page-header">
+                        <div>
+                            <p className="projetos-eyebrow">GESTÃO DO SGOS</p>
+                            <h1>Funcionários</h1>
+                            <p className="projetos-subtitle">Gerencie colaboradores, perfis de acesso e departamentos, preservando o histórico operacional.</p>
                         </div>
-
-                        <div className="form-actions">
-                            <button type="submit" className="btn-primary" disabled={salvando || carregando}>
-                                {salvando ? "Salvando..." : "Salvar funcionário"}
-                            </button>
-                            <button type="button" className="btn-secondary" onClick={() => setForm(INITIAL_FORM_STATE)} disabled={salvando}>
-                                Cancelar
-                            </button>
-                        </div>
-                    </form>
-
-                    <div className="form-card" style={{ marginTop: 20 }}>
-                        <strong style={{ color: "#fff" }}>Funcionários carregados da API</strong>
-                        {funcionarios.length === 0 ? (
-                            <p className="form-hint">Nenhum funcionário retornado pelo backend.</p>
-                        ) : (
-                            funcionarios.map((funcionario) => (
-                                <div key={funcionario.id} className="form-hint">
-                                    #{funcionario.id} — {funcionario.nome} — {funcionario.usuario} — {funcionario.tipo}
-                                </div>
-                            ))
+                        {funcionarios.podeGerenciar && (
+                            <button type="button" className="projeto-btn-primary" onClick={funcionarios.abrirCadastro}>+ Novo funcionário</button>
                         )}
+                    </header>
+
+                    {funcionarios.mensagem && !modalAberto && <div className="projetos-feedback projetos-feedback--success" role="status">{funcionarios.mensagem}</div>}
+                    {funcionarios.erro && !funcionarios.detalhesAbertos && !funcionarios.confirmacaoStatus && <div className="projetos-feedback projetos-feedback--error" role="alert">{funcionarios.erro}</div>}
+
+                    <FuncionariosToolbar
+                        funcionarios={funcionarios.funcionariosParaBusca}
+                        departamentos={funcionarios.departamentos}
+                        selecionadoId={funcionarios.funcionarioFiltroId}
+                        onSelecionadoChange={(id) => {
+                            funcionarios.setFuncionarioFiltroId(id);
+                            if (id !== null) funcionarios.setBusca("");
+                        }}
+                        onBuscaChange={(busca) => { funcionarios.setBusca(busca); funcionarios.setFuncionarioFiltroId(null); }}
+                        situacao={funcionarios.situacao}
+                        onSituacaoChange={(situacao) => {
+                            funcionarios.setSituacao(situacao);
+                            funcionarios.setFuncionarioFiltroId(null);
+                        }}
+                        perfil={funcionarios.perfil}
+                        onPerfilChange={funcionarios.setPerfil}
+                        podeGerenciar={funcionarios.podeGerenciar}
+                        carregando={funcionarios.carregandoOpcoes}
+                    />
+
+                    <div className="projetos-list-header">
+                        <div>
+                            <h2>{funcionarios.situacao === "inativos" && funcionarios.podeGerenciar ? "Funcionários inativos" : funcionarios.situacao === "todos" && funcionarios.podeGerenciar ? "Todos os funcionários" : "Funcionários ativos"}</h2>
+                            <p>{funcionarios.funcionariosFiltrados.length} resultado(s)</p>
+                        </div>
+                        {funcionarios.carregando && <span className="projetos-loading" role="status">Carregando…</span>}
                     </div>
+
+                    {funcionarios.carregando ? (
+                        <div className="projetos-empty" role="status"><span className="projetos-loading-mark" aria-hidden="true" />Carregando funcionários...</div>
+                    ) : funcionarios.erro && funcionarios.funcionariosAtivos.length === 0 ? (
+                        <div className="projetos-empty funcionarios-load-error"><strong>Não foi possível carregar os funcionários.</strong><p>{funcionarios.erro}</p><button type="button" className="projeto-btn-secondary" onClick={() => window.location.reload()}>Tentar novamente</button></div>
+                    ) : funcionarios.funcionariosFiltrados.length === 0 ? (
+                        <div className="projetos-empty">
+                            <strong>{funcionarios.situacao === "inativos" ? "Nenhum funcionário inativo encontrado" : "Nenhum funcionário encontrado"}</strong>
+                            <p>{funcionarios.busca || funcionarios.funcionarioFiltroId !== null || funcionarios.perfil !== "todos" ? "Altere a pesquisa ou os filtros para ver outros resultados." : funcionarios.situacao === "inativos" ? "Não há funcionários inativos para consultar." : "Ainda não há funcionários que correspondam a esta situação."}</p>
+                        </div>
+                    ) : (
+                        <div className="projetos-grid funcionarios-grid">
+                            {funcionarios.funcionariosFiltrados.map((funcionario) => (
+                                <FuncionarioCard
+                                    key={funcionario.id}
+                                    funcionario={funcionario}
+                                    departamento={funcionarios.departamentosPorId.get(funcionario.departamento_id)}
+                                    podeGerenciar={funcionarios.podeGerenciar}
+                                    bloqueado={funcionarios.salvando || funcionarios.alterandoStatusId !== null}
+                                    onAbrir={(selecionado) => void funcionarios.abrirDetalhes(selecionado)}
+                                    onEditar={funcionarios.iniciarEdicao}
+                                    onAlterarStatus={funcionarios.solicitarAlteracaoStatus}
+                                />
+                            ))}
+                        </div>
+                    )}
                 </div>
             </main>
-            <aside className="details" />
+
+            <FuncionarioFormModal
+                aberto={funcionarios.formularioAberto}
+                funcionario={funcionarios.funcionarioEmEdicao}
+                departamentos={funcionarios.departamentos}
+                salvando={funcionarios.salvando}
+                carregandoOpcoes={funcionarios.carregandoOpcoes}
+                erro={funcionarios.erro}
+                onClose={funcionarios.fecharFormulario}
+                onSave={funcionarios.salvarFuncionario}
+            />
+            <FuncionarioDetalhesModal
+                aberto={funcionarios.detalhesAbertos}
+                funcionario={funcionarios.funcionarioSelecionado}
+                departamento={departamentoSelecionado}
+                carregando={funcionarios.carregandoDetalhe}
+                erro={funcionarios.erro}
+                podeGerenciar={funcionarios.podeGerenciar}
+                onClose={funcionarios.fecharDetalhes}
+                onEditar={funcionarios.iniciarEdicao}
+                onAlterarStatus={funcionarios.solicitarAlteracaoStatus}
+            />
+            <FuncionarioStatusModal
+                funcionario={funcionarios.confirmacaoStatus?.funcionario ?? null}
+                acao={funcionarios.confirmacaoStatus?.acao ?? null}
+                processando={funcionarios.alterandoStatusId !== null}
+                erro={funcionarios.confirmacaoStatus ? funcionarios.erro : null}
+                onClose={funcionarios.fecharConfirmacaoStatus}
+                onConfirm={funcionarios.confirmarAlteracaoStatus}
+            />
         </div>
     );
 }

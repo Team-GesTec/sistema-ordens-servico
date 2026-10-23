@@ -1,39 +1,56 @@
-/**
- * models/modelProjeto.ts
- *
- * Tipos do objeto Projeto (US#1.2: projeto de implantação ligado a um cliente, com os
- * departamentos envolvidos).
- *
- * ALTERAÇÃO (16/09/2026): o model deixou de ser um array em memória com campos em camelCase.
- * Agora usa os nomes do schema.prisma (`id`, `cliente_id`, `data_prazo`, `status`) e ganhou o campo
- * `departamentos` (lista de ids), gravado na tabela de ligação `projetos_departamentos`.
- * O campo `nomeProjeto` foi REMOVIDO porque a tabela `projetos` não tem coluna de nome — para
- * voltar a tê-lo, o time precisa decidir e criar uma migration adicionando a coluna.
- */
+/** Tipos de domínio e contratos da API para projetos (AJ-02). */
 import type { projetos } from '../prisma/generated/client';
-import { status_projeto } from '../prisma/generated/enums';
+import { status_projeto as enumStatusProjeto } from '../prisma/generated/enums';
+import type { status_projeto } from '../prisma/generated/enums';
 
-/** Status válidos (espelho do enum `status_projeto`). */
-export const STATUS_PROJETO = Object.values(status_projeto);
-
-/** Um dos status de projeto. */
+export const STATUS_PROJETO = Object.values(enumStatusProjeto);
 export type StatusProjeto = status_projeto;
+export const STATUS_PADRAO: StatusProjeto = enumStatusProjeto.em_planejamento;
 
-/** Status atribuído quando o cadastro não informa `status` (mesmo default do schema). */
-export const STATUS_PADRAO: StatusProjeto = status_projeto.em_planejamento;
+export interface OrdemServicoProjeto {
+    id: number;
+    titulo: string;
+    status: string;
+    ativo: boolean;
+    data_criacao: Date;
+    data_fim: Date | null;
+    data_limite_sla: Date | null;
+}
 
-/** Projeto como a API devolve e como fica no cache: dados da tabela + ids dos departamentos. */
-export type Projeto = projetos & { departamentos: number[] };
+export interface RelacionamentoProjeto {
+    id: number;
+    nome: string;
+    razao_social: string;
+}
 
-/** Dados validados para criar um projeto. */
+export interface DepartamentoProjeto {
+    id: number;
+    nome: string;
+}
+
+/** Contrato enxuto de listagem e de respostas das mutações; não inclui linhas de O.S. */
+export type Projeto = projetos & {
+    departamentos: number[];
+    departamentos_detalhes: DepartamentoProjeto[];
+    cliente: RelacionamentoProjeto;
+    total_os_elegiveis: number;
+    os_concluidas: number;
+    percentual_conclusao: number | null;
+}
+
+/** Contrato de detalhes; contém O.S. conforme as permissões do perfil autenticado. */
+export type ProjetoDetalhe = Projeto & {
+    ordens_servico: OrdemServicoProjeto[];
+}
+
 export interface DadosCriacaoProjeto {
+    nome: string;
     cliente_id: number;
     data_inicio: Date | null;
     data_fim: Date | null;
     status: StatusProjeto;
-    /** Ids dos departamentos envolvidos (sem repetição, pelo menos um). */
     departamentos: number[];
 }
 
-/** Dados validados para atualizar um projeto (só os campos presentes são alterados). */
+/** Dados válidos para atualização parcial. O campo `ativo` usa uma rota própria. */
 export type DadosAtualizacaoProjeto = Partial<DadosCriacaoProjeto>;

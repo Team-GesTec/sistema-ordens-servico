@@ -1,37 +1,31 @@
 /**
  * models/modelFuncionario.ts
  *
- * Tipos do objeto Funcionário.
+ * Tipos públicos e de escrita de Funcionário. `senha_hash` fica restrito ao login.
  */
 import type { funcionarios } from '../prisma/generated/client';
 import { tipo_perfil } from '../prisma/generated/enums';
 
-/** Perfis de acesso válidos (espelho do enum `tipo_perfil`: gestor, analista, tecnico). */
+/** Perfis válidos definidos pelo enum do schema. */
 export const PERFIS_FUNCIONARIO = Object.values(tipo_perfil);
-
-/** Um dos perfis de acesso. */
 export type PerfilFuncionario = tipo_perfil;
-
-/** Perfil atribuído quando o cadastro não informa `tipo` (mesmo default do schema). */
 export const PERFIL_PADRAO: PerfilFuncionario = tipo_perfil.tecnico;
 
-/**
- * Registro COMPLETO, incluindo `senha_hash`.
- * Uso restrito ao login (`serviceAuth`). Nunca deve ser devolvido pela API nem ir para o cache.
- */
+/** Registro completo, com hash, usado exclusivamente pelo fluxo de autenticação. */
 export type FuncionarioComSenha = funcionarios;
 
-/** Funcionário como a API devolve e como fica no cache — SEM `senha_hash`. */
+/** Contrato público/cache: nunca inclui `senha_hash`. */
 export type Funcionario = Omit<funcionarios, 'senha_hash'>;
 
-/** Dados validados para criar um funcionário (a senha já chega aqui como hash). */
+/** Dados validados para criação; `senha_hash` já está protegido por hash. */
 export interface DadosCriacaoFuncionario {
     departamento_id: number;
     usuario: string;
     senha_hash: string;
     nome: string;
     tipo: PerfilFuncionario;
+    ativo: boolean;
 }
 
-/** Dados validados para atualizar um funcionário (só os campos presentes são alterados). */
-export type DadosAtualizacaoFuncionario = Partial<DadosCriacaoFuncionario>;
+/** Dados atualizáveis. O estado `ativo` é controlado por endpoints dedicados. */
+export type DadosAtualizacaoFuncionario = Partial<Omit<DadosCriacaoFuncionario, 'ativo'>>;

@@ -50,6 +50,18 @@ export class RepositoryOrdemServico {
         }
     }
 
+    /**
+     * Cria uma OS dentro de uma transação (usado no cadastro de O.S. antiga — AJ-06).
+     * Não mexe no cache: quem chama deve chamar `atualizarCache` depois que a transação terminar.
+     */
+    async criarNaTransacao(dados: DadosCriacaoOrdemServico, conexao: Prisma.TransactionClient): Promise<OrdemServico> {
+        try {
+            return await conexao.ordens_servico.create({ data: dados });
+        } catch (erro) {
+            throw traduzirErroPrisma(erro, { referenciaInvalida: REFERENCIA_INVALIDA });
+        }
+    }
+
     /** Atualiza os campos informados de uma OS e atualiza o cache. */
     async atualizar(id: number, dados: DadosAtualizacaoOrdemServico): Promise<OrdemServico> {
         try {
@@ -64,26 +76,33 @@ export class RepositoryOrdemServico {
         }
     }
 
-    /** Coloca no cache a versão já gravada de uma OS. Chamar depois que a transação terminar */
-    atualizarCache(ordem: OrdemServico): void {
-        ordemServicoCache.definir(ordem)
-    }
-    /** Remove uma OS. Bloqueado (409) se ainda houver anexos ou funcionários ligados a ela. */
-    async remover(id: number): Promise<void> {
+     /**
+     * Atualiza os campos informados de uma OS dentro de uma transação.
+     * Não mexe no cache: quem chama deve chamar `limparCache` depois que a transação terminar.
+     */
+    async atualizarNaTransacao(
+        id: number,
+        dados: DadosAtualizacaoOrdemServico,
+        conexao: Prisma.TransactionClient
+    ): Promise<OrdemServico> {
         try {
-            await prisma.ordens_servico.delete({ where: { id }, select: { id: true } });
-            ordemServicoCache.remover(id);
+            return await conexao.ordens_servico.update({ where: { id }, data: dados });
         } catch (erro) {
             throw traduzirErroPrisma(erro, {
                 registroNaoEncontrado: 'Ordem de Serviço não encontrada',
-                referenciaEmUso: 'Não é possível excluir: a OS ainda tem anexos ou funcionários vinculados.',
+                referenciaInvalida: REFERENCIA_INVALIDA,
             });
         }
     }
 
+    /** Coloca no cache a versão já gravada de uma OS. Chamar depois que a transação terminar. */
+    atualizarCache(ordem: OrdemServico): void {
+        ordemServicoCache.definir(ordem);
+    }
+
     /**
      * Atribui ou substitui o responsável e registra a auditoria na mesma transação.
-     * 
+     *
      * A atualização condicional impede que duas requisições sobrescrevam uma à outra.
     */
     async atribuirResponsavel(dados: DadosAtribuicaoResponsavel): Promise<OrdemServico> {
@@ -95,6 +114,20 @@ export class RepositoryOrdemServico {
         } = dados;
 
         const atualizada = await prisma.$transaction(async (tx) => {
+            // Mesmo lock usado na inativação de funcionários e na abertura de O.S. atribuída.
+            // Assim a validação não corre em paralelo com a mudança ativo=true -> false.
+            await tx.$executeRaw`SELECT pg_advisory_xact_lock(734031, 3)`;
+            const responsavel = await tx.funcionarios.findUnique({
+                where: { id: responsavelId },
+                select: { id: true, ativo: true },
+            });
+            if (!responsavel) {
+                throw AppError.requisicaoInvalida('responsavel_id não corresponde a um funcionário existente');
+            }
+            if (!responsavel.ativo) {
+                throw AppError.conflito('Não é possível atribuir uma O.S. a um funcionário inativo');
+            }
+
             const ordemAtual = await tx.ordens_servico.findUnique({ where: { id: osId } });
 
             if (!ordemAtual) {
@@ -149,7 +182,7 @@ export class RepositoryOrdemServico {
     async atualizarStatus(
         id: number,
         dados: DadosAlteracaoStatus,
-        conexao: Prisma.TransactionClient = prisma,
+        conexao: Prisma.TransactionClient = prisma
     ): Promise<OrdemServico> {
         const atualizada = await conexao.ordens_servico.update({
             where: { id },

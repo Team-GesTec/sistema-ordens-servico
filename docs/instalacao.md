@@ -1,197 +1,213 @@
-# Instalação e execução local do Sistema Gerenciador de Ordem de Serviço
-Esse arquivo tem como propósito guiar na instalação e execução do SGOS localmente utilizando PostgreSQL.
+# Instalação e execução do SGOS com Supabase + Prisma
 
-## Requisitos
-Instale as dependências externas `git, node, postgresql`.
+Este guia prepara o SGOS em uma máquina de desenvolvimento usando o PostgreSQL hospedado no Supabase. **Não é necessário instalar PostgreSQL localmente para executar a aplicação.** O backend Express conecta ao banco via Prisma; o frontend conversa somente com a API.
 
-### Git
-Instale o `Git` para baixar o repositório. O comando pode variar dependendo do sistema operacional. Para usuários de Ubuntu, segue o comando
+## 1. Requisitos
 
-```bash
-sudo apt update
-sudo apt install git
-```
+- Git.
+- Node.js 22 ou superior e npm.
+- Acesso ao repositório SGOS.
+- Acesso autorizado ao projeto Supabase de desenvolvimento, ou as instruções de conexão fornecidas pelo responsável pelo ambiente.
 
-### Node
-Instale o `Node` para executar o frontend e o backend do projeto.
+Não crie outro projeto Supabase por conta própria se a equipe já tiver um banco compartilhado. Confirme com o responsável qual ambiente usar.
+
+## 2. Clonar o repositório
 
 ```bash
-sudo apt update
-sudo apt install nodejs npm
+git clone https://github.com/Team-GesTec/sistema-ordens-servico.git
+cd sistema-ordens-servico
 ```
 
-### PostgreSQL
-Instale o `PostgreSQL` para criar e executar o banco local.
+Selecione a branch indicada para a task conforme o [Guia de Contribuição](../CONTRIBUTING.md). A `main` é protegida: não faça commits diretamente nela.
+
+## 3. Obter a conexão do Supabase
+
+No painel do Supabase, abra o projeto autorizado e selecione **Connect → Session pooler → URI**. A equipe utiliza o Session Pooler na porta `5432`, adequado quando a máquina conecta por IPv4. Copie a URI completa mostrada pelo painel.
+
+A URI geralmente tem esta estrutura (os valores são ilustrativos; não copie este exemplo literalmente):
+
+```text
+postgresql://postgres.PROJECT_REF:SENHA_URL_ENCODED@HOST_DO_POOLER:5432/postgres
+```
+
+- `postgres.PROJECT_REF`: usuário exibido pelo Session Pooler.
+- `SENHA_URL_ENCODED`: senha do banco PostgreSQL do Supabase, não a senha da conta usada para entrar no painel.
+- `HOST_DO_POOLER`: host exato exibido pelo painel.
+- `postgres`: banco de dados indicado pela conexão.
+
+Se a senha tiver caracteres reservados de URL (por exemplo `@`, `:`, `/`, `#` ou `%`), eles precisam estar codificados na URI. Use os valores copiados do painel e não compartilhe a URL com terceiros.
+
+## 4. Configurar `backend/.env`
+
+Na raiz do repositório, copie o modelo.
+
+PowerShell:
+
+```powershell
+Copy-Item backend/.env.example backend/.env
+```
+
+macOS/Linux:
 
 ```bash
-sudo apt update
-sudo apt install postgresql postgresql-contrib
+cp backend/.env.example backend/.env
 ```
 
-## Criando o banco local
+Edite `backend/.env` e substitua os placeholders. As variáveis de conexão são:
 
-Para criar o banco, execute os passos a seguir
+- `DATABASE_URL`: conexão que o backend Express usa para consultar o PostgreSQL.
+- `DIRECT_URL`: conexão que o Prisma CLI utiliza para comandos de migration, conforme `prisma.config.ts`.
 
-- Acesse o PostgreSQL como superusuário
+Na configuração atualmente adotada pelo SGOS, use a URI **Session Pooler** copiada do painel em ambas as variáveis. Não adicione `SHADOW_DATABASE_URL` se a configuração atual do `prisma.config.ts` do repositório não a utiliza.
+
+Configure também:
+
+- `JWT_SECRET`: segredo aleatório com no mínimo 32 caracteres. Gere-o com:
+
+  ```bash
+  node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"
+  ```
+
+- `JWT_EXPIRES_IN=8h`: validade dos tokens JWT.
+- `PORT=3000`: porta local da API.
+- `CORS_ORIGIN=http://localhost:5173`: origem local do frontend. Se o Vite iniciar em outra porta, atualize esse valor para corresponder à origem exibida no terminal.
+- `SEED_*`: variáveis usadas somente ao cadastrar os usuários iniciais pelo seed.
+
+**Segurança:** não faça commit de `backend/.env`; ele contém credenciais. O `.gitignore` deve continuar ignorando arquivos `.env`, com exceção dos modelos `.env.example`. Nunca coloque URLs PostgreSQL, senhas, `JWT_SECRET` ou credenciais do seed no frontend ou em variáveis `VITE_*`.
+
+## 5. Instalar o backend e verificar o banco
+
+No PowerShell:
+
+```powershell
+cd backend
+npm ci
+npm run prisma:generate
+npm run db:status
+```
+
+`npm run db:status` consulta o histórico de migrations configurado em `DIRECT_URL`. Se houver um erro de autenticação (`P1000`), confira se copiou a senha do banco e o usuário do Session Pooler corretamente. Se ocorrer erro de conexão (`P1001`), confira host, porta, rede e URL.
+
+### Aplicar migrations pendentes
+
+Somente a pessoa responsável pelo banco compartilhado, ou alguém explicitamente autorizado, deve aplicar migrations. Antes de executar, confirme que `DIRECT_URL` aponta para o **ambiente de desenvolvimento correto**.
+
+```powershell
+npx prisma migrate deploy
+npm run db:status
+```
+
+`prisma migrate deploy` aplica o SQL das migrations já versionadas que ainda estejam pendentes. Ele não executa um reset automático, não gera novas migrations, não executa o seed e não depende de um shadow database. Leia/revise o SQL antes de aplicar: uma migration pode conter operações de alteração ou remoção de dados/estruturas.
+
+**Nunca execute `npx prisma migrate reset` no Supabase compartilhado.** Esse comando pode apagar dados. Evite também `prisma db push` como substituto de migrations em um projeto que mantém histórico versionado.
+
+### Seed inicial
+
+O seed cria os usuários iniciais e os departamentos necessários, usando as variáveis `SEED_*`. Deve ser executado de forma coordenada, normalmente uma vez durante a preparação inicial do ambiente:
+
+```powershell
+npm run db:seed
+```
+
+O seed é idempotente quanto à existência dos usuários, mas **não altera a senha ou os dados de um usuário que já existe**. Não execute o seed em um banco compartilhado sem combinar quais credenciais serão usadas. Se o banco de desenvolvimento já foi preparado pela equipe, não é necessário rodar novamente.
+
+## 6. Observação importante sobre novas migrations e shadow database
+
+A configuração adotada para executar e aplicar migrations existentes usa `prisma migrate deploy`, que não precisa de shadow database. Isso elimina a necessidade de configurar `SHADOW_DATABASE_URL` para esse fluxo.
+
+Porém, isso **não elimina a exigência interna do Prisma para criar migrations com `prisma migrate dev`**: esse comando usa um shadow database para reconstruir o histórico e detectar divergências. Se a URL de shadow não estiver configurada, o Prisma poderá tentar criar um banco temporário automaticamente, o que pode não ser permitido pelo provedor hospedado.
+
+Antes de alterar `schema.prisma` e gerar migrations novas, a equipe deve usar um fluxo de autoria isolado e aprovado. Não execute `migrate dev` contra o banco compartilhado de desenvolvimento/produção e não configure a URL principal como shadow. A configuração atual descrita neste guia cobre a aplicação das migrations que já estão versionadas; o fluxo de geração de novas migrations precisa respeitar esse requisito do Prisma.
+
+Referências oficiais:
+
+- [Prisma — `migrate deploy`](https://www.prisma.io/docs/orm/v7/prisma-migrate/workflows/development-and-production)
+- [Prisma — shadow database](https://www.prisma.io/docs/orm/v7/prisma-migrate/understanding-prisma-migrate/shadow-database)
+- [Supabase — Prisma](https://supabase.com/docs/guides/database/prisma)
+
+## 7. Executar o backend
+
+Ainda na pasta `backend/`:
+
+```powershell
+npm run dev
+```
+
+Mantenha esse terminal aberto. Em outro terminal, teste a saúde da API:
+
+```powershell
+Invoke-RestMethod http://localhost:3000/health
+```
+
+A resposta esperada é `status: ok`.
+
+## 8. Configurar e executar o frontend
+
+Em outro terminal, a partir da raiz do repositório, copie o modelo:
+
+PowerShell:
+
+```powershell
+Copy-Item frontend/.env.example frontend/.env
+```
+
+macOS/Linux:
+
 ```bash
-sudo -u postgres psql
-```
-No Windows, abra o psql (via SQL Shell) e conecte como postgres.
-
-- Crie o usuário (role). É necessário o atributo `CREATEDB`, pois o Prisma precisa criar um banco temporário ("shadow database") ao rodar migrations.
-```sql
-CREATE USER meu_usuario WITH PASSWORD 'minha_senha' CREATEDB;
+cp frontend/.env.example frontend/.env
 ```
 
-- Crie o banco de dados
-```sql
-CREATE DATABASE meu_banco OWNER meu_usuario;
-```
-
-- Dê permissões (se necessário)
-```sql
-GRANT ALL PRIVILEGES ON DATABASE meu_banco TO meu_usuario;
-```
-
-- Saia do psql (`\q`) e teste a conexão pelo terminal do sistema
-```bash
-psql "postgresql://meu_usuario:minha_senha@localhost:5432/meu_banco"
-```
-A porta 5432 é a padrão do Postgres. Se conectar e mostrar `meu_banco=>`, a URL está correta.
-
-## Clonando o repositório
-
-Para baixar o projeto, execute os comandos abaixo no terminal.
-
-```bash
-git clone -b feature/transversal https://github.com/Team-GesTec/sistema-ordens-servico.git
-cd sistema-ordens-servico/
-```
-
-## Configurando o .env do backend
-
-Dentro da pasta `backend/`, defina as variáveis `DATABASE_URL` e `DIRECT_URL` com o mesmo link do Postgres usado no teste de conexão.
-
-Crie também as variáveis `SEED_GESTOR_USUARIO` e `SEED_GESTOR_SENHA`. Esse será o login inicial para realizar o cadastro de tudo no SGOS.
-
-Por exemplo:
-```env
-SEED_GESTOR_USUARIO=admin
-SEED_GESTOR_SENHA=admin1234
-```
-
-É necessário definir a variável `JWT_SECRET`. Para gerar um valor aleatório, execute:
-
-```bash
-node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"
-```
-
-Defina também `CORS_ORIGIN`, apontando para a URL onde o frontend vai rodar (ver seção "Configurando o .env do frontend" abaixo):
-
-```env
-CORS_ORIGIN=http://localhost:5173
-```
-
-Exemplo completo de `backend/.env`:
-```env
-PORT=3000
-
-DATABASE_URL="postgresql://meu_usuario:minha_senha@localhost:5432/meu_banco"
-DIRECT_URL="postgresql://meu_usuario:minha_senha@localhost:5432/meu_banco"
-
-JWT_SECRET=<valor gerado pelo comando acima>
-JWT_EXPIRES_IN=8h
-
-CORS_ORIGIN=http://localhost:5173
-
-SEED_GESTOR_USUARIO=admin
-SEED_GESTOR_SENHA=admin1234
-```
-
-## Configurando o .env do frontend
-
-Dentro da pasta `frontend/`, crie o arquivo `.env` com a URL do backend:
+O valor padrão de `frontend/.env` deve ser:
 
 ```env
 VITE_API_URL=http://localhost:3000
 ```
 
-Sem essa variável, o frontend não consegue localizar a API e o login falha silenciosamente.
+Essa URL é do Express, **não do Supabase**. Depois, execute:
 
-## Conferindo a porta do Vite
-
-Verifique o arquivo `frontend/vite.config.ts`. A porta do frontend **não pode ser igual à porta do backend** (`3000`), senão o Vite sobe em outra porta automaticamente e quebra o CORS. Garanta que está configurada para `5173` (padrão do Vite, já usado no `VITE_API_URL`/`CORS_ORIGIN` acima):
-
-```ts
-export default defineConfig({
-    plugins: [react()],
-    server: {
-        port: 5173
-    }
-});
-```
-
-## Configurando o banco de dados via Prisma
-
-Entre na pasta `backend/` pelo terminal, instale as dependências e gere o client do Prisma:
-
-```bash
-cd backend/
-npm i
-npx prisma generate
-```
-
-Aplique as migrations no banco. O jeito recomendado é resetar e aplicar todas do zero, garantindo que nenhuma tabela fique faltando:
-
-```bash
-npx prisma migrate reset
-```
-
-Esse comando apaga o banco configurado no `.env`, recria do zero e roda **todas** as migrations em ordem. Ele pede confirmação — digite `y`.
-
-> ⚠️ Se aparecer o erro `P3006`/`42710` (`type "..." already exists`), normalmente é sinal de que o banco já tem tipos ENUM criados manualmente ou por uma tentativa anterior de migration que não foi revertida corretamente. Nesse caso, confirme que o banco está limpo (rode `npx prisma migrate reset` a partir de um banco vazio) ou remova manualmente os tipos conflitantes antes de rodar o comando novamente. A migration atual do projeto é a `20260924_fix`, que já contém o schema completo.
-
-Execute a seed inicial (caso não rode automaticamente pelo `migrate reset`):
-```bash
-npm run db:seed
-```
-
-## Executando o projeto
-
-Dentro da pasta do projeto, execute os comandos a seguir para rodar o SGOS.
-
-### Executando o backend
-
-```bash
-cd backend/
-npm i
+```powershell
+cd frontend
+npm ci
 npm run dev
 ```
 
-Teste se subiu corretamente:
-```bash
-curl http://localhost:3000/health
+Abra `http://localhost:5173`. Mantenha os terminais do frontend e backend abertos durante o desenvolvimento.
+
+## 9. Testes básicos
+
+No diretório `backend/`:
+
+```powershell
+npm run build
+npm test
 ```
 
-### Executando o frontend
+No diretório `frontend/`:
 
-Abra outro terminal na raiz do projeto e execute os comandos a seguir.
-
-```bash
-cd frontend/
-npm i
-npm run dev
+```powershell
+npm run lint
+npm run build
 ```
 
-Acesse `http://localhost:5173` no navegador e faça login com o usuário/senha definidos em `SEED_GESTOR_USUARIO`/`SEED_GESTOR_SENHA`.
+Faça login com as credenciais de desenvolvimento fornecidas de forma segura pelo responsável pelo ambiente. Não há credenciais padrão que devam ser copiadas do repositório.
 
-## Resolução de problemas comuns
+## 10. Problemas comuns
 
-| Sintoma | Causa provável | Solução |
+| Sintoma | Causa provável | O que verificar |
 |---|---|---|
-| `psql: FATAL: password authentication failed` | Senha do usuário do Postgres incorreta | `ALTER USER meu_usuario WITH PASSWORD 'minha_senha';` |
-| `permission denied to create database` (P3014) | Usuário sem permissão `CREATEDB` | `ALTER USER meu_usuario CREATEDB;` |
-| `type "..." already exists` (P3006/42710) | ENUM duplicado entre migrations | Remover a criação duplicada na migration mais recente |
-| `The table "..." does not exist` | Migrations marcadas como aplicadas sem nunca terem rodado de fato | Rodar `npx prisma migrate reset` |
-| "Não foi possível conectar à API" no login, sem nada no Network | Falta `VITE_API_URL` no `frontend/.env`, ou processo não reiniciado após criar o `.env` | Criar/conferir `VITE_API_URL` e reiniciar `npm run dev` do frontend |
-| "Não foi possível conectar à API" no login, com erro de CORS ou fetch falhando | Porta do frontend colidindo com a do backend, ou `CORS_ORIGIN` não bate com a porta real do frontend | Garantir que `vite.config.ts` usa porta `5173`, diferente da porta do backend, e que `CORS_ORIGIN` aponta para essa mesma URL |
+| `P1000: Authentication failed` | Usuário ou senha do PostgreSQL incorretos | Copie de novo a URI Session Pooler; confirme a senha do banco (não a senha da conta Supabase); codifique caracteres reservados da URL. |
+| `P1001: Can't reach database server` | Host/porta/rede incorretos ou conexão indisponível | Confirme host e porta no painel, conexão Session Pooler e acesso à rede. |
+| `P1003: Database does not exist` | Nome do banco incorreto ou banco diferente do configurado | Confira o caminho final da URI; para a URI apresentada pelo painel, use o nome de banco nela indicado. |
+| `Database schema is not up to date` | Há migrations versionadas pendentes | Verifique o ambiente apontado por `DIRECT_URL`; com autorização, use `npx prisma migrate deploy`. |
+| `The table does not exist` | Migrations não foram aplicadas no banco usado pela API ou as URLs apontam para projetos diferentes | Compare o destino de `DATABASE_URL` e `DIRECT_URL`, execute `npm run db:status` e confira as tabelas no Supabase. |
+| O login não consegue acessar a API | Backend parado ou `VITE_API_URL` incorreta | Confirme `http://localhost:3000/health` e `frontend/.env`; reinicie o Vite após alterar o `.env`. |
+| Erro de CORS | `CORS_ORIGIN` não corresponde à origem do frontend | Ajuste `CORS_ORIGIN` no backend para a URL real mostrada pelo Vite e reinicie a API. |
+| Seed diz que o usuário já existe | O seed não altera usuário preexistente | Use o login já provisionado. Para redefinir credenciais, utilize um procedimento administrativo aprovado; não apague o banco nem execute reset. |
+
+## 11. Rotina ao começar a trabalhar
+
+1. Confirme que está na branch da task correta.
+2. Atualize o código e instale dependências com `npm ci` quando o lockfile mudar.
+3. Confira `backend/.env` e `frontend/.env`; não os compartilhe nem faça commit deles.
+4. Em um banco já preparado, normalmente basta iniciar backend e frontend. Se houver uma migration nova aprovada, combine sua aplicação com o responsável pelo banco.
+5. Não use comandos de reset no Supabase compartilhado.

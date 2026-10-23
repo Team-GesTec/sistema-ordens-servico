@@ -10,7 +10,6 @@ import "../styles/darkmode.css";
 import "../styles/forms.css";
 import CustomSelect from "../components/CustomSelect";
 import type { SelectOption } from "../components/CustomSelect";
-import { getStoredUser } from "../services/auth";
 import { ApiError } from "../services/api";
 import { ordemServicoService } from "../services/ordemServico";
 import type { NivelCriticidade, OrdemServico, StatusOrdemServico, TipoOrdemServico } from "../types/api";
@@ -18,12 +17,10 @@ import type { NivelCriticidade, OrdemServico, StatusOrdemServico, TipoOrdemServi
 const setorOptions: SelectOption[] = [{ value: 0, label: "Todos os setores" }];
 
 const STATUS_LABELS: Record<StatusOrdemServico, string> = {
-    pendente: "Pendente",
     em_andamento: "Em andamento",
-    aguardando_embarque: "Aguardando embarque",
+    aguardando: "Aguardando",
     validacao_testes: "Validação de testes",
     bloqueado: "Bloqueado",
-    review: "Review",
     concluido: "Concluído",
 };
 
@@ -46,7 +43,6 @@ function Home() {
     const [ordens, setOrdens] = useState<OrdemServico[]>([]);
     const [carregando, setCarregando] = useState(true);
     const [erro, setErro] = useState<string | null>(null);
-    const usuario = getStoredUser();
 
     useEffect(() => {
         ordemServicoService
@@ -90,7 +86,7 @@ function Home() {
                         <CustomSelect
                             options={setorOptions}
                             value={selectedSetor}
-                            onChange={setSelectedSetor}
+                            onChange={(value) => setSelectedSetor(Number(value))}
                             placeholder="Todos os setores"
                         />
 

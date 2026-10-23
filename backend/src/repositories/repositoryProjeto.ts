@@ -1,139 +1,271 @@
-/**
- * repositories/repositoryProjeto.ts
- *
- * Acesso a dados de Projeto: ÚNICO lugar que fala com `prisma.projetos` e com a tabela de
- * ligação `prisma.projetos_departamentos`.
- *
- * No banco, os departamentos de um projeto ficam em `projetos_departamentos`. Para a API (e para
- * o cache), o projeto é "achatado" num único objeto com `departamentos: number[]`.
- */
+/** Acesso persistente a projetos e à auditoria própria da AJ-02. */
 import { prisma } from '../prisma/client';
-import { projetoCache } from '../cache/projetoCache';
-import { traduzirErroPrisma } from '../errors/tratarErroPrisma';
-import type { projetos } from '../prisma/generated/client';
-import type { DadosAtualizacaoProjeto, DadosCriacaoProjeto, Projeto } from '../models/modelProjeto';
+import { AppError } from '../errors/AppError';
+import { repositoryAuditoriaProjeto } from './repositoryAuditoriaProjeto';
+import { bloquearProjetosRelacionados } from '../utils/projetoOsInvariant';
+import type { CampoAuditoriaProjeto } from '../models/modelAuditoriaProjeto';
+import type { DadosAtualizacaoProjeto, DadosCriacaoProjeto, Projeto, ProjetoDetalhe } from '../models/modelProjeto';
 
-/** O que o Prisma deve trazer junto com o projeto: só os ids dos departamentos ligados. */
-const INCLUIR_DEPARTAMENTOS = {
+const INCLUIR_PROJETO_BASE = {
+    clientes: { select: { id: true, nome: true, razao_social: true } },
     projetos_departamentos: {
-        select: { departamento_id: true },
+        select: {
+            departamento_id: true,
+            departamentos: { select: { id: true, nome: true } },
+        },
         orderBy: { departamento_id: 'asc' },
     },
 } as const;
 
-/** Formato em que o Prisma devolve o projeto com o `include` acima. */
-type ProjetoDoBanco = projetos & { projetos_departamentos: { departamento_id: number }[] };
+const SELECIONAR_OS_DETALHE = {
+    id: true,
+    titulo: true,
+    status: true,
+    ativo: true,
+    data_criacao: true,
+    data_fim: true,
+    data_limite_sla: true,
+} as const;
 
-/** Mensagem para quando `cliente_id` ou algum departamento não existe. */
-const REFERENCIA_INVALIDA = 'cliente_id ou algum id em departamentos não existe';
-
-/**
- * Converte o registro do Prisma (com a tabela de ligação) no formato da API.
- * @param registro Projeto vindo do Prisma com `projetos_departamentos`.
- */
-function paraProjeto(registro: ProjetoDoBanco): Projeto {
-    const { projetos_departamentos: ligacoes, ...dados } = registro;
-    return { ...dados, departamentos: ligacoes.map((ligacao) => ligacao.departamento_id) };
+function consultarProjetoBasePorId(id: number) {
+    return prisma.projetos.findUnique({ where: { id }, include: INCLUIR_PROJETO_BASE });
 }
 
-/**
- * Monta os registros da tabela de ligação para um `create` aninhado.
- * @param departamentos Ids dos departamentos envolvidos.
- */
-function ligacoesDepartamentos(departamentos: number[]): { departamento_id: number }[] {
-    return departamentos.map((departamento_id) => ({ departamento_id }));
+type RegistroProjetoBase = NonNullable<Awaited<ReturnType<typeof consultarProjetoBasePorId>>>;
+type ContagensOS = {
+    total_os_elegiveis: number;
+    os_concluidas: number;
+    percentual_conclusao: number | null;
+};
+
+function textoAuditoria(valor: unknown): string | null {
+    if (valor === null || valor === undefined) return null;
+    if (valor instanceof Date) return valor.toISOString();
+    if (Array.isArray(valor)) return JSON.stringify(valor) ?? String(valor);
+    if (typeof valor === 'object') return JSON.stringify(valor) ?? String(valor);
+    return String(valor);
+}
+
+/** Agrega apenas as O.S. ativas e os campos de agrupamento, sem carregar O.S. completas. */
+async function obterContagensOS(projetoIds: number[]): Promise<Map<number, ContagensOS>> {
+    const contagens = new Map<number, ContagensOS>();
+    for (const id of projetoIds) {
+        contagens.set(id, {
+            total_os_elegiveis: 0,
+            os_concluidas: 0,
+            percentual_conclusao: null,
+        });
+    }
+    if (projetoIds.length === 0) return contagens;
+
+    const grupos = await prisma.ordens_servico.groupBy({
+        by: ['projeto_id', 'status'],
+        where: { projeto_id: { in: projetoIds }, ativo: true },
+        _count: { _all: true },
+    });
+
+    for (const grupo of grupos) {
+        if (grupo.projeto_id === null) continue;
+        const atual = contagens.get(grupo.projeto_id);
+        if (!atual) continue;
+        const quantidade = grupo._count._all;
+        atual.total_os_elegiveis += quantidade;
+        if (grupo.status === 'concluido') atual.os_concluidas += quantidade;
+    }
+
+    for (const atual of contagens.values()) {
+        atual.percentual_conclusao = atual.total_os_elegiveis === 0
+            ? null
+            : Number(((atual.os_concluidas / atual.total_os_elegiveis) * 100).toFixed(2));
+    }
+    return contagens;
+}
+
+function paraProjetoResumo(registro: RegistroProjetoBase, contagens: ContagensOS): Projeto {
+    const { clientes, projetos_departamentos, ...campos } = registro;
+    return {
+        ...campos,
+        cliente: clientes,
+        departamentos: projetos_departamentos.map((ligacao) => ligacao.departamento_id),
+        departamentos_detalhes: projetos_departamentos.map((ligacao) => ({
+            id: ligacao.departamentos.id,
+            nome: ligacao.departamentos.nome,
+        })),
+        ...contagens,
+    };
+}
+
+async function paraListaResumo(registros: RegistroProjetoBase[]): Promise<Projeto[]> {
+    const contagens = await obterContagensOS(registros.map((registro) => registro.id));
+    return registros.map((registro) => paraProjetoResumo(registro, contagens.get(registro.id)!));
+}
+
+function dadosParaAuditoria(dados: DadosCriacaoProjeto): CampoAuditoriaProjeto[] {
+    return [
+        { campo: 'nome', antigo: null, novo: dados.nome },
+        { campo: 'cliente_id', antigo: null, novo: String(dados.cliente_id) },
+        { campo: 'data_inicio', antigo: null, novo: textoAuditoria(dados.data_inicio) },
+        { campo: 'data_fim', antigo: null, novo: textoAuditoria(dados.data_fim) },
+        { campo: 'status', antigo: null, novo: dados.status },
+        { campo: 'ativo', antigo: null, novo: 'true' },
+        { campo: 'departamentos', antigo: null, novo: textoAuditoria(dados.departamentos) },
+    ];
 }
 
 export class RepositoryProjeto {
-    /** Lista todos os projetos com seus departamentos (cache → banco). */
-    async listar(): Promise<Projeto[]> {
-        return projetoCache.obterTodos(async () => {
-            const registros = await prisma.projetos.findMany({
-                include: INCLUIR_DEPARTAMENTOS,
-                orderBy: { id: 'asc' },
-            });
-            return registros.map(paraProjeto);
+    /** A listagem retorna resumo e agregações; nunca inclui as linhas das O.S. */
+    async listar(ativo?: boolean): Promise<Projeto[]> {
+        const registros = await prisma.projetos.findMany({
+            ...(ativo === undefined ? {} : { where: { ativo } }),
+            include: INCLUIR_PROJETO_BASE,
+            orderBy: [{ nome: 'asc' }, { id: 'asc' }],
         });
+        return paraListaResumo(registros);
     }
 
-    /** Busca um projeto pelo id (cache → banco). Devolve `null` se não existir. */
-    async buscarPorId(id: number): Promise<Projeto | null> {
-        return projetoCache.obterPorId(id, async () => {
-            const registro = await prisma.projetos.findUnique({ where: { id }, include: INCLUIR_DEPARTAMENTOS });
-            return registro ? paraProjeto(registro) : null;
+    /** Detalhes preservam O.S. inativas somente para Gestor. */
+    async buscarPorId(id: number, incluirOSInativas = false): Promise<ProjetoDetalhe | null> {
+        const registro = await prisma.projetos.findUnique({
+            where: { id },
+            include: {
+                ...INCLUIR_PROJETO_BASE,
+                ordens_servico: {
+                    ...(incluirOSInativas ? {} : { where: { ativo: true } }),
+                    select: SELECIONAR_OS_DETALHE,
+                    orderBy: { id: 'desc' },
+                },
+            },
         });
+        if (!registro) return null;
+
+        const { ordens_servico, ...base } = registro;
+        const contagens = (await obterContagensOS([registro.id])).get(registro.id)!;
+        const resumo = paraProjetoResumo(base, contagens);
+        return {
+            ...resumo,
+            ordens_servico: ordens_servico.map((ordem) => ({
+                id: ordem.id,
+                titulo: ordem.titulo,
+                status: ordem.status,
+                ativo: ordem.ativo,
+                data_criacao: ordem.data_criacao,
+                data_fim: ordem.data_fim,
+                data_limite_sla: ordem.data_limite_sla,
+            })),
+        };
     }
 
-    /**
-     * Cria o projeto e as ligações com os departamentos numa única operação
-     * (o Prisma executa o create aninhado dentro de uma transação).
-     */
-    async criar(dados: DadosCriacaoProjeto): Promise<Projeto> {
-        const { departamentos, ...campos } = dados;
-        try {
-            const criado = await prisma.projetos.create({
-                data: { ...campos, projetos_departamentos: { create: ligacoesDepartamentos(departamentos) } },
-                include: INCLUIR_DEPARTAMENTOS,
+    async criar(dados: DadosCriacaoProjeto, funcionarioId: number): Promise<Projeto> {
+        const criado = await prisma.$transaction(async (tx) => {
+            const registro = await tx.projetos.create({
+                data: {
+                    nome: dados.nome,
+                    cliente_id: dados.cliente_id,
+                    data_inicio: dados.data_inicio,
+                    data_fim: dados.data_fim,
+                    status: dados.status,
+                    projetos_departamentos: {
+                        create: dados.departamentos.map((departamento_id) => ({ departamento_id })),
+                    },
+                },
+                include: INCLUIR_PROJETO_BASE,
             });
-            const projeto = paraProjeto(criado);
-            projetoCache.definir(projeto);
-            return projeto;
-        } catch (erro) {
-            throw traduzirErroPrisma(erro, { referenciaInvalida: REFERENCIA_INVALIDA });
-        }
+            await repositoryAuditoriaProjeto.registrarCampos(tx, registro.id, funcionarioId, 'insercao', dadosParaAuditoria(dados));
+            return registro;
+        });
+        const contagens = (await obterContagensOS([criado.id])).get(criado.id)!;
+        return paraProjetoResumo(criado, contagens);
     }
 
-    /**
-     * Atualiza os campos informados. Se `departamentos` vier, a lista antiga é substituída pela nova
-     * dentro de uma transação (apaga as ligações antigas e cria as novas — tudo ou nada).
-     */
-    async atualizar(id: number, dados: DadosAtualizacaoProjeto): Promise<Projeto> {
-        const { departamentos, ...campos } = dados;
-        try {
-            let registro: ProjetoDoBanco;
-            if (departamentos === undefined) {
-                registro = await prisma.projetos.update({ where: { id }, data: campos, include: INCLUIR_DEPARTAMENTOS });
-            } else {
-                const [, atualizado] = await prisma.$transaction([
-                    prisma.projetos_departamentos.deleteMany({ where: { projeto_id: id } }),
-                    prisma.projetos.update({
-                        where: { id },
-                        data: { ...campos, projetos_departamentos: { create: ligacoesDepartamentos(departamentos) } },
-                        include: INCLUIR_DEPARTAMENTOS,
-                    }),
-                ]);
-                registro = atualizado;
+    async atualizar(id: number, dados: DadosAtualizacaoProjeto, funcionarioId: number): Promise<Projeto> {
+        const atualizado = await prisma.$transaction(async (tx) => {
+            const anterior = await tx.projetos.findUnique({ where: { id }, include: INCLUIR_PROJETO_BASE });
+            if (!anterior) return null;
+
+            const { departamentos, ...campos } = dados;
+            if (departamentos !== undefined) {
+                await tx.projetos_departamentos.deleteMany({ where: { projeto_id: id } });
             }
-            const projeto = paraProjeto(registro);
-            projetoCache.definir(projeto);
-            return projeto;
-        } catch (erro) {
-            throw traduzirErroPrisma(erro, {
-                registroNaoEncontrado: 'Projeto não encontrado',
-                referenciaInvalida: REFERENCIA_INVALIDA,
+            const registro = await tx.projetos.update({
+                where: { id },
+                data: {
+                    ...campos,
+                    ...(departamentos !== undefined
+                        ? { projetos_departamentos: { create: departamentos.map((departamento_id) => ({ departamento_id })) } }
+                        : {}),
+                },
+                include: INCLUIR_PROJETO_BASE,
             });
-        }
+
+            const antigos: Record<string, unknown> = {
+                nome: anterior.nome,
+                cliente_id: anterior.cliente_id,
+                data_inicio: anterior.data_inicio,
+                data_fim: anterior.data_fim,
+                status: anterior.status,
+                departamentos: anterior.projetos_departamentos.map((item) => item.departamento_id),
+            };
+            const novos: Record<string, unknown> = {
+                nome: registro.nome,
+                cliente_id: registro.cliente_id,
+                data_inicio: registro.data_inicio,
+                data_fim: registro.data_fim,
+                status: registro.status,
+                departamentos: registro.projetos_departamentos.map((item) => item.departamento_id),
+            };
+            const camposAuditoria = Object.keys(novos)
+                .filter((campo) => campo in dados)
+                .filter((campo) => textoAuditoria(antigos[campo]) !== textoAuditoria(novos[campo]))
+                .map((campo) => ({ campo, antigo: textoAuditoria(antigos[campo]), novo: textoAuditoria(novos[campo]) }));
+            await repositoryAuditoriaProjeto.registrarCampos(tx, id, funcionarioId, 'atualizacao', camposAuditoria);
+            return registro;
+        });
+        if (!atualizado) throw AppError.naoEncontrado('Projeto não encontrado');
+        const contagens = (await obterContagensOS([atualizado.id])).get(atualizado.id)!;
+        return paraProjetoResumo(atualizado, contagens);
     }
 
-    /**
-     * Remove o projeto e suas ligações com departamentos numa transação.
-     * Bloqueado (409) se ainda houver O.S. ligadas ao projeto.
-     */
-    async remover(id: number): Promise<void> {
-        try {
-            await prisma.$transaction([
-                prisma.projetos_departamentos.deleteMany({ where: { projeto_id: id } }),
-                prisma.projetos.delete({ where: { id }, select: { id: true } }),
-            ]);
-            projetoCache.remover(id);
-        } catch (erro) {
-            throw traduzirErroPrisma(erro, {
-                registroNaoEncontrado: 'Projeto não encontrado',
-                referenciaEmUso: 'Não é possível excluir: o projeto ainda tem O.S. vinculadas',
+    async alterarAtivo(id: number, ativo: boolean, funcionarioId: number): Promise<Projeto> {
+        const atualizado = await prisma.$transaction(async (tx) => {
+            // O mesmo bloqueio é adquirido por criação/reatribuição/reativação de O.S.
+            // para serializar a checagem de O.S. pendentes com a inativação do projeto.
+            const projetosBloqueados = await bloquearProjetosRelacionados(tx, [id]);
+            if (!projetosBloqueados.has(id)) return null;
+
+            const anterior = await tx.projetos.findUnique({ where: { id }, include: INCLUIR_PROJETO_BASE });
+            if (!anterior) return null;
+            if (anterior.ativo === ativo) {
+                throw AppError.requisicaoInvalida(ativo ? 'O projeto já está ativo.' : 'O projeto já está inativo.');
+            }
+            if (!ativo) {
+                const ordensPendentes = await tx.ordens_servico.findMany({
+                    where: { projeto_id: id, ativo: true, status: { not: 'concluido' } },
+                    select: { id: true },
+                });
+                if (ordensPendentes.length > 0) {
+                    const ids = ordensPendentes.map((ordem) => `#${ordem.id}`).join(', ');
+                    throw AppError.conflito(
+                        `Não é possível inativar o projeto enquanto houver O.S. ativas e não concluídas: ${ids}.`,
+                    );
+                }
+            }
+            const registro = await tx.projetos.update({
+                where: { id },
+                data: { ativo },
+                include: INCLUIR_PROJETO_BASE,
             });
-        }
+            await repositoryAuditoriaProjeto.registrarCampos(tx, id, funcionarioId, 'atualizacao', [{
+                campo: 'ativo',
+                antigo: String(anterior.ativo),
+                novo: String(ativo),
+                justificativa: ativo ? 'Reativação do projeto' : 'Inativação do projeto',
+            }]);
+            return registro;
+        });
+        if (!atualizado) throw AppError.naoEncontrado('Projeto não encontrado');
+        const contagens = (await obterContagensOS([atualizado.id])).get(atualizado.id)!;
+        return paraProjetoResumo(atualizado, contagens);
     }
 }
 
-/** Instância única usada pelos services. */
 export const repositoryProjeto = new RepositoryProjeto();
