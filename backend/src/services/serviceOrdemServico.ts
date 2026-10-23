@@ -5,7 +5,7 @@
  * e alteração de status (US#2.4).
  *
  * Regras da abertura e da edição:
- *  - tipo, titulo, descricao, departamento_id e sla_manual são obrigatórios;
+ *  - tipo, titulo, descricao e departamento_id são obrigatórios;
  *  - data_criacao assume a data atual quando não informada;
  *  - campos opcionais ausentes recebem null no cadastro;
  *  - anterior_id, se informado, deve apontar para uma O.S. existente;
@@ -28,8 +28,17 @@
  *  - O.S. que já "nasce vencida" é aceita normalmente (não há bloqueio por SLA na criação);
  *  - o cadastro e o registro de auditoria da origem (migração manual) são gravados na mesma transação.
  *
+ * Regras do SLA na abertura (3.1-BE01) — o cálculo em si fica em serviceSla.ts:
+ *  - Manutenção: data_limite_sla é calculada pela configuração, salvo prazo personalizado do Gestor;
+ *  - Manutenção: o Gestor pode substituir o cálculo automático por dias úteis ou uma data específica;
+ *  - Instalação: data_limite_sla é a informada pelo Gestor (até 3 meses), ou fica vazia;
+ *  - sla_config_id, prazo_dias_uteis, justificativa_sla_manual e sla_manual não são aceitos no corpo;
+ *  - a definição inicial do SLA é registrada na auditoria, na mesma transação do cadastro.
+ *
  * ALTERAÇÕES (17/10/2026):
  *  - AJ-06-BE: `criar` passa a receber o perfil do usuário logado e trata o cadastro de O.S. antiga.
+ *  - 3.1-BE01: `criar` define o SLA pelo serviceSla e audita a definição inicial;
+ *    `criarMigracao` virou `criarComAuditoria`, usado por qualquer cadastro que gere auditoria.
  */
 
 import { prisma } from '../prisma/client';
@@ -39,7 +48,8 @@ import { repositoryOrdemServico, type RepositoryOrdemServico } from '../reposito
 import { repositoryFuncionario, type RepositoryFuncionario } from '../repositories/repositoryFuncionario';
 import { serviceAuditoria } from './serviceAuditoria';
 import { calcularEstadoSla, type EstadoSla } from '../utils/estadoSla';
-import { bloquearOrdemServico, bloquearProjetosRelacionados, validarProjetoDaOrdem } from '../utils/projetoOsInvariant';
+import { serviceSla } from './serviceSla';
+import type { DadosRegistroAuditoria } from '../models/modelAuditoria';import { bloquearOrdemServico, bloquearProjetosRelacionados, validarProjetoDaOrdem } from '../utils/projetoOsInvariant';
 import type { PerfilFuncionario } from '../models/modelFuncionario';
 import {
     type DadosCriacaoOrdemServico,
@@ -79,6 +89,12 @@ const TOLERANCIA_DATA_PASSADA_MS = 5 * 60 * 1000;
 
 /** Valor gravado na auditoria para identificar a origem do cadastro de O.S. antiga (AJ-06). */
 const ORIGEM_MIGRACAO_MANUAL = 'migracao_manual';
+
+/** Campos de SLA que o sistema define na abertura e o cliente não pode enviar (3.1-BE01). */
+const CAMPOS_SLA_DEFINIDOS_PELO_SISTEMA = ['sla_config_id', 'prazo_dias_uteis', 'justificativa_sla_manual'] as const;
+
+/** Registro de auditoria ainda sem o id da O.S. (preenchido depois que ela é criada). */
+type RegistroAuditoriaCriacao = Omit<DadosRegistroAuditoria, 'os_id'>;
 
 /**
  * Serializa novas atribuições com a inativação de funcionários. O lock é compartilhado
@@ -133,11 +149,8 @@ export class ServiceOrdemServico {
         this.funcionarios = funcionarios
     }
 
-
-
     /** Lista somente as O.S. ativas, cada uma com o estado do SLA. */
-    async listar(): Promise<OrdemServicoComSla[]> {
-        const ordens = await this.repositorio.listar();
+    async listar(): Promise<OrdemServicoComSla[]> {       const ordens = await this.repositorio.listar();
         const ativas = ordens.filter((ordem) => ordem.ativo);
         const agora = new Date();
         return ativas.map((ordem) => comEstadoSla(ordem,agora));
@@ -166,7 +179,9 @@ export class ServiceOrdemServico {
      * @param solicitanteId Id do funcionário logado (vem do token, nunca do corpo).
      * @param perfil Perfil do funcionário logado (vem do token, nunca do corpo).
      * @throws AppError 400 se algum campo for inválido ou o `anterior_id` não existir.
-     * @throws AppError 403 se um não gestor informar data de abertura no passado (AJ-06).
+     * @throws AppError 403 se um não gestor informar data de abertura no passado (AJ-06)
+     *                   ou a data limite de uma O.S. de instalação (3.1-BE01).
+     * @throws AppError 422 se faltar configuração de SLA ou a data de instalação passar de 3 meses (3.1-BE01).
      */
     async criar(corpo: unknown, solicitanteId: number, perfil: PerfilFuncionario): Promise<OrdemServico> {
         const dados = lerCorpo(corpo);
@@ -177,8 +192,17 @@ export class ServiceOrdemServico {
 
         const departamentoId = exigirInteiroPositivo(dados.departamento_id, 'departamento_id');
 
-        const slaManual = Boolean(dados.sla_manual);
-        const slaConfigId = inteiroPositivoOpcional(dados.sla_config_id, 'sla_config_id');
+        // 3.1-BE01: estes campos de SLA são definidos pelo sistema
+        const camposSlaEnviados = CAMPOS_SLA_DEFINIDOS_PELO_SISTEMA.filter((campo) => campoPresente(dados, campo));
+        if (camposSlaEnviados.length > 0) {
+            throw AppError.requisicaoInvalida(
+                `Estes campos são definidos automaticamente pelo cálculo de SLA e não podem ser enviados: ${camposSlaEnviados.join(', ')}`,
+            );
+        }
+        if (dados.sla_manual !== undefined && dados.sla_manual !== null && dados.sla_manual !== false) {
+            throw AppError.requisicaoInvalida('O SLA é definido automaticamente na abertura: sla_manual deve ser false');
+        }
+
         const clienteId = inteiroPositivoOpcional(dados.cliente_id, 'cliente_id');
         const responsavelId = inteiroPositivoOpcional(dados.responsavel_id, 'responsavel_id');
         const projetoId = inteiroPositivoOpcional(dados.projeto_id, 'projeto_id');
@@ -197,11 +221,13 @@ export class ServiceOrdemServico {
             dados.data_criacao === undefined || dados.data_criacao === null
                 ? new Date()
                 : dataOpcional(dados.data_criacao, 'data_criacao') ?? new Date();
-        const prazoDiasUteis = inteiroPositivoOpcional(dados.prazo_dias_uteis, 'prazo_dias_uteis');
         const dataInicio = dataOpcional(dados.data_inicio, 'data_inicio');
         const dataFim = dataOpcional(dados.data_fim, 'data_fim');
-        const dataLimiteSla = dataOpcional(dados.data_limite_sla, 'data_limite_sla');
-        const justificativaSlaManual = textoOpcional(dados.justificativa_sla_manual, 'justficativa_sla_manual');
+        const dataLimiteInformada = dataOpcional(dados.data_limite_sla, 'data_limite_sla');
+        const prazoDiasUteisPersonalizado = inteiroPositivoOpcional(
+            dados.prazo_dias_uteis_custom,
+            'prazo_dias_uteis_custom',
+        );
 
         // AJ-06: data de abertura no passado = cadastro de O.S. antiga (migração manual)
         const migracao = ehDataNoPassado(dataCriacao);
@@ -223,11 +249,21 @@ export class ServiceOrdemServico {
             await this.garantirFuncionarioExiste(responsavelId, 'responsavel_id');
         }
 
+        // 3.1-BE01: define o SLA a partir da data de abertura (inclusive a passada da AJ-06 — PE-08)
+        const sla = await serviceSla.definirNaCriacao({
+            tipo,
+            criticidade,
+            abertura: dataCriacao,
+            dataLimiteInformada,
+            prazoDiasUteisPersonalizado,
+            perfil,
+        });
+
         const novaOS: DadosCriacaoOrdemServico = {
             tipo,
             titulo,
             descricao,
-            sla_config_id: slaConfigId,
+            sla_config_id: sla.sla_config_id,
             cliente_id: clienteId,
             departamento_id: departamentoId,
             solicitante_id: solicitanteId,
@@ -239,61 +275,67 @@ export class ServiceOrdemServico {
             parecer_tecnico: parecerTecnico,
             status,
             data_criacao: dataCriacao,
-            prazo_dias_uteis: prazoDiasUteis,
+            prazo_dias_uteis: sla.prazo_dias_uteis,
             data_inicio: dataInicio,
             data_fim: dataFim,
-            data_limite_sla: dataLimiteSla,
-            sla_manual: slaManual,
-            justificativa_sla_manual: justificativaSlaManual
+            data_limite_sla: sla.data_limite_sla,
+            sla_manual: sla.sla_manual,
+            justificativa_sla_manual: sla.sla_manual ? sla.descricao : null
         };
 
+        const registros: RegistroAuditoriaCriacao[] = [];
+
         if (migracao) {
-            return this.criarMigracao(novaOS, solicitanteId);
+            // AJ-06: a data_criacao informada (no passado) é mantida como data de abertura
+            registros.push({
+                funcionario_id: solicitanteId,
+                acao: 'insercao',
+                campo_alterado: 'origem',
+                dado_antigo: null,
+                dado_novo: ORIGEM_MIGRACAO_MANUAL,
+                justificativa:
+                    'Cadastro de O.S. antiga/existente (migração manual) com abertura em ' +
+                    `${novaOS.data_criacao.toISOString()} e status ${novaOS.status}`,
+            });
         }
 
-        // Criação e validação do projeto compartilham a mesma transação. O lock da
-        // linha do projeto serializa este caminho com a inativação do projeto.
-        const criada = await prisma.$transaction(async (conexao) => {
-            // A checagem anterior melhora o feedback; esta verificação transacional fecha a corrida
-            // com a inativação do responsável entre a validação e o commit da O.S.
-            await bloquearEValidarResponsavelAtivo(conexao, novaOS.responsavel_id);
-            const projetosBloqueados = await bloquearProjetosRelacionados(conexao, [novaOS.projeto_id]);
-            validarProjetoDaOrdem(novaOS.projeto_id, true, novaOS.status, projetosBloqueados);
-            return this.repositorio.criarNaTransacao(novaOS, conexao);
-        });
-        this.repositorio.atualizarCache(criada);
-        return criada;
+        if (sla.data_limite_sla !== null) {
+            // 3.1-BE01: registra a definição inicial do SLA
+            registros.push({
+                funcionario_id: solicitanteId,
+                acao: 'insercao',
+                campo_alterado: 'data_limite_sla',
+                dado_antigo: null,
+                dado_novo: sla.data_limite_sla.toISOString(),
+                justificativa: sla.descricao,
+            });
+        }
+
+        return this.criarComAuditoria(novaOS, registros);
     }
 
     /**
-     * Grava uma O.S. antiga/existente e registra na auditoria, na mesma transação,
-     * que a origem do cadastro é a migração manual (AJ-06-BE).
+     * Grava a O.S. e os registros de auditoria do cadastro na mesma transação
+     * (origem da migração manual — AJ-06 — e definição inicial do SLA — 3.1-BE01).
      *
-     * A data_criacao informada (no passado) é mantida como data de abertura: é ela a base
-     * do cálculo do SLA (PE-08), e não a data/hora atual do servidor.
+     * Criação e validação do projeto compartilham a transação: o lock da linha do projeto
+     * serializa este caminho com a inativação do projeto, e a checagem do responsável fecha
+     * a corrida com a inativação do funcionário entre a validação e o commit.
      */
-    private async criarMigracao(novaOS: DadosCriacaoOrdemServico, usuarioId: number): Promise<OrdemServico> {
+    private async criarComAuditoria(
+        novaOS: DadosCriacaoOrdemServico,
+        registros: RegistroAuditoriaCriacao[],
+    ): Promise<OrdemServico> {
         const criada = await prisma.$transaction(async (conexao) => {
-            // Também cobre o caminho AJ-06 de cadastro histórico, sem alterar suas regras.
             await bloquearEValidarResponsavelAtivo(conexao, novaOS.responsavel_id);
             const projetosBloqueados = await bloquearProjetosRelacionados(conexao, [novaOS.projeto_id]);
             validarProjetoDaOrdem(novaOS.projeto_id, true, novaOS.status, projetosBloqueados);
+
             const ordemCriada = await this.repositorio.criarNaTransacao(novaOS, conexao);
 
-            await serviceAuditoria.registrar(
-                {
-                    os_id: ordemCriada.id,
-                    funcionario_id: usuarioId,
-                    acao: 'insercao',
-                    campo_alterado: 'origem',
-                    dado_antigo: null,
-                    dado_novo: ORIGEM_MIGRACAO_MANUAL,
-                    justificativa:
-                        'Cadastro de O.S. antiga/existente (migração manual) com abertura em ' +
-                        `${novaOS.data_criacao.toISOString()} e status ${novaOS.status}`,
-                },
-                conexao,
-            );
+            for (const registro of registros) {
+                await serviceAuditoria.registrar({ ...registro, os_id: ordemCriada.id }, conexao);
+            }
 
             return ordemCriada;
         });
@@ -510,6 +552,24 @@ export class ServiceOrdemServico {
      */
     async bloquear(id: number, usuarioId: number): Promise<OrdemServico> {
         const idOS = exigirInteiroPositivo(id, "id");
+        const ordem = await this.repositorio.buscarPorId(idOS);
+
+        if (!ordem) {
+            throw AppError.naoEncontrado(`O.S. ${idOS} não encontrada`);
+        }
+
+        if (ordem.status === "concluido") {
+            throw AppError.requisicaoInvalida(
+                "Uma O.S. concluída não pode ser bloqueada.",
+            );
+        }
+
+        if (ordem.status === "bloqueado") {
+            throw AppError.requisicaoInvalida(
+                "A O.S. já está bloqueada.",
+            );
+        }
+
         const atualizada = await prisma.$transaction(async (conexao) => {
             await bloquearOrdemServico(conexao, idOS);
             const ordemAtual = await conexao.ordens_servico.findUnique({ where: { id: idOS } });
@@ -540,10 +600,64 @@ export class ServiceOrdemServico {
                 },
                 conexao,
             );
+
             return resultado;
         });
+
         this.repositorio.atualizarCache(atualizada);
+
         return atualizada;
+    }
+
+    /**
+     * Remove o bloqueio e retorna a O.S. ao status padrão de andamento.
+     * A autorização de gestor é aplicada pelo middleware da rota.
+     */
+    async desbloquear(id: number): Promise<OrdemServico> {
+        const ordem = await this.buscarPorId(id);
+        if (ordem.status !== 'bloqueado') {
+            throw AppError.requisicaoInvalida('A O.S. já está desbloqueada');
+        }
+
+        return this.repositorio.atualizar(id, { status: STATUS_PADRAO });
+    }
+
+    /**
+     * Altera manualmente a data limite do SLA.
+     * A autorização de gestor é aplicada pelo middleware da rota.
+     * @throws AppError 400 se a O.S. estiver inativa, concluída ou bloqueada.
+     */
+    async alterarSlaManual(id: number, corpo: unknown, funcionarioId: number): Promise<OrdemServico> {
+        const dados = lerCorpo(corpo);
+        const dataLimiteSla = exigirDataValida(dados.data_limite_sla, 'data_limite_sla');
+        const justificativa = exigirTexto(
+            dados.justificativa_sla_manual,
+            'justificativa_sla_manual',
+        );
+
+        const ordem = await this.buscarPorId(id);
+
+        if (!ordem.ativo) {
+            throw AppError.requisicaoInvalida(`A O.S. ${id} está inativa e não pode ter o prazo alterado`);
+        }
+
+        if (ordem.status === 'concluido' || ordem.status === 'bloqueado') {
+            throw AppError.requisicaoInvalida(
+                `A O.S. ${id} está ${ordem.status === 'concluido' ? 'concluída' : 'bloqueada'} e não pode ter o prazo alterado`,
+            );
+        }
+
+        return this.repositorio.alterarSlaManual({
+            osId: id,
+            dataLimiteSla,
+            justificativa,
+            funcionarioId,
+        });
+    }
+
+    /** Remove uma O.S. (bloqueada pelo banco se houver vínculos). */
+    remover(id: number): Promise<void> {
+        return this.repositorio.remover(id);
     }
 
 

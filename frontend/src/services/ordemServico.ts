@@ -10,10 +10,7 @@ export const ordemServicoService = {
         return apiRequest<OrdemServico[]>("/ordens-servico/inativas");
     },
 
-    alterarAtivo(
-        id: number,
-        ativo: boolean,
-    ): Promise<OrdemServico> {
+    alterarAtivo(id: number, ativo: boolean): Promise<OrdemServico> {
         return apiRequest<OrdemServico>(`/ordens-servico/${id}/ativo`, {
             method: "PATCH",
             body: JSON.stringify({ ativo }),
@@ -31,33 +28,49 @@ export const ordemServicoService = {
         });
     },
 
-        alterarStatus(
-            id: number,
-            status: OrdemServico["status"],
-            parecerTecnico?: string,
-        ): Promise<OrdemServico> {
-            const payload = {
-                status,
-                ...(parecerTecnico !== undefined
-                    ? { parecer_tecnico: parecerTecnico }
-                    : {}),
-            };
-
-            return apiRequest<OrdemServico>(
-                `/ordens-servico/${id}/status`,
-                {
-                    method: "PATCH",
-                    body: JSON.stringify(payload),
-                },
-            );
-        },
-
-    atribuirResponsavel(id: number, funcionarioId: number): Promise<OrdemServico> {
+    atribuirResponsavel(
+        id: number,
+        funcionarioId: number,
+    ): Promise<OrdemServico> {
         return apiRequest<OrdemServico>(`/ordens-servico/atribuir/${id}`, {
             method: "PATCH",
             body: JSON.stringify({ funcionario_id: funcionarioId }),
         });
     },
+
+    alterarStatus(
+        id: number,
+        status: OrdemServico["status"],
+        parecerTecnico?: string,
+    ): Promise<OrdemServico> {
+        const payload = {
+            status,
+            ...(parecerTecnico !== undefined
+                ? { parecer_tecnico: parecerTecnico }
+                : {}),
+        };
+
+        return apiRequest<OrdemServico>(`/ordens-servico/${id}/status`, {
+            method: "PATCH",
+            body: JSON.stringify(payload),
+        });
+    },
+
+    /** PATCH /ordens-servico/:id/sla-manual — altera o prazo final (somente gestor). */
+    alterarPrazo(
+        id: number,
+        dataLimiteSla: string,
+        justificativa: string,
+    ): Promise<OrdemServico> {
+        return apiRequest<OrdemServico>(`/ordens-servico/${id}/sla-manual`, {
+            method: "PATCH",
+            body: JSON.stringify({
+                data_limite_sla: dataLimiteSla,
+                justificativa_sla_manual: justificativa,
+            }),
+        });
+    },
+
 
     atualizar(
         id: number,

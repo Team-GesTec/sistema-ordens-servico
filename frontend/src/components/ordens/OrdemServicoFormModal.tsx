@@ -1,3 +1,11 @@
+/**
+ * Modal de cadastro e edição de O.S.
+ * Valida os campos obrigatórios antes de enviar e delega o salvamento para `onSave` (useOrdens).
+ *
+ * AJ-06: no cadastro, o gestor pode marcar "O.S. antiga / existente" para informar data de abertura
+ * passada (com aviso na tela), status atual e, se concluída, data de conclusão e parecer técnico.
+ * O SLA não é calculado aqui: quem calcula é o backend a partir da data de abertura.
+ */
 
 import { useEffect, useState, type FormEvent } from "react";
 import type {

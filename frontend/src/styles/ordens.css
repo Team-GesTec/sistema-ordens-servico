@@ -190,6 +190,48 @@
     background: rgba(255, 255, 255, 0.22);
 }
 
+
+.ordens-prazo-filtro {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.ordens-prazo-filtro label {
+    color: var(--preto);
+    font-size: 0.875rem;
+    font-weight: 600;
+}
+
+.ordens-prazo-filtro select {
+    max-width: 100%;
+    padding: 9px 32px 9px 12px;
+    border: 1px solid rgba(9, 12, 92, 0.2);
+    border-radius: 8px;
+    background: var(--branco);
+    color: var(--azul-escuro);
+    font: inherit;
+    cursor: pointer;
+}
+
+.ordens-prazo-filtro select:focus {
+    outline: 2px solid var(--azul-claro);
+    outline-offset: 2px;
+}
+
+@media (max-width: 600px) {
+    .ordens-prazo-filtro {
+        width: 100%;
+    }
+
+    .ordens-prazo-filtro select {
+        flex: 1;
+        min-width: 0;
+    }
+}
+
+
 /* Grade de cartões */
 
 .ordens-grid {
@@ -424,6 +466,15 @@
 
 .ordem-modal--detalhes {
     width: min(820px, 100%);
+}
+
+/* Modal pequeno de motivo, aberto por cima dos detalhes */
+.ordem-modal-overlay--sobreposto {
+    z-index: 1600;
+}
+
+.ordem-modal--justificativa {
+    width: min(480px, 100%);
 }
 
 @keyframes ordemModalEntrada {

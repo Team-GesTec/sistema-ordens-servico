@@ -28,6 +28,13 @@ interface DadosAtribuicaoResponsavel {
     permitirTroca: boolean;
 }
 
+interface DadosSlaManual {
+    osId: number;
+    dataLimiteSla: Date;
+    justificativa: string;
+    funcionarioId: number;
+}
+
 export class RepositoryOrdemServico {
     /** Lista todas as OS (cache → banco), mais recentes primeiro. */
     async listar(): Promise<OrdemServico[]> {
@@ -79,9 +86,22 @@ export class RepositoryOrdemServico {
         }
     }
 
-        /**
+    /** Remove uma O.S. e invalida o cache após a exclusão. */
+    async remover(id: number): Promise<void> {
+        try {
+            await prisma.ordens_servico.delete({ where: { id }, select: { id: true } });
+            ordemServicoCache.remover(id);
+        } catch (erro) {
+            throw traduzirErroPrisma(erro, {
+                registroNaoEncontrado: 'Ordem de Serviço não encontrada',
+                referenciaEmUso: 'Não é possível excluir: a OS ainda tem anexos ou funcionários vinculados.',
+            });
+        }
+    }
+
+    /**
      * Atualiza os campos informados de uma OS dentro de uma transação.
-     * Não mexe no cache: quem chama deve chamar `limparCache` depois que a transação terminar.
+     * Não mexe no cache: quem chama deve chamar `atualizarCache` depois que a transação terminar.
      */
     async atualizarNaTransacao(
         id: number,
@@ -106,7 +126,7 @@ export class RepositoryOrdemServico {
 
     /**
      * Atribui ou substitui o responsável e registra a auditoria na mesma transação.
-     *
+     * 
      * A atualização condicional impede que duas requisições sobrescrevam uma à outra.
     */
     async atribuirResponsavel(dados: DadosAtribuicaoResponsavel): Promise<OrdemServico> {
@@ -182,6 +202,71 @@ export class RepositoryOrdemServico {
 
         return atualizada;
     }
+
+    /** Altera manualmente o SLA e registra a auditoria na mesma transação. */
+    async alterarSlaManual(dados: DadosSlaManual): Promise<OrdemServico> {
+        const { osId, dataLimiteSla, justificativa, funcionarioId } = dados;
+
+        const atualizada = await prisma.$transaction(async (tx) => {
+            const ordemAtual = await tx.ordens_servico.findUnique({ where: { id: osId } });
+            if (!ordemAtual) {
+                throw AppError.naoEncontrado('OS não encontrada');
+            }
+
+            const resultado = await tx.ordens_servico.updateMany({
+                where: {
+                    id: osId,
+                    data_limite_sla: ordemAtual.data_limite_sla,
+                    sla_manual: ordemAtual.sla_manual,
+                    justificativa_sla_manual: ordemAtual.justificativa_sla_manual,
+                },
+                data: {
+                    data_limite_sla: dataLimiteSla,
+                    sla_manual: true,
+                    justificativa_sla_manual: justificativa,
+                },
+            });
+
+            if (resultado.count !== 1) {
+                throw AppError.conflito('O SLA foi alterado por outra operação. Tente novamente.');
+            }
+
+            const auditorias = [
+                {
+                    campo_alterado: 'data_limite_sla',
+                    dado_antigo: ordemAtual.data_limite_sla?.toISOString() ?? null,
+                    dado_novo: dataLimiteSla.toISOString(),
+                },
+                {
+                    campo_alterado: 'sla_manual',
+                    dado_antigo: String(ordemAtual.sla_manual),
+                    dado_novo: 'true',
+                },
+                {
+                    campo_alterado: 'justificativa_sla_manual',
+                    dado_antigo: ordemAtual.justificativa_sla_manual,
+                    dado_novo: justificativa,
+                },
+            ];
+
+            await tx.auditoria.createMany({
+                data: auditorias.map((auditoria) => ({
+                    os_id: osId,
+                    funcionario_id: funcionarioId,
+                    acao: 'atualizacao',
+                    ...auditoria,
+                    justificativa,
+                })),
+            });
+
+            return tx.ordens_servico.findUniqueOrThrow({ where: { id: osId } });
+        });
+
+        // O estado em cache só muda depois do commit da atualização e da auditoria.
+        ordemServicoCache.definir(atualizada);
+        return atualizada;
+    }
+
     /** Grava o novo status e o parecer técnico de uma O.S. que já existe. */
     async atualizarStatus(
         id: number,

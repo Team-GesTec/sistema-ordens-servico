@@ -1,5 +1,6 @@
 /* =========================
-   BASE
+   MODO ESCURO: sobrescreve cores das telas quando o layout recebe .dark-mode
+   (inclui o formulário de O.S. e o bloco de O.S. antiga da AJ-06)
 ========================= */
 
 .dark-mode {
@@ -58,6 +59,10 @@
    FILTROS
 ========================= */
 
+.dark-mode .filter input{
+    background-color: #393739;
+}
+
 .dark-mode input, .dark-mode .form-textarea{
     background: #393739;
     color: #f2f2f2;
@@ -80,6 +85,10 @@
     color: #bdc9d6;
 }
 
+.dark-mode .filter-button button{
+    background-color: #393739;
+    color: white;
+}
 /* =========================
    SELECT CUSTOMIZADO
 ========================= */
