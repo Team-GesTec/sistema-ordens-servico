@@ -132,7 +132,7 @@
     border-left-color: #37b24d;
 }
 
-.cards input[type="radio"]:checked + .card {
+.cards input[type="radio"]:checked+.card {
     box-shadow:
         0 0 0 2px #007fc4;
 }
@@ -146,7 +146,9 @@
         grid-template-columns: 1fr;
     }
 }
-/** US#3.2: Posiciona as notificações no canto inferior direito da tela. */
+
+
+/** US#3.2: Notificações de SLA no canto inferior direito. */
 .toast-container {
     position: fixed;
     right: 16px;
@@ -170,37 +172,60 @@
     min-height: 130px;
     padding: 24px 16px;
     color: #000;
-    background: #29aff0;
+    background: color-mix(in srgb, var(--azul-claro) 90%, transparent);
     border-radius: 7px;
     box-sizing: border-box;
 }
 
-/** US#3.2: Diferencia os alertas pelo símbolo. */
+.dark-mode .sla-toast {
+    background: color-mix(in srgb, var(--azul-escuro) 90%, transparent);
+}
+
+/* Notificações no tema escuro */
+.dark-mode .sla-toast {
+    background: rgba(41, 175, 240, 0.9);
+}
+
+/* Símbolos de alerta */
 .toast-simbolo {
     font-size: 36px;
     text-align: center;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
-.sla-toast-risco .toast-simbolo {
+.toast-icone {
+    display: block;
+    width: 44px;
+    height: 44px;
+    flex-shrink: 0;
+}
+
+/* Risco: triângulo amarelo preenchido */
+.sla-toast-em_risco .toast-simbolo {
     color: #ffd000;
 }
 
+/* Vencido: triângulo vermelho preenchido */
 .sla-toast-vencido .toast-simbolo {
     color: #f12727;
 }
 
+/* Bloqueado: símbolo vermelho */
 .sla-toast-bloqueado .toast-simbolo {
-    color: #090c5c;
+    color: #f12727;
 }
 
-/** US#3.2: Separa visualmente o símbolo do texto da notificação. */
+/* Divisor entre símbolo e texto */
 .toast-divisor {
     align-self: stretch;
     width: 2px;
     background: #000;
 }
 
-/** US#3.2: Organiza título e mensagem da notificação. */
+/* Conteúdo */
 .toast-conteudo {
     padding-right: 4px;
     overflow-wrap: anywhere;
@@ -219,7 +244,7 @@
     line-height: 1.3;
 }
 
-/** US#3.2: Permite fechar cada toast manualmente pelo botão X. */
+/* Botão para fechar */
 .toast-fechar {
     position: absolute;
     top: 7px;

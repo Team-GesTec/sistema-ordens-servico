@@ -15,7 +15,7 @@ import "../styles/darkmode.css";
 import "../styles/forms.css";
 import CustomSelect from "../components/CustomSelect";
 import type { SelectOption } from "../components/CustomSelect";
-import { ApiError } from "../services/api";
+import { ApiError, apiRequest } from "../services/api";
 import { ordemServicoService } from "../services/ordemServico";
 import type {
     NivelCriticidade,
@@ -74,6 +74,16 @@ function Home() {
             .finally(() => setCarregando(false));
     }, []);
 
+
+    useEffect(() => {
+        apiRequest<NotificacaoSla[]>("/notificacoes")
+            .then(setNotificacoes)
+            .catch((error: unknown) => {
+                console.error("Erro ao carregar notificações de SLA:", error);
+            });
+    }, []);
+
+
     // US#3.2: Filtra as ordens de serviço conforme a pesquisa e o setor selecionado.
     const ordensFiltradas = useMemo(() => {
         const termo = search.trim().toLowerCase();
@@ -99,10 +109,24 @@ function Home() {
             {/* US#3.2: Exibe as notificações de SLA recebidas do backend. */}
             <NotificacoesSla
                 notificacoes={notificacoes}
-                onDispensar={(id) => {
-                    setNotificacoes((atuais) =>
-                        atuais.filter((notificacao) => notificacao.id !== id),
-                    );
+                onDispensar={async (id) => {
+                    try {
+                        await apiRequest<void>(`/notificacoes/${encodeURIComponent(id)}`, {
+                            method: "DELETE",
+                        });
+
+                        setNotificacoes((atuais) =>
+                            atuais.filter((notificacao) => notificacao.id !== id),
+                        );
+                    } catch (error: unknown) {
+                        console.error("Erro ao dispensar notificação:", error);
+
+                        window.alert(
+                            error instanceof ApiError
+                                ? error.message
+                                : "Não foi possível dispensar a notificação. Tente novamente.",
+                        );
+                    }
                 }}
             />
 

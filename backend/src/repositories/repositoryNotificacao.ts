@@ -12,6 +12,7 @@ import type { Notificacao } from '../models/modelNotificacao.js';
 /** Pasta e arquivo onde as notificações ficam guardadas (backend/data/notificacoes.json). */
 const PASTA_DADOS = path.resolve(process.cwd(), 'data');
 const ARQUIVO_NOTIFICACOES = path.join(PASTA_DADOS, 'notificacoes.json');
+const ARQUIVO_DISPENSADAS = path.join(PASTA_DADOS, 'notificacoes-dispensadas.json');
 
 export class RepositoryNotificacao {
     /** Lê todas as notificações. Se o arquivo ainda não existe, devolve uma lista vazia. */
@@ -33,6 +34,49 @@ export class RepositoryNotificacao {
         return todas
             .filter((notificacao) => notificacao.funcionario_id === funcionarioId)
             .sort((a, b) => b.data_criacao.localeCompare(a.data_criacao));
+    }
+
+    async listarDispensadas(funcionarioId: number): Promise<string[]> {
+        try {
+            const conteudo = await readFile(ARQUIVO_DISPENSADAS, 'utf-8');
+            const dispensadas = JSON.parse(conteudo) as Record<string, string[]>;
+
+            return dispensadas[String(funcionarioId)] ?? [];
+        } catch (erro) {
+            if ((erro as NodeJS.ErrnoException).code === 'ENOENT') {
+                return [];
+            }
+            throw erro;
+        }
+    }
+
+    async salvarDispensadas(
+        funcionarioId: number,
+        notificacaoId: string,
+    ): Promise<void> {
+        let dispensadas: Record<string, string[]> = {};
+
+        try {
+            const conteudo = await readFile(ARQUIVO_DISPENSADAS, 'utf-8');
+            dispensadas = JSON.parse(conteudo) as Record<string, string[]>;
+        } catch (erro) {
+            if ((erro as NodeJS.ErrnoException).code !== 'ENOENT') {
+                throw erro;
+            }
+        }
+
+        const ids = dispensadas[String(funcionarioId)] ?? [];
+
+        if (!ids.includes(notificacaoId)) {
+            dispensadas[String(funcionarioId)] = [...ids, notificacaoId];
+        }
+
+        await mkdir(PASTA_DADOS, { recursive: true });
+        await writeFile(
+            ARQUIVO_DISPENSADAS,
+            JSON.stringify(dispensadas, null, 2),
+            'utf-8',
+        );
     }
 
     /** Grava a lista inteira no arquivo, substituindo o conteúdo anterior. */

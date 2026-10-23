@@ -100,9 +100,33 @@ export class ServiceNotificacao {
         return novas.length;
     }
 
-    /** Avisos de um funcionário, dos mais novos para os mais antigos. */
     async listarDoFuncionario(funcionarioId: number): Promise<Notificacao[]> {
-        return this.notificacoes.listarPorFuncionario(funcionarioId);
+        const [notificacoes, dispensadas] = await Promise.all([
+            this.notificacoes.listarPorFuncionario(funcionarioId),
+            this.notificacoes.listarDispensadas(funcionarioId),
+        ]);
+
+        return notificacoes.filter(
+            (notificacao) => !dispensadas.includes(notificacao.id),
+        );
+    }
+
+    async dispensarNotificacao(
+        funcionarioId: number,
+        notificacaoId: string,
+    ): Promise<void> {
+        const notificacoes = await this.notificacoes.listarPorFuncionario(funcionarioId);
+
+        const pertenceAoFuncionario = notificacoes.some(
+            (notificacao) => notificacao.id === notificacaoId,
+        );
+
+        if (!pertenceAoFuncionario) {
+            const { AppError } = await import('../errors/AppError.js');
+            throw AppError.naoEncontrado('Notificação não encontrada.');
+        }
+
+        await this.notificacoes.salvarDispensadas(funcionarioId, notificacaoId);
     }
 }
 
