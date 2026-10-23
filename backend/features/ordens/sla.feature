@@ -1,11 +1,56 @@
 # language: pt
 
-Funcionalidade: Cálculo automático do SLA na abertura da O.S. (3.1-BE01)
+Funcionalidade: Gestão e cálculo do SLA de Ordens de Serviço
+
+    # ============================================================
+    # US#3.2-BE01 — Cálculo do estado do SLA
+    # ============================================================
+
+    # Regras do time: manutenção em risco nas últimas 24h; instalação depois de 80% do prazo;
+    # horas de calendário; concluída e bloqueada encerradas; sem data limite = sem_sla.
+    Esquema do Cenário: Estado do SLA conforme o prazo
+        Dado uma O.S. do tipo "<tipo>" com status "<status>", criada em "<criacao>" e com limite em "<limite>"
+        Quando o estado do SLA é calculado em "<agora>"
+        Então o estado do SLA é "<esperado>"
+
+        Exemplos: Manutenção (risco nas últimas 24 horas)
+            | tipo       | status       | criacao                   | limite                    | agora                     | esperado |
+            | manutencao | em_andamento | 2026-10-19T08:00:00-03:00 | 2026-10-23T15:00:00-03:00 | 2026-10-22T10:00:00-03:00 | normal   |
+            | manutencao | em_andamento | 2026-10-19T08:00:00-03:00 | 2026-10-23T15:00:00-03:00 | 2026-10-22T15:00:00-03:00 | em_risco |
+            | manutencao | em_andamento | 2026-10-19T08:00:00-03:00 | 2026-10-23T15:00:00-03:00 | 2026-10-22T16:00:00-03:00 | em_risco |
+            | manutencao | em_andamento | 2026-10-19T08:00:00-03:00 | 2026-10-23T15:00:00-03:00 | 2026-10-23T15:00:00-03:00 | em_risco |
+            | manutencao | em_andamento | 2026-10-19T08:00:00-03:00 | 2026-10-23T15:00:00-03:00 | 2026-10-23T15:01:00-03:00 | vencido  |
+
+        Exemplos: Instalação (risco depois de 80% do prazo)
+            | tipo       | status       | criacao                   | limite                    | agora                     | esperado |
+            | instalacao | em_andamento | 2026-10-20T08:00:00-03:00 | 2026-10-20T18:00:00-03:00 | 2026-10-20T15:59:00-03:00 | normal   |
+            | instalacao | em_andamento | 2026-10-20T08:00:00-03:00 | 2026-10-20T18:00:00-03:00 | 2026-10-20T16:00:00-03:00 | em_risco |
+            | instalacao | em_andamento | 2026-10-20T08:00:00-03:00 | 2026-10-20T18:00:00-03:00 | 2026-10-20T18:30:00-03:00 | vencido  |
+
+        Exemplos: Regras gerais
+            | tipo       | status       | criacao                   | limite                    | agora                     | esperado  |
+            | manutencao | aguardando   | 2026-10-19T08:00:00-03:00 | 2026-10-23T15:00:00-03:00 | 2026-10-22T16:00:00-03:00 | em_risco  |
+            | manutencao | em_andamento | 2026-10-19T08:00:00-03:00 | sem limite                | 2026-10-22T16:00:00-03:00 | sem_sla   |
+            | manutencao | concluido    | 2026-10-19T08:00:00-03:00 | 2026-10-23T15:00:00-03:00 | 2026-10-24T10:00:00-03:00 | encerrada |
+            | manutencao | bloqueado    | 2026-10-19T08:00:00-03:00 | 2026-10-23T15:00:00-03:00 | 2026-10-24T10:00:00-03:00 | encerrada |
+            | manutencao | concluido    | 2026-10-19T08:00:00-03:00 | sem limite                | 2026-10-22T16:00:00-03:00 | encerrada |
+
+    # Resultado consistente entre fila, detalhe e dashboard.
+    Cenário: O detalhe da O.S. traz o estado do SLA
+        Dado que existe um gestor autenticado
+        E que existe uma O.S. não concluída sem responsável
+        Quando consulta novamente a O.S.
+        Então a resposta traz um estado de SLA válido
+
+
+    # ============================================================
+    # 3.1-BE01 — Cálculo automático do SLA na abertura da O.S.
+    # ============================================================
 
     # Cenários de cálculo: usam uma configuração de SLA e feriados de teste (sem banco),
     # com os valores iniciais do Documento Mestre (1=7, 2=5, 3=3, 4=2, 5=1 dias úteis).
 
-    # "Os cinco exemplos da tabela de criticidade produzem as datas esperadas"
+    # Os cinco exemplos da tabela de criticidade produzem as datas esperadas.
     Esquema do Cenário: Prazo por criticidade em O.S. de manutenção
         Dado a configuração de SLA de teste com os valores iniciais
         Quando o SLA de manutenção é calculado para a criticidade "<criticidade>" com abertura em "2026-10-05T10:00:00-03:00"
@@ -40,7 +85,7 @@ Funcionalidade: Cálculo automático do SLA na abertura da O.S. (3.1-BE01)
         Quando o SLA de manutenção é calculado para a criticidade "urgente" com abertura em "2026-10-09T10:00:00-03:00"
         Então a data limite do SLA é o fim do dia "2026-10-13"
 
-    # "Mudar o valor na estrutura de configuração altera o cálculo de novas O.S. sem alterar o código-fonte"
+    # Alterar a configuração deve modificar o cálculo de novas O.S.
     Cenário: Alterar a configuração muda o cálculo
         Dado a configuração de SLA de teste com os valores iniciais
         E que a configuração da criticidade "medio" passa a ser 6 dias úteis
@@ -78,29 +123,30 @@ Funcionalidade: Cálculo automático do SLA na abertura da O.S. (3.1-BE01)
         Quando um técnico tenta definir um prazo personalizado de 5 dias úteis
         Então o cálculo do SLA é negado com status 403
 
-    # "O.S. de Instalação não aplica tolerância das 16:00 (mesmo aberta às 17:00)"
+    # Instalação não aplica a tolerância das 16:00.
     Cenário: Instalação aberta às 17:00 mantém a data informada pelo gestor
         Dado a configuração de SLA de teste com os valores iniciais
         Quando o gestor define o SLA de instalação aberta em "2026-10-05T17:00:00-03:00" com data limite "2026-11-20T18:00:00-03:00"
         Então a data limite do SLA é exatamente "2026-11-20T18:00:00-03:00"
         E o SLA não é manual
 
-    # Cenários de API (usam o banco de desenvolvimento e a configuração gravada pelo seed)
 
-    # "data_limite_sla e sla_manual = false são gravados no banco, auditados e devolvidos pela API"
+    # ============================================================
+    # Cenários de API — SLA na criação da O.S.
+    # ============================================================
+
+    # data_limite_sla e sla_manual = false são gravados, auditados e devolvidos.
     Cenário: Gestor abre O.S. de manutenção e recebe o SLA calculado
         Dado que existe um gestor autenticado
         Quando o gestor abre uma O.S. de manutenção com criticidade "alto"
         Então a API devolve a O.S. com o SLA calculado e sla_manual falso
         E a auditoria registra a definição inicial do SLA
 
-    # "Técnico tentando informar data de Instalação diretamente na API recebe erro 403"
     Cenário: Técnico não pode informar a data limite de uma instalação
         Dado que existe um técnico autenticado
         Quando abre uma O.S. de instalação com data limite daqui a 30 dias
         Então a API nega a operação por falta de permissão
 
-    # "Data de Instalação acima de 3 meses ou data inválida é rejeitada (422/400)"
     Cenário: Data de instalação acima de 3 meses é rejeitada
         Dado que existe um gestor autenticado
         Quando abre uma O.S. de instalação com data limite daqui a 120 dias

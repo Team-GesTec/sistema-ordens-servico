@@ -1,5 +1,6 @@
 /**
- * Tipos das entidades e dos payloads trocados com a API (formato snake_case do backend).
+ * Define os tipos e contratos de dados utilizados na comunicação
+ * entre o frontend e a API, seguindo o formato snake_case do backend.
  * AJ-06: OrdemServicoInput aceita os campos opcionais do cadastro de O.S. antiga.
  */
 
@@ -140,8 +141,12 @@ export interface OrdemServico {
     status: StatusOrdemServico;
     ativo: boolean;
     data_criacao: string;
+    /** US#3.2: Disponibiliza as datas usadas no cálculo dos alertas de SLA. */
+    data_inicio?: string | null;
+
     /** Prazo final (SLA) devolvido pela API; ISO ou null quando não definido. */
     data_limite_sla?: string | null;
+
     sla_manual?: boolean;
 }
 
@@ -163,4 +168,7 @@ export interface OrdemServicoInput {
     parecer_tecnico?: string;
     /** AJ-06 — data de conclusão (ISO), obrigatória quando a O.S. antiga já está concluída. */
     data_fim?: string;
+    /** US#3.2: Define as datas necessárias para calcular os alertas de SLA. */
+    data_inicio?: string | null;
+    data_limite_sla?: string | null;
 }

@@ -1,3 +1,7 @@
+/**
+ * Exibe o dashboard da aplicação e as notificações visuais de SLA (US#3.2).
+ */
+
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
     ResponsiveContainer,
@@ -15,7 +19,7 @@ import {
 
 import "../styles/dashboard.css";
 
-import { ApiError } from "../services/api";
+import { ApiError, apiRequest } from "../services/api";
 import { getStoredUser } from "../services/auth";
 import { ordemServicoService } from "../services/ordemServico";
 import { departamentoService } from "../services/departamento";
@@ -31,6 +35,8 @@ import type {
     StatusOrdemServico,
 } from "../types/api";
 
+import NotificacoesSla from "../components/NotificacoesSla";
+import type { NotificacaoSla } from "../types/notificacao";
 const CORES_STATUS: Record<StatusOrdemServico, string> = {
     em_andamento: "#1689ca",
     aguardando: "#f59e0b",
@@ -94,65 +100,75 @@ function Dashboard() {
         projetos: [],
     });
 
-    const [carregando, setCarregando] = useState(true);
-    const [atualizando, setAtualizando] = useState(false);
-    const [erro, setErro] = useState<string | null>(null);
+const [carregando, setCarregando] = useState(true);
 
-    const carregarDados = useCallback(async (inicial = false) => {
-        if (inicial) {
-            setCarregando(true);
-        } else {
-            setAtualizando(true);
-        }
+const [erro, setErro] = useState<string | null>(null);
+const [notificacoes, setNotificacoes] = useState<NotificacaoSla[]>([]);
 
-        setErro(null);
+// Carrega as notificações de SLA.
+useEffect(() => {
+    apiRequest<NotificacaoSla[]>("/notificacoes")
+        .then(setNotificacoes)
+        .catch((error: unknown) => {
+            console.error("Erro ao carregar notificações de SLA:", error);
+        });
+}, []);
 
-        try {
-            const [ordens, departamentos, funcionarios, projetos] =
-                await Promise.all([
-                    ordemServicoService.listar(),
-                    departamentoService.listar(),
-                    funcionarioService.listar(),
-                    projetoService.listar(),
-                ]);
+const carregarDados = useCallback(async (inicial = false) => {
+    if (inicial) {
+        setCarregando(true);
+    } else {
+        
+    }
 
-            setDados({
-                ordens,
-                departamentos,
-                funcionarios,
-                projetos,
-            });
-        } catch (error: unknown) {
-            setErro(
-                error instanceof ApiError
-                    ? error.message
-                    : "Não foi possível carregar os dados do dashboard.",
-            );
-        } finally {
-            setCarregando(false);
-            setAtualizando(false);
-        }
-    }, []);
+    setErro(null);
 
-    useEffect(() => {
-        void carregarDados(true);
-    }, [carregarDados]);
+    try {
+        const [ordens, departamentos, funcionarios, projetos] =
+            await Promise.all([
+                ordemServicoService.listar(),
+                departamentoService.listar(),
+                funcionarioService.listar(),
+                projetoService.listar(),
+            ]);
 
-    const departamentoId = usuario?.departamento_id;
+        setDados({
+            ordens,
+            departamentos,
+            funcionarios,
+            projetos,
+        });
+    } catch (error: unknown) {
+        setErro(
+            error instanceof ApiError
+                ? error.message
+                : "Não foi possível carregar os dados do dashboard.",
+        );
+    } finally {
+        setCarregando(false);
+        
+    }
+}, []);
 
-    const ordensDepartamento = useMemo(
-        () =>
-            dados.ordens.filter(
-                (ordem) => ordem.departamento_id === departamentoId,
-            ),
-        [dados.ordens, departamentoId],
-    );
+useEffect(() => {
+    void carregarDados(true);
+}, [carregarDados]);
 
-    const ordensVisiveis =
-        usuario?.tipo === "gestor"
-            ? dados.ordens
-            : ordensDepartamento;
+const departamentoId = usuario?.departamento_id;
 
+
+const ordensDepartamento = useMemo(
+    () =>
+        dados.ordens.filter(
+            (ordem) => ordem.departamento_id === departamentoId,
+        ),
+    [dados.ordens, departamentoId],
+);
+
+const ordensVisiveis =
+    usuario?.tipo === "gestor"
+        ? dados.ordens
+        : ordensDepartamento;
     const ordensDoTecnico = useMemo(
         () =>
             ordensDepartamento.filter(
@@ -171,17 +187,16 @@ function Dashboard() {
         [dados.funcionarios, departamentoId],
     );
 
-    const statusData = useMemo(
-        () =>
-            contar(
-                ordensVisiveis.map((ordem) => ordem.status),
-                Object.keys(ROTULOS_STATUS) as StatusOrdemServico[],
-                ROTULOS_STATUS,
-                CORES_STATUS,
-            ),
-        [ordensVisiveis],
-    );
-
+const statusData = useMemo(
+    () =>
+        contar(
+            ordensVisiveis.map((ordem) => ordem.status),
+            Object.keys(ROTULOS_STATUS) as StatusOrdemServico[],
+            ROTULOS_STATUS,
+            CORES_STATUS,
+        ),
+    [ordensVisiveis],
+);
     // Usa as mesmas ordens visíveis ao usuário para calcular a criticidade.
     const criticidadeData = useMemo(
         () =>
@@ -223,70 +238,46 @@ function Dashboard() {
         [funcionariosDepartamento, ordensDepartamento],
     );
 
-    const horasPorDepartamento = useMemo(
-        () =>
-            dados.departamentos.map((departamento) => ({
-                nome: departamento.nome,
-                horas: null as number | null,
-            })),
-        [dados.departamentos],
-    );
 
-    const horasPorProjeto = useMemo(
-        () =>
-            dados.projetos.map((projeto) => ({
-                nome: projeto.nome,
-                horas: null as number | null,
-            })),
-        [dados.projetos],
-    );
 
-    const projetosDoDepartamento = useMemo(
-        () =>
-            dados.projetos.filter((projeto) =>
-                projeto.departamentos.includes(departamentoId ?? -1),
-            ),
-        [dados.projetos, departamentoId],
-    );
 
     const totalHoras = null as number | null;
 
-    if (carregando) {
-        return (
-            <main className="dashboard">
-                <div className="dashboard-mensagem">
-                    Carregando indicadores...
-                </div>
-            </main>
-        );
-    }
+   if (carregando) {
+    return (
+        <main className="dashboard">
+            <div className="dashboard-mensagem">
+                Carregando indicadores...
+            </div>
+        </main>
+    );
+}
 
-    if (erro) {
-        return (
-            <main className="dashboard">
-                <div className="dashboard-erro">
-                    <p>{erro}</p>
-                    <button
-                        type="button"
-                        onClick={() => void carregarDados()}
-                    >
-                        Tentar novamente
-                    </button>
-                </div>
-            </main>
-        );
-    }
+if (erro) {
+    return (
+        <main className="dashboard">
+            <div className="dashboard-erro">
+                <p>{erro}</p>
+                <button
+                    type="button"
+                    onClick={() => void carregarDados()}
+                >
+                    Tentar novamente
+                </button>
+            </div>
+        </main>
+    );
+}
 
-    if (!usuario) {
-        return (
-            <main className="dashboard">
-                <div className="dashboard-mensagem">
-                    Não foi possível identificar o usuário conectado.
-                </div>
-            </main>
-        );
-    }
-
+if (!usuario) {
+    return (
+        <main className="dashboard">
+            <div className="dashboard-mensagem">
+                Não foi possível identificar o usuário conectado.
+            </div>
+        </main>
+    );
+}
     const ehGestor = usuario.tipo === "gestor";
     const ehTecnico = usuario.tipo === "tecnico";
 
@@ -309,8 +300,37 @@ function Dashboard() {
     ).length;
 
     return (
-        <main className="dashboard">
-            <header className="dashboard-header">
+    <main className="dashboard">
+        <NotificacoesSla
+            notificacoes={notificacoes}
+            onDispensar={async (id) => {
+                try {
+                    await apiRequest<void>(
+                        `/notificacoes/${encodeURIComponent(id)}`,
+                        { method: "DELETE" },
+                    );
+
+                    setNotificacoes((atuais) =>
+                        atuais.filter(
+                            (notificacao) => notificacao.id !== id,
+                        ),
+                    );
+                } catch (error: unknown) {
+                    console.error(
+                        "Erro ao dispensar notificação:",
+                        error,
+                    );
+
+                    window.alert(
+                        error instanceof ApiError
+                            ? error.message
+                            : "Não foi possível dispensar a notificação. Tente novamente.",
+                    );
+                }
+            }}
+        />
+
+        <header className="dashboard-header">
                 <div>
                     <span className="dashboard-eyebrow">
                         GESTEC / INDICADORES

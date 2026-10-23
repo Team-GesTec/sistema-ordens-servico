@@ -71,12 +71,6 @@ export const ordemServicoService = {
         });
     },
 
-    atribuirResponsavel(id: number, funcionarioId: number): Promise<OrdemServico> {
-        return apiRequest<OrdemServico>(`/ordens-servico/atribuir/${id}`, {
-            method: "PATCH",
-            body: JSON.stringify({ funcionario_id: funcionarioId }),
-        });
-    },
 
     atualizar(
         id: number,
