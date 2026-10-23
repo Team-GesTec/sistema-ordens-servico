@@ -591,8 +591,19 @@ export class ServiceOrdemServico {
         this.repositorio.atualizarCache(atualizada);
         return atualizada;
     }
+  
+    private async garantirFuncionarioExiste(funcionarioId: number, campo: string): Promise<void> {
+        const funcionario = await this.funcionarios.buscarPorId(funcionarioId);
 
-        /** Monta o objeto de alterações conforme o modo (PUT ou PATCH). */
+        if (!funcionario) {
+            throw AppError.requisicaoInvalida(`${campo} não corresponde a um funcionário existente`);
+        }
+        if (!funcionario.ativo) {
+            throw AppError.conflito(`${campo} não pode corresponder a um funcionário inativo`);
+        }
+    }
+
+    /** Monta o objeto de alterações conforme o modo (PUT ou PATCH). */
     private async montarAlteracoes(dados: CorpoRequisicao, parcial: boolean): Promise<DadosAtualizacaoOrdemServico> {
         const alteracoes: DadosAtualizacaoOrdemServico = {};
 
@@ -625,11 +636,34 @@ export class ServiceOrdemServico {
             );
         }
 
+        if (!parcial || campoPresente(dados, 'sla_config_id')) {
+            alteracoes.sla_config_id = inteiroPositivoOpcional(
+                dados.sla_config_id,
+                'sla_config_id',
+            );
+        }
+
         if (!parcial || campoPresente(dados, 'cliente_id')) {
             alteracoes.cliente_id = inteiroPositivoOpcional(
                 dados.cliente_id,
                 'cliente_id',
             );
+        }
+
+        if (!parcial || campoPresente(dados, 'responsavel_id')) {
+            const responsavelId = inteiroPositivoOpcional(
+                dados.responsavel_id,
+                'responsavel_id',
+            );
+
+            if (responsavelId !== null) {
+                await this.garantirFuncionarioExiste(
+                    responsavelId,
+                    'responsavel_id',
+                );
+            }
+
+            alteracoes.responsavel_id = responsavelId;
         }
 
         if (!parcial || campoPresente(dados, 'projeto_id')) {
@@ -681,6 +715,14 @@ export class ServiceOrdemServico {
             );
         }
 
+        if (!parcial || campoPresente(dados, 'status')) {
+            alteracoes.status = exigirEnum(
+                dados.status,
+                STATUS_ORDEM,
+                'status',
+            );
+        }
+
         if (!parcial || campoPresente(dados, 'data_criacao')) {
             alteracoes.data_criacao =
                 dados.data_criacao === undefined || dados.data_criacao === null
@@ -689,6 +731,13 @@ export class ServiceOrdemServico {
                         dados.data_criacao,
                         'data_criacao',
                     );
+        }
+
+        if (!parcial || campoPresente(dados, 'prazo_dias_uteis')) {
+            alteracoes.prazo_dias_uteis = inteiroPositivoOpcional(
+                dados.prazo_dias_uteis,
+                'prazo_dias_uteis',
+            );
         }
 
         if (!parcial || campoPresente(dados, 'data_inicio')) {
@@ -705,18 +754,31 @@ export class ServiceOrdemServico {
             );
         }
 
+        if (!parcial || campoPresente(dados, 'data_limite_sla')) {
+            alteracoes.data_limite_sla = dataOpcional(
+                dados.data_limite_sla,
+                'data_limite_sla',
+            );
+        }
+
+        if (!parcial || campoPresente(dados, 'sla_manual')) {
+            if (typeof dados.sla_manual !== 'boolean') {
+                throw AppError.requisicaoInvalida(
+                    'sla_manual deve ser true ou false',
+                );
+            }
+
+            alteracoes.sla_manual = dados.sla_manual
+        }
+
+        if (!parcial || campoPresente(dados, 'justificativa_sla_manual')) {
+            alteracoes.justificativa_sla_manual = textoOpcional(
+                dados.justificativa_sla_manual,
+                'justificativa_sla_manual',
+            );
+        }
+
         return alteracoes;
-    }
-
-    private async garantirFuncionarioExiste(funcionarioId: number, campo: string): Promise<void> {
-        const funcionario = await this.funcionarios.buscarPorId(funcionarioId);
-
-        if (!funcionario) {
-            throw AppError.requisicaoInvalida(`${campo} não corresponde a um funcionário existente`);
-        }
-        if (!funcionario.ativo) {
-            throw AppError.conflito(`${campo} não pode corresponder a um funcionário inativo`);
-        }
     }
 }
 

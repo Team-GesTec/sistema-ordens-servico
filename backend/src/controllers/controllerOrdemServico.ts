@@ -16,9 +16,7 @@ export class ControllerOrdemServico {
 
     /** GET /ordens-servico/inativas — consulta o histórico de OS inativas. */
     public async getInativas(_req: Request, resp: Response): Promise<Response> {
-        return resp.status(200).json(
-            await serviceOrdemServico.listarInativas(),
-        );
+        return resp.status(200).json(await serviceOrdemServico.listarInativas());
     }
 
     /** PATCH /ordens-servico/:id/ativo — ativa ou inativa uma OS. */
@@ -26,18 +24,13 @@ export class ControllerOrdemServico {
         const usuario = usuarioAutenticado(req);
         const id = lerId(req.params.id);
 
-        return resp.status(200).json(
-            await serviceOrdemServico.alterarAtivo(
-                id,
-                req.body?.ativo,
-                usuario.id,
-            ),
-        );
+        return resp.status(200).json(await serviceOrdemServico.alterarAtivo(id, req.body?.ativo, usuario.id));
     }
 
     /** GET /ordens-servico/:id — busca o a O.S. pelo id (404 se não existir). */
     public async getById(req: Request, resp: Response): Promise<Response> {
         const id = lerId(req.params.id);
+      
         return resp.status(200).json(await serviceOrdemServico.buscarPorId(id));
     }
 
@@ -47,7 +40,7 @@ export class ControllerOrdemServico {
      */
     public async criarOrdem(req: Request, resp: Response): Promise<Response> {
         const usuario = usuarioAutenticado(req);
-
+      
         const novaOS = await serviceOrdemServico.criar(req.body, usuario.id, usuario.tipo);
         return resp.status(201).json(novaOS);
     }
@@ -56,6 +49,7 @@ export class ControllerOrdemServico {
     public async alterarStatus(req: Request, resp: Response): Promise<Response> {
         const usuario = usuarioAutenticado(req);
         const id = Number(req.params.id);
+      
         const atualizada = await serviceOrdemServico.alterarStatus(id, req.body, usuario);
         return resp.status(200).json(atualizada);
     }
@@ -63,29 +57,24 @@ export class ControllerOrdemServico {
     /** PATCH /ordens-servico/atribuir/:id — atribui um responsável a O.S. */
     public async atribuirResponsavel(req: Request, resp: Response): Promise<Response> {
         const usuario = usuarioAutenticado(req);
-
         const osId = lerId(req.params.id, 'id');
-        //const funcionarioId = lerId(req.body["funcionario_id"]);
+      
         return resp.status(200).json(await serviceOrdemServico.atribuirResponsavel(osId, req.body.funcionario_id, usuario.id));
     }
 
     /** PATCH /ordens-servico/bloquear/:id — bloqueia uma O.S. */
-    public async bloquearOrdem(
-        req: Request,
-        resp: Response,
-    ): Promise<Response> {
+    public async bloquearOrdem(req: Request, resp: Response): Promise<Response> {
         const usuario = usuarioAutenticado(req);
         const id = lerId(req.params.id);
 
-        return resp.status(200).json(
-            await serviceOrdemServico.bloquear(id, usuario.id),
-        );
+        return resp.status(200).json(await serviceOrdemServico.bloquear(id, usuario.id));
     }
 
     /** PUT /ordens-servico/:id — substitui os dados da O.S. (campos obrigatórios precisam vir). */
     public async updateOrdem(req: Request, resp: Response): Promise<Response> {
         const usuario = usuarioAutenticado(req);
         const id = lerId(req.params.id);
+      
         return resp.status(200).json(await serviceOrdemServico.atualizar(id, req.body, false, usuario.id));
     }
 
@@ -93,10 +82,11 @@ export class ControllerOrdemServico {
     public async patchOrdem(req: Request, resp: Response): Promise<Response> {
         const usuario = usuarioAutenticado(req);
         const id = lerId(req.params.id);
+      
         return resp.status(200).json(await serviceOrdemServico.atualizar(id, req.body, true, usuario.id));
     }
 
 }
 
 /** Instância única usada pelas rotas. */
-export const controllerOrdemServico = new ControllerOrdemServico();
+export const controllerOrdemServico = new ControllerOrdemServico();

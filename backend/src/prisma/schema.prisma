@@ -76,7 +76,7 @@ model funcionarios {
   ativo                                                      Boolean             @default(true)
   apontamento_horas                                          apontamento_horas[]
   auditoria                                                  auditoria[]
-  auditoria_projetos                                          auditoria_projetos[]
+  auditoria_projetos                                         auditoria_projetos[]
   departamentos_departamentos_responsavel_idTofuncionarios   departamentos[]     @relation("departamentos_responsavel_idTofuncionarios")
   equipes                                                    equipes[]
   departamentos_funcionarios_departamento_idTodepartamentos  departamentos       @relation("funcionarios_departamento_idTodepartamentos", fields: [departamento_id], references: [id], onDelete: NoAction, onUpdate: NoAction)

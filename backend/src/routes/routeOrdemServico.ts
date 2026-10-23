@@ -19,9 +19,7 @@ const somenteGestor = autorizar('gestor');
 router.get('/', (req: Request, res: Response) => controllerOrdemServico.getAll(req, res));
 
 // GET ALL INATIVAS
-router.get('/inativas', somenteGestor, (req: Request, res: Response) =>
-    controllerOrdemServico.getInativas(req, res),
-);
+router.get('/inativas', somenteGestor, (req: Request, res: Response) => controllerOrdemServico.getInativas(req, res));
 
 // GET BY ID — qualquer usuário autenticado
 router.get('/:id', (req: Request, res: Response) => controllerOrdemServico.getById(req, res));
@@ -37,9 +35,7 @@ router.patch('/atribuir/:id', gestorOuTecnico, (req: Request, res: Response) => 
 router.patch('/bloquear/:id', somenteGestor, (req: Request, res: Response) => controllerOrdemServico.bloquearOrdem(req, res));
 
 // Ativar ou inativar — somente gestor
-router.patch('/:id/ativo', somenteGestor, (req: Request, res: Response) =>
-    controllerOrdemServico.alterarAtivo(req, res),
-);
+router.patch('/:id/ativo', somenteGestor, (req: Request, res: Response) => controllerOrdemServico.alterarAtivo(req, res));
 
 // PATCH - gestor
 router.patch('/:id', somenteGestor, (req: Request, res: Response) => controllerOrdemServico.patchOrdem(req, res))
@@ -48,8 +44,6 @@ router.patch('/:id', somenteGestor, (req: Request, res: Response) => controllerO
 router.put('/:id', somenteGestor, (req: Request, res: Response) => controllerOrdemServico.updateOrdem(req, res))
 
 // PATCH status — gestor altera qualquer O.S.; técnico, só as atribuídas a ele (checado no service)
-router.patch('/:id/status', gestorOuTecnico, (req: Request, res: Response) =>
-    controllerOrdemServico.alterarStatus(req, res),
-);
+router.patch('/:id/status', gestorOuTecnico, (req: Request, res: Response) => controllerOrdemServico.alterarStatus(req, res));
 
-export default router;
+export default router;

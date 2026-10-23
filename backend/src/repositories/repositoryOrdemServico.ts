@@ -54,10 +54,7 @@ export class RepositoryOrdemServico {
      * Cria uma OS dentro de uma transação (usado no cadastro de O.S. antiga — AJ-06).
      * Não mexe no cache: quem chama deve chamar `atualizarCache` depois que a transação terminar.
      */
-    async criarNaTransacao(
-        dados: DadosCriacaoOrdemServico,
-        conexao: Prisma.TransactionClient,
-    ): Promise<OrdemServico> {
+    async criarNaTransacao(dados: DadosCriacaoOrdemServico, conexao: Prisma.TransactionClient): Promise<OrdemServico> {
         try {
             return await conexao.ordens_servico.create({ data: dados });
         } catch (erro) {
@@ -79,14 +76,14 @@ export class RepositoryOrdemServico {
         }
     }
 
-        /**
+     /**
      * Atualiza os campos informados de uma OS dentro de uma transação.
      * Não mexe no cache: quem chama deve chamar `limparCache` depois que a transação terminar.
      */
     async atualizarNaTransacao(
         id: number,
         dados: DadosAtualizacaoOrdemServico,
-        conexao: Prisma.TransactionClient,
+        conexao: Prisma.TransactionClient
     ): Promise<OrdemServico> {
         try {
             return await conexao.ordens_servico.update({ where: { id }, data: dados });
@@ -102,7 +99,6 @@ export class RepositoryOrdemServico {
     atualizarCache(ordem: OrdemServico): void {
         ordemServicoCache.definir(ordem);
     }
-
 
     /**
      * Atribui ou substitui o responsável e registra a auditoria na mesma transação.
@@ -186,7 +182,7 @@ export class RepositoryOrdemServico {
     async atualizarStatus(
         id: number,
         dados: DadosAlteracaoStatus,
-        conexao: Prisma.TransactionClient = prisma,
+        conexao: Prisma.TransactionClient = prisma
     ): Promise<OrdemServico> {
         const atualizada = await conexao.ordens_servico.update({
             where: { id },
