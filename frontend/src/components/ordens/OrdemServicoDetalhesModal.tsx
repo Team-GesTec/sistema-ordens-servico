@@ -24,14 +24,25 @@ export interface AnexoOrdemPayload {
     relato: string;
 }
 
-// Anexo já registrado, como devolvido pela API.
-// TODO: alinhar os campos com o contrato real quando a rota existir.
+// Anexo já registrado (US#2.6), montado a partir da resposta da API em useAnexosOrdem.
 export interface AnexoOrdem {
     id: number;
     nome: string;
     tamanho_bytes?: number | null;
     data_envio?: string | null;
     url?: string | null;
+    // Nome de quem enviou o anexo.
+    autor?: string | null;
+    // Relato enviado junto com o arquivo.
+    relato?: string | null;
+}
+
+// Erro de envio em que parte dos arquivos já foi gravada (ver useAnexosOrdem).
+function arquivosJaEnviados(erro: unknown): File[] {
+    if (typeof erro === "object" && erro !== null && "enviados" in erro && Array.isArray(erro.enviados)) {
+        return erro.enviados as File[];
+    }
+    return [];
 }
 
 function normalizarExtensao(extensao: string): string {
@@ -69,15 +80,16 @@ interface OrdemServicoDetalhesModalProps {
     anexos?: AnexoOrdem[];
     carregandoAnexos?: boolean;
     erroAnexos?: string | null;
-    // Extensões aceitas (ex.: ["pdf", "png"]), vindas da configuração/API.
+    // Extensões aceitas (ex.: ["pdf", "png"]), vindas de GET /anexos/configuracao.
     // Vazio ou ausente: o front não restringe e o backend valida.
     tiposPermitidos?: string[];
-    // TODO: integrar com o backend quando a rota de anexos existir.
-    // O upload deve chamar onProgresso com o percentual (0 a 100).
+    // Upload multipart (POST /ordens-servico/:id/anexos); chama onProgresso com o percentual (0 a 100).
     onEnviarAnexo?: (
         dados: AnexoOrdemPayload,
         onProgresso: (percentual: number) => void,
     ) => Promise<void> | void;
+    // Download pela API com o token (o bucket de anexos é privado).
+    onBaixarAnexo?: (anexo: AnexoOrdem) => Promise<void> | void;
 }
 
 const STATUS_EDITAVEIS: StatusOrdemServico[] = [
@@ -131,6 +143,7 @@ function OrdemServicoDetalhesModal({
     erroAnexos = null,
     tiposPermitidos = [],
     onEnviarAnexo,
+    onBaixarAnexo,
 }: OrdemServicoDetalhesModalProps) {
     const [parecerTemporario, setParecerTemporario] = useState("");
     const [responsavelNovoId, setResponsavelNovoId] = useState<number | null>(null);
@@ -279,6 +292,21 @@ function OrdemServicoDetalhesModal({
         event.target.value = "";
     }
 
+    async function baixarAnexo(anexo: AnexoOrdem) {
+        if (!onBaixarAnexo) return;
+
+        setErroAnexo(null);
+        try {
+            await onBaixarAnexo(anexo);
+        } catch (err) {
+            setErroAnexo(
+                err instanceof Error && err.message
+                    ? err.message
+                    : "Não foi possível baixar o anexo. Tente novamente.",
+            );
+        }
+    }
+
     function removerArquivo(indice: number) {
         setArquivosAnexo((atuais) => atuais.filter((_, i) => i !== indice));
         setErroAnexo(null);
@@ -290,7 +318,11 @@ function OrdemServicoDetalhesModal({
 
         const relato = relatoAnexo.trim();
 
-        if (arquivosAnexo.length === 0 && !relato) return;
+        // O relato é gravado junto com os arquivos: é preciso ao menos um arquivo.
+        if (arquivosAnexo.length === 0) {
+            setErroAnexo("Selecione ao menos um arquivo. O relato é enviado junto com os anexos.");
+            return;
+        }
 
         if (!onEnviarAnexo) {
             setErroAnexo("O envio de anexos ainda não está disponível.");
@@ -304,8 +336,6 @@ function OrdemServicoDetalhesModal({
         setProgressoAnexo(0);
 
         try {
-            // TODO: integrar com o backend (upload multipart + relato) assim
-            // que a rota de anexos da O.S. estiver disponível.
             await onEnviarAnexo(
                 { arquivos: arquivosAnexo, relato },
                 (percentual) =>
@@ -317,6 +347,11 @@ function OrdemServicoDetalhesModal({
             setRelatoAnexo("");
             setSucessoAnexo("Anexo enviado com sucesso.");
         } catch (err) {
+            // Tira da seleção os arquivos que já foram gravados, para não duplicar no próximo envio.
+            const enviados = arquivosJaEnviados(err);
+            if (enviados.length > 0) {
+                setArquivosAnexo((atuais) => atuais.filter((arquivo) => !enviados.includes(arquivo)));
+            }
             setErroAnexo(
                 err instanceof Error && err.message
                     ? err.message
@@ -812,6 +847,13 @@ function OrdemServicoDetalhesModal({
                                                         href={anexo.url}
                                                         target="_blank"
                                                         rel="noopener noreferrer"
+                                                        onClick={(event) => {
+                                                            // O download exige o token: baixa pela API em vez de abrir o link.
+                                                            if (onBaixarAnexo) {
+                                                                event.preventDefault();
+                                                                void baixarAnexo(anexo);
+                                                            }
+                                                        }}
                                                     >
                                                         {anexo.nome}
                                                     </a>
@@ -824,6 +866,8 @@ function OrdemServicoDetalhesModal({
                                                 {anexo.data_envio
                                                     ? ` · ${formatarData(anexo.data_envio)}`
                                                     : ""}
+                                                {anexo.autor ? ` · ${anexo.autor}` : ""}
+                                                {anexo.relato ? ` — ${anexo.relato}` : ""}
                                             </span>
                                         </li>
                                     ))}
@@ -845,10 +889,7 @@ function OrdemServicoDetalhesModal({
                                 type="button"
                                 className="ordens-btn-primary"
                                 onClick={enviarAnexo}
-                                disabled={
-                                    enviandoAnexo ||
-                                    (arquivosAnexo.length === 0 && !relatoAnexo.trim())
-                                }
+                                disabled={enviandoAnexo || arquivosAnexo.length === 0}
                                 aria-busy={enviandoAnexo}
                             >
                                 {enviandoAnexo ? "Enviando..." : "Enviar"}

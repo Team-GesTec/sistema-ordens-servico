@@ -1,6 +1,7 @@
 /**
  * Página de O.S.: monta a toolbar, a grade de cards e os modais (detalhes, ativar/inativar e formulário)
  * a partir do estado do hook useOrdens. O cadastro de O.S. antiga (AJ-06) só é liberado para o gestor.
+ * US#2.6: os anexos da O.S. aberta nos detalhes vêm do hook useAnexosOrdem.
  */
 
 import { useEffect, useRef } from "react";
@@ -22,9 +23,11 @@ import OrdemServicoCard from "../components/ordens/OrdemServicoCard";
 import OrdemServicoDetalhesModal from "../components/ordens/OrdemServicoDetalhesModal";
 import OrdemServicoFormModal from "../components/ordens/OrdemServicoFormModal";
 import { useOrdens } from "../hooks/useOrdens";
+import { useAnexosOrdem } from "../hooks/useAnexosOrdem";
 
 function Ordens() {
     const ordens = useOrdens();
+    const anexosOrdem = useAnexosOrdem(ordens.detalhesAbertos ? ordens.ordemSelecionada : null);
     const [searchParams, setSearchParams] = useSearchParams();
     const idVisualizar = searchParams.get("visualizar");
     const idVisualizarProcessado = useRef<string | null>(null);
@@ -163,6 +166,12 @@ function Ordens() {
                 podeAlterarPrazo={ordens.podeGerenciar}
                 alterandoPrazo={ordens.alterandoPrazo}
                 onAlterarPrazo={ordens.alterarPrazoOrdem}
+                anexos={anexosOrdem.anexos}
+                carregandoAnexos={anexosOrdem.carregandoAnexos}
+                erroAnexos={anexosOrdem.erroAnexos}
+                tiposPermitidos={anexosOrdem.tiposPermitidos}
+                onEnviarAnexo={anexosOrdem.enviarAnexo}
+                onBaixarAnexo={anexosOrdem.baixarAnexo}
             />
 
             <OrdemServicoAtivoModal
