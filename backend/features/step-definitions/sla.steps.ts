@@ -6,6 +6,8 @@
  */
 import { Given, When, Then } from "@cucumber/cucumber";
 import assert from "assert/strict";
+import { CustomWorld } from "../support/world";
+import { calcularEstadoSla, type DadosSla } from "../../src/utils/estadoSla";
 
 import { CustomWorld } from "../support/world";
 import { api } from "../support/api";

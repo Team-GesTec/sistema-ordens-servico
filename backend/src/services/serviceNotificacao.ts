@@ -100,6 +100,7 @@ export class ServiceNotificacao {
         return novas.length;
     }
 
+    /** Avisos de um funcionário, dos mais novos para os mais antigos. */
     async listarDoFuncionario(funcionarioId: number): Promise<Notificacao[]> {
         const [notificacoes, dispensadas] = await Promise.all([
             this.notificacoes.listarPorFuncionario(funcionarioId),

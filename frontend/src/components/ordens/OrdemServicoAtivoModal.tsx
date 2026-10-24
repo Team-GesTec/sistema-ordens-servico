@@ -47,6 +47,7 @@ function OrdemServicoAtivoModal({
                                 : "Reativar ordem de serviço?"}
                         </h2>
                     </div>
+
                     <button
                         type="button"
                         className="ordem-modal-close"
@@ -63,11 +64,13 @@ function OrdemServicoAtivoModal({
                         Confirma a {inativar ? "inativação" : "reativação"} da OS{" "}
                         <strong>#{ordem.id} — {ordem.titulo}</strong>?
                     </p>
+
                     <p>
                         {inativar
                             ? "A ordem será retirada da listagem ativa, mas seu registro e histórico serão preservados. Um usuário autorizado poderá reativá-la posteriormente."
                             : "A ordem voltará a aparecer na listagem de ordens ativas. O registro e o histórico serão preservados."}
                     </p>
+
                     {erro && (
                         <p
                             className="ordens-feedback ordens-feedback--error"
@@ -87,6 +90,7 @@ function OrdemServicoAtivoModal({
                     >
                         Cancelar
                     </button>
+
                     <button
                         type="button"
                         className="ordens-btn-primary"

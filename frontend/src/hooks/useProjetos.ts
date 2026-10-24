@@ -37,6 +37,7 @@ export function useProjetos() {
     const [mensagem, setMensagem] = useState<string | null>(null);
     const [erro, setErro] = useState<string | null>(null);
 
+
     useEffect(() => {
         let montado = true;
         async function inicializar() {

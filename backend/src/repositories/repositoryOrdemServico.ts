@@ -5,6 +5,7 @@
  * Leituras passam pelo cache; escritas vão ao banco e, confirmadas, atualizam o cache.
  */
 
+
 import { prisma } from '../prisma/client';
 import type { Prisma } from '../prisma/generated/client';
 import { ordemServicoCache } from '../cache/ordemServicoCache';

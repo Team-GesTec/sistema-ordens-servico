@@ -13,6 +13,20 @@
     position: relative;
     min-width: 0;
     width: 100%;
+    height: 38px;
+    padding: 0 12px;
+    border: 1px solid rgba(23, 104, 183, 0.12);
+    border-radius: 4px;
+    background: #fff;
+    color: #193247;
+    font: inherit;
+    font-size: 12px;
+    outline: none;
+}
+
+.clientes-search:focus {
+    border-color: #1768b7;
+    box-shadow: 0 0 0 2px rgba(23, 104, 183, 0.12);
 }
 
 .clientes-search-wrapper .clientes-search {
@@ -34,13 +48,61 @@
     width: 100%;
 }
 
+.clientes-btn-secondary {
+    background: #e5f2fb;
+    color: #155b98;
+}
+
+.clientes-btn-secondary:hover:not(:disabled) {
+    background: #d2e9f9;
+}
+
+.clientes-btn-danger {
+    background: #fff0f0;
+    color: #a52a2a;
+}
+
+.clientes-btn-danger:hover:not(:disabled) {
+    background: #ffe0e0;
+}
+
+.clientes-btn-primary:disabled,
+.clientes-btn-secondary:disabled,
+.clientes-btn-danger:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+}
+
+/* =========================
+   GRADE DE CARTÕES
+========================= */
+
 .clientes-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
     width: 100%;
     padding-bottom: 20px;
 }
 
 .cliente-card {
     min-width: 0;
+    padding: 9px 10px 7px;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.75);
+    border-radius: 9px;
+    background: rgba(255, 255, 255, 0.78);
+    box-shadow: 0 3px 10px rgba(26, 87, 126, 0.06);
+    transition: background 0.18s ease, box-shadow 0.18s ease;
+}
+
+.cliente-card:hover {
+    background: rgba(255, 255, 255, 0.94);
+    box-shadow: 0 5px 15px rgba(26, 87, 126, 0.12);
+}
+
+.cliente-card--inativo {
+    background: rgba(235, 240, 245, 0.88);
 }
 
 .cliente-card-header {
@@ -101,6 +163,7 @@
 .cliente-card-metadata {
     min-width: 0;
     overflow-wrap: anywhere;
+    line-height: 1.5;
 }
 
 .cliente-card-metadata > span {
@@ -219,6 +282,11 @@
     color: #dae4ec;
 }
 
+.dark-mode .clientes-toolbar-modern .clientes-sugestoes,
+.clientes-sugestoes--dark {
+    background: #182b40;
+    border-color: #40566e;
+}
 
 .dark-mode .cliente-nome,
 .dark-mode .cliente-card .projeto-card-title {

@@ -85,6 +85,7 @@ export function useFuncionarios() {
 
     useEffect(() => {
         void carregarDados(true);
+        // A carga inicial é intencionalmente feita uma vez; recargas posteriores são chamadas após mutações.
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 

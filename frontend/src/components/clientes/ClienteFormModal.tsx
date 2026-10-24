@@ -1,3 +1,4 @@
+
 import { useEffect, useState, type FormEvent } from "react";
 import type { Cliente } from "../../types/api";
 import type { DadosFormularioCliente } from "../../utils/clienteUtils";
@@ -48,6 +49,7 @@ function ClienteFormModal({
                   }
                 : FORMULARIO_INICIAL
         );
+
         setErroLocal(null);
     }, [aberto, cliente]);
 

@@ -10,8 +10,8 @@ import type { FuncionarioComSenha } from "../../src/models/modelFuncionario";
 const funcionario = {
     id: 1,
     departamento_id: 1,
-    usuario: "admin",
-    senha_hash: bcrypt.hashSync("admin123", 12),
+    usuario: "sgos",
+    senha_hash: bcrypt.hashSync("sgos1234", 12),
     nome: "Administrador de teste",
     tipo: "gestor",
     ativo: true,
@@ -19,7 +19,7 @@ const funcionario = {
 
 const repositorioFalso = {
     buscarCredenciaisPorUsuario: async (usuario: string) =>
-        usuario === "admin" ? funcionario : null,
+        usuario === "sgos" ? funcionario : null,
 } as unknown as RepositoryFuncionario;
 
 const controllerAuth = new ControllerAuth(new ServiceAuth(repositorioFalso));

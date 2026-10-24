@@ -303,12 +303,12 @@ npx prisma migrate deploy
 npm run db:status
 ```
 
-Preencha as variáveis de ambiente no `.env` com as informações do banco PostgreSQL.
+Se o banco compartilhado tiver migrations pendentes, confirme primeiro que `DIRECT_URL` aponta para o ambiente de desenvolvimento correto e, com autorização, aplique as migrations versionadas:
 
-> [!NOTE]
-> Caso esteja utilizando um banco PostgreSQL local, informe no `.env` os dados correspondentes à sua conexão.
->
-> As variáves necessárias estão disponíveis no arquivo `.env.example`.
+```bash
+npx prisma migrate deploy
+npm run db:status
+```
 
 Com o banco configurado, gere o client do Prisma:
 

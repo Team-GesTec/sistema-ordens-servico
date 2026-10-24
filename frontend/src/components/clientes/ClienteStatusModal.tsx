@@ -1,3 +1,4 @@
+
 import type { Cliente } from "../../types/api";
 import type { AcaoStatus } from "../../utils/clienteUtils";
 
@@ -58,11 +59,49 @@ function ClienteStatusModal({
                     <p>
                         Confirma a ação para o cliente <strong>{cliente.nome}</strong>?
                     </p>
+
                     <p>
                         {inativar
                             ? "O registro será inativado. Projetos ou ordens de serviço não concluídos impedem a inativação."
                             : "O cliente voltará a aparecer na listagem de ativos e poderá ser vinculado a novos projetos."}
                     </p>
+
+                    {erro && (
+                        <div
+                            className="clientes-feedback clientes-feedback--error"
+                            role="alert"
+                        >
+                            {erro}
+                        </div>
+                    )}
+
+                    <div className="cliente-modal-actions">
+                        <button
+                            type="button"
+                            className="clientes-btn-secondary"
+                            onClick={onClose}
+                            disabled={processando}
+                        >
+                            Cancelar
+                        </button>
+
+                        <button
+                            type="button"
+                            className={
+                                inativar
+                                    ? "clientes-btn-danger"
+                                    : "clientes-btn-primary"
+                            }
+                            onClick={() => void onConfirm()}
+                            disabled={processando}
+                        >
+                            {processando
+                                ? "Processando..."
+                                : inativar
+                                  ? "Confirmar inativação"
+                                  : "Confirmar reativação"}
+                        </button>
+                    </div>
                 </div>
 
                 {erro && <div className="projetos-feedback projetos-feedback--error" role="alert">{erro}</div>}

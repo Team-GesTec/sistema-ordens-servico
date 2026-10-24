@@ -451,7 +451,7 @@ O corpo do commit pode listar as User Stories incluídas e os testes realizados.
 
 **Importante:** o padrão `merge(JH-123): ...` identifica um commit que registra a resolução de conflitos. Ele não significa que todo PR precisa terminar com um commit manual desse tipo. A estratégia de merge e a mensagem do commit de resolução são regras distintas.
 
----
+### Comentário de cabeçalho nos arquivos
 
 ## 7. Fluxo completo de trabalho
 
