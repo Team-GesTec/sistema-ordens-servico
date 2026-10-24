@@ -110,10 +110,18 @@ export class ControllerOrdemServico {
         );
     }
 
+    /** DELETE /ordens-servico/:id — exclui a O.S. */
+    public async deleteOrdem(req: Request, resp: Response): Promise<Response> {
+        const id = lerId(req.params.id);
+        await serviceOrdemServico.remover(id);
+
+        return resp.status(200).json({ mensagem: 'Ordem excluída com sucesso' });
+    }
+
     public async listarHistorico(req: Request, resp: Response): Promise<Response> {
         const id = lerId(req.params.id);
         const historico = await serviceAuditoria.listarPorOrdemServico(id);
-
+        return resp.status(200).json(historico);
         return resp.status(200).json(historico);
     }
 }

@@ -3,7 +3,7 @@
 Funcionalidade: Autenticação de Usuários no Sistema
 
     Cenário: Autenticação com credenciais válidas (Caminho Feliz)
-        Dado que o colaborador insere o usuário "sgos" e a senha "sgos1234"
+        Dado que o colaborador usa as credenciais do gestor configuradas no ambiente
         Quando solicita o acesso
         Então o sistema autentica o colaborador com sucesso
 

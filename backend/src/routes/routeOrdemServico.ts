@@ -15,7 +15,7 @@ const gestorOuTecnico = autorizar('gestor', 'tecnico');
 /** Somente gestores podem bloquear uma O.S. e modificá-la livremente. */
 const somenteGestor = autorizar('gestor');
 
-// GET ALL
+// GET ALL — qualquer usuário autenticado (o `autenticar` global já é aplicado no app.ts)
 router.get('/', (req: Request, res: Response) => controllerOrdemServico.getAll(req, res));
 
 // GET HISTORICO
@@ -57,6 +57,9 @@ router.patch('/:id', somenteGestor, (req: Request, res: Response) => controllerO
 
 // PUT - gestor
 router.put('/:id', somenteGestor, (req: Request, res: Response) => controllerOrdemServico.updateOrdem(req, res))
+
+// DELETE - gestor
+router.delete('/:id', somenteGestor, (req: Request, res: Response) => controllerOrdemServico.deleteOrdem(req, res))
 
 // PATCH status — gestor altera qualquer O.S.; técnico, só as atribuídas a ele (checado no service)
 router.patch('/:id/status', gestorOuTecnico, (req: Request, res: Response) =>

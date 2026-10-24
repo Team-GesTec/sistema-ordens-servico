@@ -51,7 +51,8 @@ import { repositoryFuncionario, type RepositoryFuncionario } from '../repositori
 import { serviceAuditoria } from './serviceAuditoria';
 import { calcularEstadoSla, type EstadoSla } from '../utils/estadoSla';
 import { serviceSla } from './serviceSla';
-import type { DadosRegistroAuditoria } from '../models/modelAuditoria';import { bloquearOrdemServico, bloquearProjetosRelacionados, validarProjetoDaOrdem } from '../utils/projetoOsInvariant';
+import type { DadosRegistroAuditoria } from '../models/modelAuditoria';
+import { bloquearOrdemServico, bloquearProjetosRelacionados, validarProjetoDaOrdem } from '../utils/projetoOsInvariant';
 import type { PerfilFuncionario } from '../models/modelFuncionario';
 import {
     type DadosCriacaoOrdemServico,
@@ -282,7 +283,7 @@ export class ServiceOrdemServico {
             data_fim: dataFim,
             data_limite_sla: sla.data_limite_sla,
             sla_manual: sla.sla_manual,
-            justificativa_sla_manual: sla.sla_manual ? sla.descricao : null
+            justificativa_sla_manual: sla.sla_manual ? sla.descricao : null,
         };
 
         const registros: RegistroAuditoriaCriacao[] = [];
@@ -386,9 +387,7 @@ export class ServiceOrdemServico {
         }
 
         // bloquear é ação só do gestor
-        if (!ehGestor && novoStatus === 'bloqueado') {
-            throw  AppError.acessoNegado('Apenas o gestor pode bloquear uma O.S.')
-        }
+
 
         // 4. Checa a trava: O.S. concluída não muda mais
         if (ordem.status === 'concluido') {
@@ -699,6 +698,10 @@ export class ServiceOrdemServico {
             funcionarioId,
         });
     }
+    /** Remove uma O.S. (bloqueada pelo banco se houver vínculos). */
+    remover(id: number): Promise<void> {
+        return this.repositorio.remover(id);
+    }
 
     /**
      * Ativa ou inativa uma O.S. sem apagar seu registro.
@@ -744,8 +747,18 @@ export class ServiceOrdemServico {
         this.repositorio.atualizarCache(atualizada);
         return atualizada;
     }
+    private async garantirFuncionarioExiste(funcionarioId: number, campo: string): Promise<void> {
+        const funcionario = await this.funcionarios.buscarPorId(funcionarioId);
 
-        /** Monta o objeto de alterações conforme o modo (PUT ou PATCH). */
+        if (!funcionario) {
+            throw AppError.requisicaoInvalida(`${campo} não corresponde a um funcionário existente`);
+        }
+        if (!funcionario.ativo) {
+            throw AppError.conflito(`${campo} não pode corresponder a um funcionário inativo`);
+        }
+    }
+
+    /** Monta o objeto de alterações conforme o modo (PUT ou PATCH). */
     private async montarAlteracoes(dados: CorpoRequisicao, parcial: boolean): Promise<DadosAtualizacaoOrdemServico> {
         const alteracoes: DadosAtualizacaoOrdemServico = {};
 
@@ -861,16 +874,6 @@ export class ServiceOrdemServico {
         return alteracoes;
     }
 
-    private async garantirFuncionarioExiste(funcionarioId: number, campo: string): Promise<void> {
-        const funcionario = await this.funcionarios.buscarPorId(funcionarioId);
-
-        if (!funcionario) {
-            throw AppError.requisicaoInvalida(`${campo} não corresponde a um funcionário existente`);
-        }
-        if (!funcionario.ativo) {
-            throw AppError.conflito(`${campo} não pode corresponder a um funcionário inativo`);
-        }
-    }
 }
 
 function exigirDataValida(valor: unknown, campo: string): Date {

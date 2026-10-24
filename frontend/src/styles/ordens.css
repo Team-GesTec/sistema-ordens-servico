@@ -477,6 +477,16 @@
     width: min(480px, 100%);
 }
 
+.ordem-anexo-progresso {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.ordem-anexo-progresso progress {
+    flex: 1;
+}
+
 @keyframes ordemModalEntrada {
     from {
         opacity: 0;

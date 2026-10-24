@@ -35,7 +35,7 @@ function Projetos() {
     const idVisualizar = searchParams.get("visualizar");
     const idVisualizarProcessado = useRef<string | null>(null);
     const [erroDetalheDireto, setErroDetalheDireto] = useState<string | null>(null);
-    
+
     const modalAberto = projetos.formularioAberto || Boolean(projetos.confirmacaoAtivo);
 
     useEffect(() => {
@@ -44,10 +44,10 @@ function Projetos() {
             return;
         }
         if (projetos.carregando || idVisualizarProcessado.current === idVisualizar) return;
-        
+
         idVisualizarProcessado.current = idVisualizar;
         const id = Number(idVisualizar);
-        
+
         if (Number.isSafeInteger(id) && id > 0) {
             setErroDetalheDireto(null);
             void projetoService.buscarPorId(id)
@@ -56,7 +56,7 @@ function Projetos() {
         } else {
             setErroDetalheDireto("Identificador do projeto inválido.");
         }
-        
+
         setSearchParams((atuais) => {
             const proximos = new URLSearchParams(atuais);
             proximos.delete("visualizar");

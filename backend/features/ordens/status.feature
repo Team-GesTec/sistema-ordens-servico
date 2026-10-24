@@ -69,12 +69,12 @@ Funcionalidade: Alteração de status e parecer técnico (US#2.4)
         Quando altera o status da O.S. para "aguardando"
         Então a API nega a operação por falta de permissão
 
-    # Tabela de permissões: "Bloquear O.S.: Técnico não"
-    Cenário: Técnico não bloqueia nem a própria O.S.
+    # Técnico responsável pode bloquear a própria O.S.
+    Cenário: Técnico responsável bloqueia a própria O.S.
         Dado que existe um técnico autenticado
         E que existe uma O.S. com responsável atribuído
         Quando altera o status da O.S. para "bloqueado"
-        Então a API nega a operação por falta de permissão
+        Então a API aceita a alteração de status
 
     # O.S. bloqueada não pode ser desbloqueada (decisão do time: para retomar, criar nova O.S.)
     Cenário: Técnico não desbloqueia nem a própria O.S.

@@ -591,7 +591,7 @@ export function useOrdens() {
             ordem.status === "concluido" ||
             destino === ordem.status
         ) return false;
-        if (destino === "bloqueado") return podeOperarDepartamento;
+        if (destino === "bloqueado") return true;
         return ["em_andamento", "aguardando", "validacao_testes", "concluido"].includes(destino);
     }
 
@@ -608,27 +608,25 @@ export function useOrdens() {
             return;
         }
         if (destino === "bloqueado") {
-            if (!podeOperarDepartamento) {
-                setErro("Somente Gestor/Admin pode bloquear uma O.S.");
+            if (podeOperarDepartamento) {
+                setAlterandoStatusId(ordem.id);
+                try {
+                    const atualizada = await ordemServicoService.bloquear(ordem.id);
+                    const fallbackDetalhe = { ...ordem, ...atualizada };
+                    setOrdens((atuais) => atuais.map((item) => item.id === atualizada.id ? atualizada : item));
+                    setOrdensInativas((atuais) => atuais.map((item) => item.id === atualizada.id ? atualizada : item));
+                    setMensagem(`O.S. #${atualizada.id} bloqueada com sucesso.`);
+                    if (detalhesAbertos && ordemSelecionada?.id === ordem.id) {
+                        setOrdemSelecionada(fallbackDetalhe);
+                        await recarregarDetalheAposMutacao(atualizada, fallbackDetalhe);
+                    }
+                } catch (error) {
+                    setErro(mensagemErro(error, "Não foi possível bloquear a O.S.; a coluna foi preservada."));
+                } finally {
+                    setAlterandoStatusId(null);
+                }
                 return;
             }
-            setAlterandoStatusId(ordem.id);
-            try {
-                const atualizada = await ordemServicoService.bloquear(ordem.id);
-                const fallbackDetalhe = { ...ordem, ...atualizada };
-                setOrdens((atuais) => atuais.map((item) => item.id === atualizada.id ? atualizada : item));
-                setOrdensInativas((atuais) => atuais.map((item) => item.id === atualizada.id ? atualizada : item));
-                setMensagem(`O.S. #${atualizada.id} bloqueada com sucesso.`);
-                if (detalhesAbertos && ordemSelecionada?.id === ordem.id) {
-                    setOrdemSelecionada(fallbackDetalhe);
-                    await recarregarDetalheAposMutacao(atualizada, fallbackDetalhe);
-                }
-            } catch (error) {
-                setErro(mensagemErro(error, "Não foi possível bloquear a O.S.; a coluna foi preservada."));
-            } finally {
-                setAlterandoStatusId(null);
-            }
-            return;
         }
         await executarAlteracaoStatus(ordem, destino);
     }
@@ -698,7 +696,9 @@ export function useOrdens() {
     }
 
     async function salvarOrdem(dados: OrdemServicoInput): Promise<void> {
-        const autorizado = ordemEmEdicao ? podeOperarDepartamento : podeCriar;
+        const autorizado = ordemEmEdicao
+            ? podeGerenciar
+            : podeCriar;
 
         if (!autorizado) {
             setErro(

@@ -20,6 +20,7 @@ import OrdemServicoFormModal from "../components/ordens/OrdemServicoFormModal";
 import OrdemServicoKanban from "../components/ordens/OrdemServicoKanban";
 import OrdemServicoVisualizacoesSalvas, { type TipoVisualizacaoOrdens } from "../components/ordens/OrdemServicoVisualizacoesSalvas";
 import { useOrdens } from "../hooks/useOrdens";
+import { useAnexosOrdem } from "../hooks/useAnexosOrdem";
 
 import type { NivelCriticidade } from "../types/api";
 
@@ -42,6 +43,9 @@ function pesoCriticidade(
 
 function Ordens() {
     const ordens = useOrdens();
+    const anexosOrdem = useAnexosOrdem(
+        ordens.detalhesAbertos ? ordens.ordemSelecionada : null,
+    );
     const [visualizacao, setVisualizacao] = useState<TipoVisualizacaoOrdens>("cartoes");
 
     const [filtroPrazo, setFiltroPrazo] = useState<FiltroPrazo>("todos");
@@ -314,6 +318,12 @@ function Ordens() {
                 alterandoStatusId={ordens.alterandoStatusId}
                 onAlterarStatus={ordens.alterarStatusOrdem}
                 statusSugerido={ordens.statusSolicitadoDetalhes}
+                anexos={anexosOrdem.anexos}
+                carregandoAnexos={anexosOrdem.carregandoAnexos}
+                erroAnexos={anexosOrdem.erroAnexos}
+                tiposPermitidos={anexosOrdem.tiposPermitidos}
+                onEnviarAnexo={anexosOrdem.enviarAnexo}
+                onBaixarAnexo={anexosOrdem.baixarAnexo}
                 podeAlterarPrazo={ordens.podeGerenciar}
                 alterandoPrazo={ordens.alterandoPrazo}
                 onAlterarPrazo={ordens.alterarPrazoOrdem}

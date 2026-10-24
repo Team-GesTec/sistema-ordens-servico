@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState, type ChangeEvent } from "react";
 import { Link } from "react-router-dom";
 import Autocomplete, { type AutocompleteOption } from "../common/Autocomplete";
 import OrdemServicoHistorico from "./OrdemServicoHistorico";
@@ -7,23 +7,59 @@ import type {
     Departamento,
     OrdemServico,
     Funcionario,
-    Projeto,
     StatusOrdemServico,
 } from "../../types/api";
 import {
     CRITICIDADE_LABELS,
     STATUS_LABELS,
     TIPO_LABELS,
-    formatarDataOrdem,
-    ordemEstaAtrasada,
 } from "../../utils/ordemServicoUtils";
+
+type OrdemComSla = OrdemServico & { data_limite_sla?: string | null };
+
+const LIMITE_ARQUIVO_MB = 50;
+const LIMITE_ARQUIVO_BYTES = LIMITE_ARQUIVO_MB * 1024 * 1024;
+
+export interface AnexoOrdemPayload {
+    arquivos: File[];
+    relato: string;
+}
+
+// Anexo já registrado (US#2.6), montado a partir da resposta da API em useAnexosOrdem.
+export interface AnexoOrdem {
+    id: number;
+    nome: string;
+    tamanho_bytes?: number | null;
+    data_envio?: string | null;
+    url?: string | null;
+    // Nome de quem enviou o anexo.
+    autor?: string | null;
+    // Relato enviado junto com o arquivo.
+    relato?: string | null;
+}
+
+// Erro de envio em que parte dos arquivos já foi gravada (ver useAnexosOrdem).
+function arquivosJaEnviados(erro: unknown): File[] {
+    if (typeof erro === "object" && erro !== null && "enviados" in erro && Array.isArray(erro.enviados)) {
+        return erro.enviados as File[];
+    }
+    return [];
+}
+
+function normalizarExtensao(extensao: string): string {
+    return extensao.trim().replace(/^\./, "").toLowerCase();
+}
+
+function formatarTamanho(bytes: number): string {
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
 
 interface OrdemServicoDetalhesModalProps {
     aberto: boolean;
     ordem: OrdemServico | null;
     clientes: Cliente[];
     departamentos: Departamento[];
-    projetos?: Projeto[];
     funcionarios: Funcionario[];
     funcionariosElegiveis: Funcionario[];
     atribuindoResponsavel: boolean;
@@ -38,28 +74,43 @@ interface OrdemServicoDetalhesModalProps {
     onAtribuirResponsavel: (funcionarioId: number) => void;
     onFechar: () => void;
     onEditar: (ordem: OrdemServico) => void;
-    podeDuplicar?: boolean;
-    onDuplicar?: (ordem: OrdemServico) => void;
-    podeSalvarParecerTecnico?: boolean;
-    salvandoParecerTecnicoId?: number | null;
-    onSalvarParecerTecnico?: (parecerTecnico: string) => void;
-    onBaixarPDF?: (ordemId: number) => void;
-    baixandoRelatorioId?: number | null;
-    onAlterarStatus: (
-        status: StatusOrdemServico,
-        parecerTecnico?: string,
-    ) => void;
+    onAlterarStatus: (status: StatusOrdemServico) => void;
     // Recebe a data (AAAA-MM-DD) e o motivo da alteração
     onAlterarPrazo?: (dataLimite: string, justificativa: string) => void;
     statusSugerido?: StatusOrdemServico | null;
+    // Lista de anexos da O.S. vinda da API.
+    anexos?: AnexoOrdem[];
+    carregandoAnexos?: boolean;
+    erroAnexos?: string | null;
+    // Extensões aceitas (ex.: ["pdf", "png"]), vindas de GET /anexos/configuracao.
+    // Vazio ou ausente: o front não restringe e o backend valida.
+    tiposPermitidos?: string[];
+    // Upload multipart (POST /ordens-servico/:id/anexos); chama onProgresso com o percentual (0 a 100).
+    onEnviarAnexo?: (
+        dados: AnexoOrdemPayload,
+        onProgresso: (percentual: number) => void,
+    ) => Promise<void> | void;
+    // Download pela API com o token (o bucket de anexos é privado).
+    onBaixarAnexo?: (anexo: AnexoOrdem) => Promise<void> | void;
 }
 
 const STATUS_EDITAVEIS: StatusOrdemServico[] = [
     "em_andamento",
     "aguardando",
     "validacao_testes",
-    "concluido",
 ];
+
+function formatarData(data: string | null | undefined): string {
+    if (!data) return "Não definida";
+
+    const dataConvertida = new Date(data);
+
+    if (Number.isNaN(dataConvertida.getTime())) {
+        return "Não definida";
+    }
+
+    return dataConvertida.toLocaleString("pt-BR");
+}
 
 // Converte o valor do backend para o formato aceito pelo <input type="date">.
 function paraInputData(data: string | null | undefined): string {
@@ -80,7 +131,6 @@ function OrdemServicoDetalhesModal({
     alterandoPrazo = false,
     clientes,
     departamentos,
-    projetos = [],
     funcionarios,
     funcionariosElegiveis,
     atribuindoResponsavel,
@@ -88,58 +138,68 @@ function OrdemServicoDetalhesModal({
     onAtribuirResponsavel,
     onFechar,
     onEditar,
-    podeDuplicar = false,
-    onDuplicar,
-    podeSalvarParecerTecnico = false,
-    salvandoParecerTecnicoId = null,
-    onSalvarParecerTecnico,
-    onBaixarPDF,
-    baixandoRelatorioId = null,
     onAlterarStatus,
     onAlterarPrazo,
     statusSugerido = null,
+    anexos = [],
+    carregandoAnexos = false,
+    erroAnexos = null,
+    tiposPermitidos = [],
+    onEnviarAnexo,
+    onBaixarAnexo,
 }: OrdemServicoDetalhesModalProps) {
     const [parecerTemporario, setParecerTemporario] = useState("");
-    const [responsavelNovoId, setResponsavelNovoId] = useState<number | null>(
-        null,
-    );
+    const [responsavelNovoId, setResponsavelNovoId] = useState<number | null>(null);
     const [statusSelecionado, setStatusSelecionado] =
         useState<StatusOrdemServico>("em_andamento");
     const [prazoSelecionado, setPrazoSelecionado] = useState("");
     const [justificativaAberta, setJustificativaAberta] = useState(false);
     const [justificativaPrazo, setJustificativaPrazo] = useState("");
+    const [anexoAberto, setAnexoAberto] = useState(false);
+    const [arquivosAnexo, setArquivosAnexo] = useState<File[]>([]);
+    const [progressoAnexo, setProgressoAnexo] = useState(0);
+    const [sucessoAnexo, setSucessoAnexo] = useState<string | null>(null);
+    // O ref bloqueia cliques duplos antes de o estado re-renderizar.
+    const envioEmAndamento = useRef(false);
+    const [relatoAnexo, setRelatoAnexo] = useState("");
+    const [erroAnexo, setErroAnexo] = useState<string | null>(null);
+    const [enviandoAnexo, setEnviandoAnexo] = useState(false);
 
-    const prazoAtual = paraInputData(ordem?.data_limite_sla);
+    const prazoAtual = paraInputData((ordem as OrdemComSla | null)?.data_limite_sla);
 
+    // Descarta o rascunho ao fechar o modal ou trocar de OS.
     useEffect(() => {
-        setParecerTemporario(ordem?.parecer_tecnico ?? "");
-    }, [aberto, ordem?.id, ordem?.parecer_tecnico]);
-
-    useEffect(() => {
-        const sugestaoValida =
-            statusSugerido && STATUS_EDITAVEIS.includes(statusSugerido)
-                ? statusSugerido
-                : null;
-
-        setStatusSelecionado(
-            sugestaoValida ?? ordem?.status ?? "em_andamento",
-        );
-    }, [aberto, ordem?.id, ordem?.status, statusSugerido]);
-
-    useEffect(() => {
-        setResponsavelNovoId(null);
-    }, [aberto, ordem?.id, ordem?.responsavel_id]);
-
-    // Descarta o rascunho do motivo ao fechar o modal ou trocar de OS.
-    useEffect(() => {
+        setParecerTemporario("");
         setJustificativaAberta(false);
         setJustificativaPrazo("");
+        setAnexoAberto(false);
+        setArquivosAnexo([]);
+        setRelatoAnexo("");
+        setErroAnexo(null);
+        setSucessoAnexo(null);
+        setProgressoAnexo(0);
+        setEnviandoAnexo(false);
+        envioEmAndamento.current = false;
     }, [aberto, ordem?.id]);
+
+    // Sincroniza o seletor com o status atual da ordem.
+    useEffect(() => {
+        const statusInicial =
+            statusSugerido && STATUS_EDITAVEIS.includes(statusSugerido)
+                ? statusSugerido
+                : ordem?.status ?? "em_andamento";
+        setStatusSelecionado(statusInicial);
+    }, [aberto, ordem?.id, ordem?.status, statusSugerido]);
 
     // Sincroniza o seletor de data com o prazo atual da ordem.
     useEffect(() => {
         setPrazoSelecionado(prazoAtual);
-    }, [aberto, ordem?.id, prazoAtual]);
+    }, [prazoAtual]);
+
+    useEffect(() => {
+        // Trocar a OS exige uma nova selecao explicita para evitar reenvio acidental.
+        setResponsavelNovoId(null);
+    }, [aberto, ordem?.id, ordem?.responsavel_id]);
 
     // Permite fechar o modal com a tecla Escape.
     useEffect(() => {
@@ -147,6 +207,18 @@ function OrdemServicoDetalhesModal({
 
         function handleKeyDown(event: KeyboardEvent) {
             if (event.key === "Escape") {
+                // Com o modal de anexo aberto, o Escape fecha só ele.
+                if (anexoAberto) {
+                    if (!enviandoAnexo) {
+                        setAnexoAberto(false);
+                        setArquivosAnexo([]);
+                        setRelatoAnexo("");
+                        setErroAnexo(null);
+                        setSucessoAnexo(null);
+                    }
+                    return;
+                }
+
                 // Com o modal de motivo aberto, o Escape fecha só ele.
                 if (justificativaAberta) {
                     setJustificativaAberta(false);
@@ -163,9 +235,13 @@ function OrdemServicoDetalhesModal({
         return () => {
             document.removeEventListener("keydown", handleKeyDown);
         };
-    }, [aberto, onFechar, justificativaAberta]);
+    }, [aberto, onFechar, justificativaAberta, anexoAberto, enviandoAnexo]);
 
     if (!aberto) return null;
+
+    const extensoesPermitidas = tiposPermitidos
+        .map(normalizarExtensao)
+        .filter(Boolean);
 
     function cancelarJustificativa() {
         setJustificativaAberta(false);
@@ -181,10 +257,128 @@ function OrdemServicoDetalhesModal({
         cancelarJustificativa();
     }
 
+    function cancelarAnexo() {
+        setAnexoAberto(false);
+        setArquivosAnexo([]);
+        setRelatoAnexo("");
+        setErroAnexo(null);
+        setSucessoAnexo(null);
+        setProgressoAnexo(0);
+    }
+
+    function selecionarArquivos(event: ChangeEvent<HTMLInputElement>) {
+        const selecionados = Array.from(event.target.files ?? []);
+        const validos: File[] = [];
+        const erros: string[] = [];
+
+        for (const arquivo of selecionados) {
+            const extensao = arquivo.name.split(".").pop()?.toLowerCase() ?? "";
+
+            if (
+                extensoesPermitidas.length > 0 &&
+                !extensoesPermitidas.includes(extensao)
+            ) {
+                erros.push(
+                    `"${arquivo.name}": tipo não permitido (aceitos: ${extensoesPermitidas.join(", ")}).`,
+                );
+            } else if (arquivo.size > LIMITE_ARQUIVO_BYTES) {
+                erros.push(
+                    `"${arquivo.name}" (${formatarTamanho(arquivo.size)}) excede o limite de ${LIMITE_ARQUIVO_MB} MB e não foi adicionado.`,
+                );
+            } else {
+                validos.push(arquivo);
+            }
+        }
+
+        setArquivosAnexo((atuais) => {
+            const chaves = new Set(atuais.map((a) => `${a.name}-${a.size}`));
+            return [
+                ...atuais,
+                ...validos.filter((a) => !chaves.has(`${a.name}-${a.size}`)),
+            ];
+        });
+        setErroAnexo(erros.length ? erros.join(" ") : null);
+        setSucessoAnexo(null);
+
+        // Permite selecionar o mesmo arquivo novamente após removê-lo.
+        event.target.value = "";
+    }
+
+    async function baixarAnexo(anexo: AnexoOrdem) {
+        if (!onBaixarAnexo) return;
+
+        setErroAnexo(null);
+        try {
+            await onBaixarAnexo(anexo);
+        } catch (err) {
+            setErroAnexo(
+                err instanceof Error && err.message
+                    ? err.message
+                    : "Não foi possível baixar o anexo. Tente novamente.",
+            );
+        }
+    }
+
+    function removerArquivo(indice: number) {
+        setArquivosAnexo((atuais) => atuais.filter((_, i) => i !== indice));
+        setErroAnexo(null);
+    }
+
+    async function enviarAnexo() {
+        // Bloqueia envio duplicado enquanto o upload estiver em andamento.
+        if (envioEmAndamento.current) return;
+
+        const relato = relatoAnexo.trim();
+
+        // O relato é gravado junto com os arquivos: é preciso ao menos um arquivo.
+        if (arquivosAnexo.length === 0) {
+            setErroAnexo("Selecione ao menos um arquivo. O relato é enviado junto com os anexos.");
+            return;
+        }
+
+        if (!onEnviarAnexo) {
+            setErroAnexo("O envio de anexos ainda não está disponível.");
+            return;
+        }
+
+        envioEmAndamento.current = true;
+        setEnviandoAnexo(true);
+        setErroAnexo(null);
+        setSucessoAnexo(null);
+        setProgressoAnexo(0);
+
+        try {
+            await onEnviarAnexo(
+                { arquivos: arquivosAnexo, relato },
+                (percentual) =>
+                    setProgressoAnexo(
+                        Math.min(100, Math.max(0, Math.round(percentual))),
+                    ),
+            );
+            setArquivosAnexo([]);
+            setRelatoAnexo("");
+            setSucessoAnexo("Anexo enviado com sucesso.");
+        } catch (err) {
+            // Tira da seleção os arquivos que já foram gravados, para não duplicar no próximo envio.
+            const enviados = arquivosJaEnviados(err);
+            if (enviados.length > 0) {
+                setArquivosAnexo((atuais) => atuais.filter((arquivo) => !enviados.includes(arquivo)));
+            }
+            setErroAnexo(
+                err instanceof Error && err.message
+                    ? err.message
+                    : "Não foi possível enviar o anexo. Tente novamente.",
+            );
+        } finally {
+            envioEmAndamento.current = false;
+            setEnviandoAnexo(false);
+            setProgressoAnexo(0);
+        }
+    }
+
     const podeEditarOrdem =
         podeEditar &&
         ordem !== null &&
-        ordem.ativo &&
         ordem.status !== "bloqueado" &&
         ordem.status !== "concluido";
 
@@ -195,24 +389,14 @@ function OrdemServicoDetalhesModal({
     const departamento = ordem
         ? departamentos.find((item) => item.id === ordem.departamento_id)
         : undefined;
-    const projeto = ordem?.projeto_id
-        ? projetos.find((item) => item.id === ordem.projeto_id)
-        : undefined;
-
     const responsavelAtual = ordem?.responsavel_id
-        ? funcionarios.find(
-              (item) => item.id === ordem.responsavel_id,
-          )
+        ? funcionarios.find((item) => item.id === ordem.responsavel_id)
         : undefined;
-
-    const responsavelOptions: AutocompleteOption[] =
-        funcionariosElegiveis.map((funcionario) => ({
-            value: funcionario.id,
-            label: funcionario.nome || `Funcionário #${funcionario.id}`,
-            description: `${funcionario.usuario} · ${
-                funcionario.ativo ? "Ativo" : "Inativo"
-            }`,
-        }));
+    const responsavelOptions: AutocompleteOption[] = funcionariosElegiveis.map((funcionario) => ({
+        value: funcionario.id,
+        label: funcionario.nome || `Funcionário #${funcionario.id}`,
+        description: `${funcionario.usuario} · ${funcionario.ativo ? "Ativo" : "Inativo"}`,
+    }));
 
     return (
         <div
@@ -236,8 +420,7 @@ function OrdemServicoDetalhesModal({
                         </span>
 
                         <h2 id="ordem-detalhes-titulo">
-                            {ordem?.titulo ??
-                                "Detalhes da ordem de serviço"}
+                            {ordem?.titulo ?? "Detalhes da ordem de serviço"}
                         </h2>
                     </div>
 
@@ -326,261 +509,121 @@ function OrdemServicoDetalhesModal({
                                     <span>Criticidade</span>
                                     <strong>
                                         {ordem.criticidade
-                                            ? CRITICIDADE_LABELS[
-                                                  ordem.criticidade
-                                              ]
+                                            ? CRITICIDADE_LABELS[ordem.criticidade]
                                             : "Não definida"}
                                     </strong>
                                 </div>
 
                                 <div className="ordem-detalhe">
-                                    <span>Data de abertura</span>
+                                    <span>Data de criação</span>
                                     <strong>
-                                        {formatarDataOrdem(
-                                            ordem.data_criacao,
-                                            true,
-                                        )}
+                                        {formatarData(ordem.data_criacao)}
                                     </strong>
                                 </div>
 
                                 <div className="ordem-detalhe">
                                     <span>Projeto</span>
                                     <strong>
-                                        {projeto
-                                            ? projeto.nome
-                                            : ordem.projeto_id
-                                              ? `Projeto #${ordem.projeto_id}`
-                                              : "Sem projeto associado"}
+                                        {ordem.projeto_id
+                                            ? `Projeto #${ordem.projeto_id}`
+                                            : "Sem projeto associado"}
                                     </strong>
                                 </div>
 
-                                <div
-                                    className={`ordem-detalhe${
-                                        ordemEstaAtrasada(ordem)
-                                            ? " ordem-detalhe--atrasado"
-                                            : ""
-                                    }`}
-                                >
+                                <div className="ordem-detalhe">
                                     <span>Prazo do SLA</span>
                                     <strong>
-                                        {formatarDataOrdem(
-                                            ordem.data_limite_sla,
-                                            true,
-                                        )}
-                                        {ordemEstaAtrasada(ordem) && (
-                                            <span
-                                                className="ordem-prazo-vencido"
-                                                role="status"
-                                            >
-                                                Prazo vencido
-                                            </span>
-                                        )}
-                                    </strong>
-                                </div>
-
-                                <div className="ordem-detalhe">
-                                    <span>Data de conclusão</span>
-                                    <strong>
-                                        {formatarDataOrdem(
-                                            ordem.data_fim,
-                                            true,
-                                        )}
-                                    </strong>
-                                </div>
-
-                                <div className="ordem-detalhe">
-                                    <span>Última alteração registrada</span>
-                                    <strong>
-                                        {formatarDataOrdem(
-                                            ordem.data_ultima_atualizacao,
-                                            true,
-                                        )}
+                                        {"data_limite_sla" in ordem
+                                            ? formatarData(
+                                                  (ordem as OrdemComSla)
+                                                      .data_limite_sla,
+                                              )
+                                            : "Não informado"}
                                     </strong>
                                 </div>
                             </div>
 
                             <section className="ordem-detalhes-descricao ordem-responsavel-edicao">
                                 <h3>Responsável</h3>
-
                                 <p className="ordem-responsavel-atual">
                                     {responsavelAtual
                                         ? `${responsavelAtual.nome} (${responsavelAtual.usuario})`
                                         : ordem.responsavel_id !== null
-                                          ? `Funcionário #${ordem.responsavel_id}`
-                                          : "Sem responsável atribuído"}
-
-                                    {responsavelAtual &&
-                                        !responsavelAtual.ativo && (
-                                            <span className="ordem-responsavel-inativo">
-                                                {" "}
-                                                · Inativo — vínculo histórico
-                                                preservado
-                                            </span>
-                                        )}
+                                            ? `Funcionário #${ordem.responsavel_id}`
+                                            : "Sem responsável atribuído"}
+                                    {responsavelAtual && !responsavelAtual.ativo && <span className="ordem-responsavel-inativo"> · Inativo — vínculo histórico preservado</span>}
                                 </p>
-
-                                {podeReatribuirResponsavel &&
-                                    ordem.ativo &&
-                                    ordem.status !== "concluido" && (
-                                        <div className="ordem-reatribuicao-controles">
-                                            <div className="ordem-reatribuicao-campo">
-                                                <label htmlFor="ordem-responsavel-novo">
-                                                    {podeEditar
-                                                        ? "Atribuir ou reatribuir para funcionário ativo"
-                                                        : "Assumir O.S. não atribuída do seu departamento"}
-                                                </label>
-
-                                                <Autocomplete
-                                                    id="ordem-responsavel-novo"
-                                                    options={responsavelOptions}
-                                                    value={responsavelNovoId}
-                                                    onChange={(value) =>
-                                                        setResponsavelNovoId(
-                                                            value === null
-                                                                ? null
-                                                                : Number(value),
-                                                        )
-                                                    }
-                                                    placeholder={
-                                                        podeEditar
-                                                            ? "Pesquisar funcionário ativo"
-                                                            : "Selecionar seu usuário"
-                                                    }
-                                                    clearable
-                                                    disabled={
-                                                        atribuindoResponsavel
-                                                    }
-                                                    emptyMessage="Nenhum funcionário ativo encontrado."
-                                                />
-                                            </div>
-
-                                            <button
-                                                type="button"
-                                                className="ordens-btn-primary ordem-responsavel-atualizar"
-                                                onClick={() => {
-                                                    if (
-                                                        responsavelNovoId !==
-                                                        null
-                                                    ) {
-                                                        onAtribuirResponsavel(
-                                                            responsavelNovoId,
-                                                        );
-                                                    }
-                                                }}
-                                                disabled={
-                                                    atribuindoResponsavel ||
-                                                    responsavelNovoId ===
-                                                        null ||
-                                                    responsavelNovoId ===
-                                                        ordem.responsavel_id
-                                                }
-                                                aria-busy={
-                                                    atribuindoResponsavel
-                                                }
-                                            >
-                                                {atribuindoResponsavel
-                                                    ? "Salvando..."
-                                                    : !podeEditar
-                                                      ? "Assumir O.S."
-                                                      : ordem.responsavel_id ===
-                                                          null
-                                                        ? "Atribuir responsável"
-                                                        : "Reatribuir responsável"}
-                                            </button>
+                                {podeReatribuirResponsavel && ordem.ativo && ordem.status !== "concluido" && (
+                                    <div className="ordem-reatribuicao-controles">
+                                        <div className="ordem-reatribuicao-campo">
+                                            <label htmlFor="ordem-responsavel-novo">Atribuir ou reatribuir para funcionário ativo</label>
+                                            <Autocomplete
+                                                id="ordem-responsavel-novo"
+                                                options={responsavelOptions}
+                                                value={responsavelNovoId}
+                                                onChange={(value) => setResponsavelNovoId(value === null ? null : Number(value))}
+                                                placeholder="Pesquisar funcionário ativo"
+                                                clearable
+                                                disabled={atribuindoResponsavel}
+                                                emptyMessage="Nenhum funcionário ativo encontrado."
+                                            />
                                         </div>
-                                    )}
+                                        <button
+                                            type="button"
+                                            className="ordens-btn-primary ordem-responsavel-atualizar"
+                                            onClick={() => { if (responsavelNovoId !== null) onAtribuirResponsavel(responsavelNovoId); }}
+                                            disabled={atribuindoResponsavel || responsavelNovoId === null || responsavelNovoId === ordem.responsavel_id}
+                                            aria-busy={atribuindoResponsavel}
+                                        >
+                                            {atribuindoResponsavel ? "Salvando..." : ordem.responsavel_id === null ? "Atribuir responsável" : "Reatribuir responsável"}
+                                        </button>
+                                    </div>
+                                )}
                             </section>
 
-                            {ordem.ativo &&
-                                ordem.status !== "bloqueado" &&
-                                ordem.status !== "concluido" &&
-                                (podeAlterarStatus ? (
-                                    <section className="ordem-detalhes-descricao ordem-status-edicao">
-                                        <h3>Alterar status</h3>
+                            {podeAlterarStatus && (
+                                <section className="ordem-detalhes-descricao ordem-status-edicao">
+                                    <h3>Alterar status</h3>
 
-                                        <div className="ordem-status-controls">
-                                            <div className="ordem-status-field">
-                                                <label htmlFor="ordem-status-select">
-                                                    Novo status
-                                                </label>
-
-                                                <select
-                                                    id="ordem-status-select"
-                                                    className="ordem-status-select"
-                                                    value={statusSelecionado}
-                                                    onChange={(event) =>
-                                                        setStatusSelecionado(
-                                                            event.target
-                                                                .value as StatusOrdemServico,
-                                                        )
-                                                    }
-                                                    disabled={
-                                                        alterandoStatusId !==
-                                                        null
-                                                    }
-                                                >
-                                                    {STATUS_EDITAVEIS.map(
-                                                        (status) => (
-                                                            <option
-                                                                key={status}
-                                                                value={status}
-                                                            >
-                                                                {
-                                                                    STATUS_LABELS[
-                                                                        status
-                                                                    ]
-                                                                }
-                                                            </option>
-                                                        ),
-                                                    )}
-                                                </select>
-                                            </div>
-
-                                            <button
-                                                type="button"
-                                                className="ordens-btn-primary ordem-status-atualizar"
-                                                onClick={() =>
-                                                    onAlterarStatus(
-                                                        statusSelecionado,
-                                                        statusSelecionado ===
-                                                            "concluido"
-                                                            ? parecerTemporario.trim()
-                                                            : undefined,
+                                    <div className="ordem-status-controls">
+                                        <div className="ordem-status-field">
+                                            <label htmlFor="ordem-status-select">Novo status</label>
+                                            <select
+                                                id="ordem-status-select"
+                                                className="ordem-status-select"
+                                                value={statusSelecionado}
+                                                onChange={(event) =>
+                                                    setStatusSelecionado(
+                                                        event.target.value as StatusOrdemServico,
                                                     )
                                                 }
-                                                disabled={
-                                                    alterandoStatusId !==
-                                                        null ||
-                                                    statusSelecionado ===
-                                                        ordem.status ||
-                                                    (statusSelecionado ===
-                                                        "concluido" &&
-                                                        !parecerTemporario.trim())
-                                                }
-                                                aria-busy={
-                                                    alterandoStatusId ===
-                                                    ordem.id
-                                                }
+                                                disabled={alterandoStatusId !== null}
                                             >
-                                                {alterandoStatusId ===
-                                                ordem.id
-                                                    ? "Atualizando..."
-                                                    : "Atualizar status"}
-                                            </button>
+                                                {STATUS_EDITAVEIS.map((status) => (
+                                                    <option key={status} value={status}>
+                                                        {STATUS_LABELS[status]}
+                                                    </option>
+                                                ))}
+                                            </select>
                                         </div>
-                                    </section>
-                                ) : (
-                                    <section
-                                        className="ordem-detalhes-descricao ordem-status-edicao"
-                                        role="note"
-                                    >
-                                        <h3>Alteração de status</h3>
-                                        <p>
-                                            Apenas o Gestor ou o responsável
-                                            pela O.S. pode alterar seu status.
-                                        </p>
-                                    </section>
-                                ))}
+
+                                        <button
+                                            type="button"
+                                            className="ordens-btn-primary ordem-status-atualizar"
+                                            onClick={() => onAlterarStatus(statusSelecionado)}
+                                            disabled={
+                                                alterandoStatusId !== null ||
+                                                statusSelecionado === ordem.status
+                                            }
+                                            aria-busy={alterandoStatusId === ordem.id}
+                                        >
+                                            {alterandoStatusId === ordem.id
+                                                ? "Atualizando..."
+                                                : "Atualizar status"}
+                                        </button>
+                                    </div>
+                                </section>
+                            )}
 
                             {podeAlterarPrazo && (
                                 <section className="ordem-detalhes-descricao ordem-status-edicao">
@@ -622,45 +665,21 @@ function OrdemServicoDetalhesModal({
                                 </p>
                             </section>
 
-                            {/* Histórico de pareceres técnicos registrados */}
-                            <section className="ordem-detalhes-descricao ordem-parecer-historico">
-                                <h3>Histórico de pareceres técnicos</h3>
-
-                                {ordem.parecer_tecnico?.trim() ? (
-                                    <article className="ordem-parecer-item">
-                                        <p className="ordem-parecer-item-texto">
-                                            {ordem.parecer_tecnico}
-                                        </p>
-                                        <span className="ordem-form-note">
-                                            Parecer técnico atualmente
-                                            registrado nesta O.S.
-                                        </span>
-                                    </article>
-                                ) : (
-                                    <p>
-                                        Nenhum parecer técnico registrado para
-                                        esta ordem de serviço.
-                                    </p>
-                                )}
+                            <section className="ordem-detalhes-descricao">
+                                <h3>Parecer técnico registrado</h3>
+                                <p>
+                                    {ordem.parecer_tecnico ||
+                                        "Nenhum parecer registrado."}
+                                </p>
                             </section>
 
                             <OrdemServicoHistorico osId={ordem.id} />
 
                             <section className="ordem-detalhes-descricao ordem-parecer-rascunho">
-                                <h3>
-                                    {statusSelecionado === "concluido"
-                                        ? "Parecer técnico obrigatório para conclusão"
-                                          : ordem.parecer_tecnico
-                                            ? "Texto de parecer para eventual conclusão"
-                                            : "Parecer técnico — rascunho temporário"}
-                                </h3>
+                                <h3>Parecer técnico — rascunho temporário</h3>
 
                                 <label htmlFor="parecer-tecnico-temporario">
-                                    {statusSelecionado === "concluido"
-                                        ? "Parecer que será registrado"
-                                          : ordem.parecer_tecnico
-                                            ? "Texto local (não altera o parecer registrado)"
-                                            : "Seu rascunho"}
+                                    Seu rascunho
                                 </label>
 
                                 <textarea
@@ -669,83 +688,10 @@ function OrdemServicoDetalhesModal({
                                     rows={6}
                                     value={parecerTemporario}
                                     onChange={(event) =>
-                                        setParecerTemporario(
-                                            event.target.value,
-                                        )
+                                        setParecerTemporario(event.target.value)
                                     }
-                                    placeholder={
-                                        statusSelecionado === "concluido"
-                                            ? "Informe o parecer técnico para concluir a O.S."
-                                            : "Escreva aqui seu rascunho..."
-                                    }
-                                    maxLength={1000}
-                                    aria-required={
-                                        statusSelecionado === "concluido"
-                                    }
-                                    aria-invalid={
-                                        statusSelecionado === "concluido" &&
-                                        !parecerTemporario.trim()
-                                    }
-                                    disabled={alterandoStatusId !== null}
+                                    placeholder="Escreva aqui seu rascunho..."
                                 />
-
-                                {podeSalvarParecerTecnico && onSalvarParecerTecnico && (
-                                    <div className="ordem-parecer-acoes">
-                                        <span className="ordem-form-note">
-                                            Salvar o parecer não altera o status, prazo nem responsável da O.S.
-                                        </span>
-                                        <button
-                                            type="button"
-                                            className="ordens-btn-primary"
-                                            onClick={() => onSalvarParecerTecnico(parecerTemporario)}
-                                            disabled={
-                                                salvandoParecerTecnicoId !== null ||
-                                                alterandoStatusId !== null ||
-                                                parecerTemporario.length > 1000
-                                            }
-                                            aria-busy={salvandoParecerTecnicoId === ordem.id}
-                                        >
-                                            {salvandoParecerTecnicoId === ordem.id
-                                                ? "Salvando parecer..."
-                                                : "Salvar parecer técnico"}
-                                        </button>
-                                    </div>
-                                )}
-                                <p className="ordem-form-note" aria-live="polite">
-                                    {parecerTemporario.length}/1.000 caracteres.
-                                </p>
-
-                                {statusSelecionado === "concluido" ? (
-                                    <>
-                                        <p
-                                            className="ordem-form-note"
-                                            role="status"
-                                        >
-                                            O parecer será enviado à API e
-                                            persistido na mesma transação da
-                                            conclusão. Se a operação falhar,
-                                            ele não será registrado.
-                                        </p>
-
-                                        {!parecerTemporario.trim() && (
-                                            <p
-                                                className="ordens-feedback ordens-feedback--aviso"
-                                                role="status"
-                                            >
-                                                Preencha o parecer técnico para
-                                                habilitar a conclusão.
-                                            </p>
-                                        )}
-                                    </>
-                                ) : (
-                                    <p className="ordem-form-note">
-                                        Texto digitado aqui permanece local. Ele
-                                        só é registrado se você selecionar
-                                        Concluído e confirmar a transição; o
-                                        parecer registrado acima não muda antes
-                                        disso.
-                                    </p>
-                                )}
                             </section>
                         </>
                     )}
@@ -760,27 +706,13 @@ function OrdemServicoDetalhesModal({
                         Fechar
                     </button>
 
-                    {ordem && podeDuplicar && onDuplicar && (
+                    {ordem && (
                         <button
                             type="button"
                             className="ordens-btn-secondary"
-                            onClick={() => onDuplicar(ordem)}
+                            onClick={() => setAnexoAberto(true)}
                         >
-                            Duplicar como nova O.S.
-                        </button>
-                    )}
-
-                    {ordem && onBaixarPDF && (
-                        <button
-                            type="button"
-                            className="ordens-btn-secondary"
-                            onClick={() => onBaixarPDF(ordem.id)}
-                            disabled={baixandoRelatorioId !== null}
-                            aria-busy={baixandoRelatorioId === ordem.id}
-                        >
-                            {baixandoRelatorioId === ordem.id
-                                ? "Gerando PDF..."
-                                : "Baixar PDF"}
+                            Anexar arquivos
                         </button>
                     )}
 
@@ -795,6 +727,191 @@ function OrdemServicoDetalhesModal({
                     )}
                 </footer>
             </section>
+
+            {anexoAberto && (
+                <div
+                    className="ordem-modal-overlay ordem-modal-overlay--sobreposto"
+                    onMouseDown={(event) => {
+                        if (event.target === event.currentTarget && !enviandoAnexo) {
+                            cancelarAnexo();
+                        }
+                    }}
+                >
+                    <section
+                        className="ordem-modal ordem-modal--anexo"
+                        role="dialog"
+                        aria-modal="true"
+                        aria-labelledby="ordem-anexo-titulo"
+                    >
+                        <header className="ordem-modal-header">
+                            <div>
+                                <span className="ordem-card-id">ANEXOS E RELATO</span>
+                                <h2 id="ordem-anexo-titulo">
+                                    Anexar à OS #{ordem?.id}
+                                </h2>
+                            </div>
+
+                            <button
+                                type="button"
+                                className="ordem-modal-close"
+                                onClick={cancelarAnexo}
+                                disabled={enviandoAnexo}
+                                aria-label="Fechar anexos"
+                            >
+                                ×
+                            </button>
+                        </header>
+
+                        <div className="ordem-modal-body ordem-parecer-rascunho">
+                            <label htmlFor="ordem-anexo-relato">Relato</label>
+                            <textarea
+                                id="ordem-anexo-relato"
+                                className="ordem-parecer-textarea"
+                                rows={5}
+                                maxLength={2000}
+                                value={relatoAnexo}
+                                onChange={(event) => setRelatoAnexo(event.target.value)}
+                                placeholder="Descreva a implementação realizada ou o impedimento encontrado..."
+                                disabled={enviandoAnexo}
+                            />
+
+                            <label htmlFor="ordem-anexo-arquivos">
+                                Arquivos (máx. {LIMITE_ARQUIVO_MB} MB cada
+                                {extensoesPermitidas.length > 0
+                                    ? `; aceitos: ${extensoesPermitidas.join(", ")}`
+                                    : ""}
+                                )
+                            </label>
+                            <input
+                                id="ordem-anexo-arquivos"
+                                type="file"
+                                multiple
+                                accept={
+                                    extensoesPermitidas.length > 0
+                                        ? extensoesPermitidas.map((e) => `.${e}`).join(",")
+                                        : undefined
+                                }
+                                onChange={selecionarArquivos}
+                                disabled={enviandoAnexo}
+                            />
+
+                            {arquivosAnexo.length > 0 && (
+                                <ul className="ordem-anexo-lista">
+                                    {arquivosAnexo.map((arquivo, indice) => (
+                                        <li key={`${arquivo.name}-${arquivo.size}`}>
+                                            <span>
+                                                {arquivo.name} · {formatarTamanho(arquivo.size)}
+                                            </span>
+                                            <button
+                                                type="button"
+                                                className="ordens-btn-secondary"
+                                                onClick={() => removerArquivo(indice)}
+                                                disabled={enviandoAnexo}
+                                                aria-label={`Remover ${arquivo.name}`}
+                                            >
+                                                Remover
+                                            </button>
+                                        </li>
+                                    ))}
+                                </ul>
+                            )}
+
+                            {erroAnexo && (
+                                <p className="ordens-feedback ordens-feedback--error" role="alert">
+                                    {erroAnexo}
+                                </p>
+                            )}
+
+                            {enviandoAnexo && (
+                                <div className="ordem-anexo-progresso" role="status">
+                                    <progress
+                                        value={progressoAnexo}
+                                        max={100}
+                                        aria-label="Progresso do envio"
+                                    />
+                                    <span>Enviando... {progressoAnexo}%</span>
+                                </div>
+                            )}
+
+                            {sucessoAnexo && (
+                                <p className="ordens-feedback" role="status">
+                                    {sucessoAnexo}
+                                </p>
+                            )}
+
+                            <h3>Anexos desta OS</h3>
+
+                            {carregandoAnexos ? (
+                                <p className="ordens-feedback" role="status">
+                                    Carregando anexos...
+                                </p>
+                            ) : erroAnexos ? (
+                                <p className="ordens-feedback ordens-feedback--error" role="alert">
+                                    {erroAnexos}
+                                </p>
+                            ) : anexos.length === 0 ? (
+                                <p>Nenhum anexo enviado para esta O.S.</p>
+                            ) : (
+                                <ul className="ordem-anexo-lista">
+                                    {anexos.map((anexo) => (
+                                        <li key={anexo.id}>
+                                            <span>
+                                                {anexo.url ? (
+                                                    <a
+                                                        href={anexo.url}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        onClick={(event) => {
+                                                            // O download exige o token: baixa pela API em vez de abrir o link.
+                                                            if (onBaixarAnexo) {
+                                                                event.preventDefault();
+                                                                void baixarAnexo(anexo);
+                                                            }
+                                                        }}
+                                                    >
+                                                        {anexo.nome}
+                                                    </a>
+                                                ) : (
+                                                    anexo.nome
+                                                )}
+                                                {anexo.tamanho_bytes
+                                                    ? ` · ${formatarTamanho(anexo.tamanho_bytes)}`
+                                                    : ""}
+                                                {anexo.data_envio
+                                                    ? ` · ${formatarData(anexo.data_envio)}`
+                                                    : ""}
+                                                {anexo.autor ? ` · ${anexo.autor}` : ""}
+                                                {anexo.relato ? ` — ${anexo.relato}` : ""}
+                                            </span>
+                                        </li>
+                                    ))}
+                                </ul>
+                            )}
+                        </div>
+
+                        <footer className="ordem-modal-actions">
+                            <button
+                                type="button"
+                                className="ordens-btn-secondary"
+                                onClick={cancelarAnexo}
+                                disabled={enviandoAnexo}
+                            >
+                                Fechar
+                            </button>
+
+                            <button
+                                type="button"
+                                className="ordens-btn-primary"
+                                onClick={enviarAnexo}
+                                disabled={enviandoAnexo || arquivosAnexo.length === 0}
+                                aria-busy={enviandoAnexo}
+                            >
+                                {enviandoAnexo ? "Enviando..." : "Enviar"}
+                            </button>
+                        </footer>
+                    </section>
+                </div>
+            )}
 
             {justificativaAberta && (
                 <div

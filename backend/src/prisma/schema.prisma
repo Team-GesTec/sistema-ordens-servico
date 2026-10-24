@@ -11,13 +11,13 @@ datasource db {
 model anexos {
   id             Int            @id @default(autoincrement())
   os_id          Int
+  funcionario_id Int
   nome           String         @db.VarChar(255)
   tamanho_bytes  BigInt
   caminho        String         @unique
   data_upload    DateTime       @default(now()) @db.Timestamptz(6)
-  tipo           String
-  funcionario_id Int
-  relato         String?
+  tipo String
+  relato String?
   funcionarios   funcionarios   @relation(fields: [funcionario_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   ordens_servico ordens_servico @relation(fields: [os_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
@@ -77,13 +77,13 @@ model funcionarios {
   usuario                                                    String               @unique
   senha_hash                                                 String
   nome                                                       String
-  tipo                                                       tipo_perfil          @default(tecnico)
-  ativo                                                      Boolean              @default(true)
+  tipo                                                       tipo_perfil         @default(tecnico)
+  ativo                                                      Boolean             @default(true)
   anexos                                                     anexos[]
   apontamento_horas                                          apontamento_horas[]
   auditoria                                                  auditoria[]
-  auditoria_projetos                                         auditoria_projetos[]
-  departamentos_departamentos_responsavel_idTofuncionarios   departamentos[]      @relation("departamentos_responsavel_idTofuncionarios")
+  auditoria_projetos                                          auditoria_projetos[]
+  departamentos_departamentos_responsavel_idTofuncionarios   departamentos[]     @relation("departamentos_responsavel_idTofuncionarios")
   equipes                                                    equipes[]
   departamentos_funcionarios_departamento_idTodepartamentos  departamentos        @relation("funcionarios_departamento_idTodepartamentos", fields: [departamento_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   ordens_servico_ordens_servico_responsavel_idTofuncionarios ordens_servico[]     @relation("ordens_servico_responsavel_idTofuncionarios")

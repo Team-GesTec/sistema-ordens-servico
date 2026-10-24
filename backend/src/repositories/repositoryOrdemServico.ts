@@ -86,8 +86,20 @@ export class RepositoryOrdemServico {
         }
     }
 
-    /** Coloca no cache a versão já gravada de uma OS. Chamar depois que a transação terminar */
-        /**
+    /** Remove uma O.S. e invalida o cache após a exclusão. */
+    async remover(id: number): Promise<void> {
+        try {
+            await prisma.ordens_servico.delete({ where: { id }, select: { id: true } });
+            ordemServicoCache.remover(id);
+        } catch (erro) {
+            throw traduzirErroPrisma(erro, {
+                registroNaoEncontrado: 'Ordem de Serviço não encontrada',
+                referenciaEmUso: 'Não é possível excluir: a OS ainda tem anexos ou funcionários vinculados.',
+            });
+        }
+    }
+
+    /**
      * Atualiza os campos informados de uma OS dentro de uma transação.
      * Não mexe no cache: quem chama deve chamar `atualizarCache` depois que a transação terminar.
      */
