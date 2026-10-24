@@ -43,7 +43,7 @@ export function useOrdens() {
 
     const [confirmacaoAtivo, setConfirmacaoAtivo] = useState<{
         ordem: OrdemServico;
-        acao: "inativar";
+        acao: "inativar" | "reativar";
     } | null>(null);
 
     const [inativandoId, setInativandoId] = useState<number | null>(null);
@@ -324,15 +324,20 @@ export function useOrdens() {
 
     function solicitarAlteracaoAtivo(
         ordem: OrdemServico,
-        acao: "inativar",
+        acao: "inativar" | "reativar",
     ): void {
         if (!podeGerenciar) {
-            setErro("Apenas gestores podem inativar ordens.");
+            setErro("Apenas gestores podem alterar a situação das ordens.");
             return;
         }
 
-        if (!ordem.ativo) {
+        if (acao === "inativar" && !ordem.ativo) {
             setErro("Esta ordem já está inativa; a inativação é permanente.");
+            return;
+        }
+
+        if (acao === "reativar" && ordem.ativo) {
+            setErro("Esta ordem já está ativa.");
             return;
         }
 
@@ -353,16 +358,20 @@ export function useOrdens() {
             return;
         }
 
-        const { ordem } = confirmacaoAtivo;
+        const { ordem, acao } = confirmacaoAtivo;
 
         setInativandoId(ordem.id);
         setErro(null);
         setMensagem(null);
 
         try {
-            await ordemServicoService.alterarAtivo(ordem.id, false);
+            await ordemServicoService.alterarAtivo(ordem.id, acao === "reativar");
 
-            setMensagem(`OS #${ordem.id} inativada com sucesso.`);
+            setMensagem(
+                acao === "inativar"
+                    ? `OS #${ordem.id} inativada com sucesso.`
+                    : `OS #${ordem.id} reativada com sucesso.`,
+            );
 
             setConfirmacaoAtivo(null);
 

@@ -2,6 +2,7 @@ import { useMemo, useState, type DragEvent } from "react";
 import type { Cliente, Departamento, Funcionario, OrdemServico, StatusOrdemServico } from "../../types/api";
 import { STATUS_LABELS } from "../../utils/ordemServicoUtils";
 import OrdemServicoCard from "./OrdemServicoCard";
+import type { AcaoAtivoOrdem } from "./OrdemServicoAtivoModal";
 
 const COLUNAS_KANBAN: StatusOrdemServico[] = [
     "em_andamento",
@@ -21,6 +22,7 @@ interface OrdemServicoKanbanProps {
     podeMoverParaStatus: (ordem: OrdemServico, status: StatusOrdemServico) => boolean;
     onAbrir: (ordem: OrdemServico) => void;
     onEditar: (ordem: OrdemServico) => void;
+    onAlterarAtivo: (ordem: OrdemServico, acao: AcaoAtivoOrdem) => void;
     onMoverStatus: (ordem: OrdemServico, status: StatusOrdemServico) => void | Promise<void>;
 }
 
