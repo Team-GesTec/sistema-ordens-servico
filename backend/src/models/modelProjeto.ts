@@ -36,12 +36,12 @@ export type Projeto = projetos & {
     total_os_elegiveis: number;
     os_concluidas: number;
     percentual_conclusao: number | null;
-}
+};
 
 /** Contrato de detalhes; contém O.S. conforme as permissões do perfil autenticado. */
 export type ProjetoDetalhe = Projeto & {
     ordens_servico: OrdemServicoProjeto[];
-}
+};
 
 export interface DadosCriacaoProjeto {
     nome: string;

@@ -56,17 +56,21 @@ export default function FuncionarioFormModal({
 
     if (!aberto) return null;
 
-    const departamentoOptions: AutocompleteOption[] = departamentos.map((departamento) => ({
+    const departamentosElegiveis = form.tipo === 'tecnico'
+        ? departamentos.filter((departamento) => departamento.responsavel_id !== null)
+        : departamentos;
+        
+    const departamentoOptions: AutocompleteOption[] = departamentosElegiveis.map((departamento) => ({
         value: departamento.id,
         label: departamento.nome,
-        description: `Departamento #${departamento.id}`,
+        description: form.tipo === 'tecnico' ? 'Possui Analista/Líder designado' : `Departamento #${departamento.id}`,
     }));
 
     async function enviar(event: FormEvent<HTMLFormElement>) {
         event.preventDefault();
         setErroLocal(null);
         if (!form.nome.trim() || !form.usuario.trim() || form.departamento_id === null) {
-            setErroLocal("Preencha nome, usuário e departamento.");
+            setErroLocal("Preencha nome, usuario y departamento.");
             return;
         }
         if (!funcionario && form.senha.length < 8) {
@@ -104,7 +108,8 @@ export default function FuncionarioFormModal({
                         </div>
                         <div className="projeto-field projeto-field--wide">
                             <label htmlFor="funcionario-departamento">Departamento *</label>
-                            <Autocomplete id="funcionario-departamento" options={departamentoOptions} value={form.departamento_id} onChange={(value) => setForm((atual) => ({ ...atual, departamento_id: value === null ? null : Number(value) }))} placeholder="Pesquisar departamento" disabled={salvando} loading={carregandoOpcoes} loadingMessage="Carregando departamentos..." emptyMessage="Nenhum departamento encontrado." />
+                            <Autocomplete id="funcionario-departamento" options={departamentoOptions} value={form.departamento_id} onChange={(value) => setForm((atual) => ({ ...atual, departamento_id: value === null ? null : Number(value) }))} placeholder="Pesquisar departamento" disabled={salvando} loading={carregandoOpcoes} loadingMessage="Carregando departamentos..." emptyMessage={form.tipo === 'tecnico' ? 'Nenhum departamento tem um responsável Analista/Líder designado.' : 'Nenhum departamento encontrado.'} />
+                            {form.tipo === 'tecnico' && departamentoOptions.length === 0 && <small role="status">Cadastre um Analista/Líder ativo e atribua-o como responsável antes de criar Técnicos.</small>}
                         </div>
                         <div className="projeto-field projeto-field--wide">
                             <label htmlFor="funcionario-perfil">Perfil de acesso *</label>

@@ -173,6 +173,330 @@
     visibility: visible;
 }
 
+/* Rodapé da sidebar */
+
+.sidebar-rodape {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: 100%;
+    margin-top: auto;
+    padding: 1%;
+    border-top: 1px solid rgba(128, 128, 128, 0.2);
+}
+
+.sidebar-tema {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.tema-chave {
+    display: inline-flex;
+    align-items: center;
+    width: 34px;
+    height: 19px;
+    margin-left: auto;
+    padding: 2px;
+    flex-shrink: 0;
+    border-radius: 20px;
+    background: #aab2bd;
+    transition: background 0.2s ease;
+}
+
+.tema-chave span {
+    width: 15px;
+    height: 15px;
+    border-radius: 50%;
+    background: #fff;
+    transition: transform 0.2s ease;
+}
+
+.tema-chave.ligado {
+    background: #1589ca;
+}
+
+.tema-chave.ligado span {
+    transform: translateX(15px);
+}
+
+/* Perfil */
+
+.sidebar-perfil-container {
+    position: relative;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+}
+
+.sidebar-perfil {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    gap: 10px;
+    width: 100%;
+    min-width: 0;
+    padding: 2%;
+
+    box-sizing: border-box;
+
+    border: 1px solid transparent;
+    border-radius: 12px;
+    background: transparent;
+    color: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+
+/* Perfil centralizado com a sidebar retraída */
+.sidebar:not(:hover) .sidebar-perfil {
+    justify-content: center;
+    padding: 6px 0;
+}
+
+/* Esconde as informações sem afetar o alinhamento */
+.sidebar:not(:hover) .perfil-informacoes,
+.sidebar:not(:hover) .sidebar-perfil > i {
+    display: none;
+}
+
+/* Perfil alinhado normalmente quando expandido */
+.sidebar:hover .sidebar-perfil {
+    justify-content: flex-start;
+    padding: 2%;
+}
+
+.sidebar:hover .perfil-informacoes {
+    display: flex;
+}
+
+.sidebar:hover .sidebar-perfil > i {
+    display: block;
+}
+
+.sidebar-perfil:hover,
+.sidebar-perfil[aria-expanded="true"] {
+    background: rgba(21, 137, 202, 0.1);
+    border-color: rgba(21, 137, 202, 0.18);
+}
+
+.perfil-avatar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    flex-shrink: 0;
+    width: 42px;
+    height: 42px;
+
+    border-radius: 50%;
+    background: linear-gradient(135deg, #1589ca, #090c5c);
+    color: #fff;
+
+    font-size: 0.9rem;
+    font-weight: 700;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+}
+
+.perfil-informacoes {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+}
+
+.perfil-informacoes strong {
+    overflow: hidden;
+    font-size: 0.83rem;
+    font-weight: 600;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.perfil-informacoes small {
+    overflow: hidden;
+    color: #7a8492;
+    font-size: 0.72rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.sidebar-perfil > i {
+    flex-shrink: 0;
+    font-size: 0.75rem;
+    opacity: 0.7;
+}
+
+/* Menu que abre ao clicar no perfil */
+
+.sidebar-perfil-menu {
+    position: absolute;
+    z-index: 500;
+    right: 0;
+    bottom: calc(100% + 10px);
+    left: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 8px;
+    border: 1px solid rgba(128, 128, 128, 0.2);
+    border-radius: 14px;
+    background: #fff;
+    color: #1a1a1a;
+    box-shadow: 0 10px 35px rgba(0, 0, 0, 0.16);
+    animation: perfil-menu-entrada 0.16s ease-out;
+}
+
+.perfil-menu-cabecalho {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    padding: 12px;
+    overflow: hidden;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.perfil-menu-cabecalho strong {
+    overflow: hidden;
+    font-size: 0.88rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.perfil-menu-cabecalho span {
+    color: #64748b;
+    font-size: 0.76rem;
+}
+
+.perfil-menu-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 11px 12px;
+    border: none;
+    border-radius: 8px;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    font-size: 0.83rem;
+    text-align: left;
+    cursor: pointer;
+    transition: background 0.15s ease;
+}
+
+.perfil-menu-item:hover {
+    background: rgba(21, 137, 202, 0.1);
+}
+
+.perfil-menu-item i {
+    width: 18px;
+    text-align: center;
+}
+
+.perfil-menu-item.perfil-sair {
+    color: #dc2626;
+}
+
+.perfil-menu-item.perfil-sair:hover {
+    background: rgba(220, 38, 38, 0.09);
+}
+
+@keyframes perfil-menu-entrada {
+    from {
+        opacity: 0;
+        transform: translateY(5px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Tema escuro */
+
+.dark-mode .sidebar-perfil:hover,
+.dark-mode .sidebar-perfil[aria-expanded="true"] {
+    background: rgba(56, 189, 248, 0.1);
+    border-color: rgba(56, 189, 248, 0.18);
+}
+
+.dark-mode .perfil-informacoes small {
+    color: #aab7c8;
+}
+
+.dark-mode .sidebar-perfil-menu {
+    border-color: rgba(255, 255, 255, 0.12);
+    background: #111827;
+    color: #f1f5f9;
+    box-shadow: 0 10px 35px rgba(0, 0, 0, 0.35);
+}
+
+.dark-mode .perfil-menu-cabecalho {
+    border-bottom-color: rgba(255, 255, 255, 0.12);
+}
+
+.dark-mode .perfil-menu-cabecalho span {
+    color: #aab7c8;
+}
+
+.dark-mode .perfil-menu-item:hover {
+    background: rgba(56, 189, 248, 0.12);
+}
+
+.dark-mode .perfil-menu-item.perfil-sair:hover {
+    background: rgba(220, 38, 38, 0.15);
+}
+
+@media (max-width: 600px) {
+    .sidebar-rodape {
+        padding: 8px;
+    }
+
+    .sidebar-perfil {
+        gap: 8px;
+        padding: 8px;
+    }
+
+    .perfil-avatar {
+        width: 38px;
+        height: 38px;
+    }
+
+    .sidebar-perfil-menu {
+        min-width: 200px;
+    }
+}
+
+/* Oculta as opções do perfil por padrão */
+.sidebar-perfil-menu {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition:
+        opacity 0.2s ease,
+        visibility 0.2s ease;
+}
+
+/* Mostra quando o mouse está na sidebar */
+.sidebar:hover .sidebar-perfil-menu {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+}
+
+/* Mantém o menu visível quando o perfil está aberto */
+.sidebar-perfil-container:hover .sidebar-perfil-menu {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+}
 
 /* Tablet */
 

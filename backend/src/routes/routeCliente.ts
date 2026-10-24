@@ -23,6 +23,10 @@ const somenteGestor = autorizar('gestor');
 // GET ALL — qualquer usuário autenticado
 router.get('/', (req: Request, res: Response) => controller.getAll(req, res));
 
+router.get('/inativos', (req, res) =>
+    controller.getInativos(req, res)
+);
+
 // GET BY ID — qualquer usuário autenticado
 router.get('/:id', (req: Request, res: Response) => controller.getById(req, res));
 

@@ -303,6 +303,19 @@ npx prisma migrate deploy
 npm run db:status
 ```
 
+Se o banco compartilhado tiver migrations pendentes, confirme primeiro que `DIRECT_URL` aponta para o ambiente de desenvolvimento correto e, com autorização, aplique as migrations versionadas:
+
+```bash
+npx prisma migrate deploy
+npm run db:status
+```
+
+Com o banco configurado, gere o client do Prisma:
+
+```bash
+npx prisma generate
+```
+
 `migrate deploy` aplica o SQL das migrations já versionadas e pendentes; não faz reset automático, não gera migrations novas e não executa o seed. Revise migrations antes de aplicá-las, pois o SQL de uma migration pode conter alterações destrutivas. **Nunca use `prisma migrate reset` no banco Supabase compartilhado.** O seed deve ser executado uma única vez na preparação inicial do ambiente, por uma pessoa responsável, depois de configurar as variáveis `SEED_*`:
 
 ```bash

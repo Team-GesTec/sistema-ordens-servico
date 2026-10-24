@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type ChangeEvent } from "react";
 import { Link } from "react-router-dom";
 import Autocomplete, { type AutocompleteOption } from "../common/Autocomplete";
+import OrdemServicoHistorico from "./OrdemServicoHistorico";
 import type {
     Cliente,
     Departamento,
@@ -76,6 +77,7 @@ interface OrdemServicoDetalhesModalProps {
     onAlterarStatus: (status: StatusOrdemServico) => void;
     // Recebe a data (AAAA-MM-DD) e o motivo da alteração
     onAlterarPrazo?: (dataLimite: string, justificativa: string) => void;
+    statusSugerido?: StatusOrdemServico | null;
     // Lista de anexos da O.S. vinda da API.
     anexos?: AnexoOrdem[];
     carregandoAnexos?: boolean;
@@ -138,6 +140,7 @@ function OrdemServicoDetalhesModal({
     onEditar,
     onAlterarStatus,
     onAlterarPrazo,
+    statusSugerido = null,
     anexos = [],
     carregandoAnexos = false,
     erroAnexos = null,
@@ -181,8 +184,12 @@ function OrdemServicoDetalhesModal({
 
     // Sincroniza o seletor com o status atual da ordem.
     useEffect(() => {
-        setStatusSelecionado(ordem?.status ?? "em_andamento");
-    }, [aberto, ordem?.id, ordem?.status]);
+        const statusInicial =
+            statusSugerido && STATUS_EDITAVEIS.includes(statusSugerido)
+                ? statusSugerido
+                : ordem?.status ?? "em_andamento";
+        setStatusSelecionado(statusInicial);
+    }, [aberto, ordem?.id, ordem?.status, statusSugerido]);
 
     // Sincroniza o seletor de data com o prazo atual da ordem.
     useEffect(() => {
@@ -665,6 +672,8 @@ function OrdemServicoDetalhesModal({
                                         "Nenhum parecer registrado."}
                                 </p>
                             </section>
+
+                            <OrdemServicoHistorico osId={ordem.id} />
 
                             <section className="ordem-detalhes-descricao ordem-parecer-rascunho">
                                 <h3>Parecer técnico — rascunho temporário</h3>

@@ -21,6 +21,10 @@ export class ServiceAuditoria {
     ): Promise<Auditoria> {
         return this.repositorio.registrar(dados, conexao);
     }
+
+    async listarPorOrdemServico(osId: number) {
+        return this.repositorio.listarPorOrdemServico(osId);
+    }
 }
 
 export const serviceAuditoria = new ServiceAuditoria();

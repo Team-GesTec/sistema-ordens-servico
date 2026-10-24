@@ -7,6 +7,10 @@ export const clienteService = {
         return apiRequest<Cliente[]>("/cliente");
     },
 
+    listarInativos(): Promise<Cliente[]> {
+        return apiRequest<Cliente[]>("/cliente/inativos");
+    },
+
     criar(payload: ClienteInput): Promise<Cliente> {
         return apiRequest<Cliente>("/cliente", {
             method: "POST",
@@ -38,4 +42,5 @@ export const clienteService = {
             { method: "PATCH" }
         );
     },
+
 };

@@ -1,11 +1,13 @@
 /**
  * services/serviceOrdemServico.ts
+/**
+ * services/serviceOrdemServico.ts
  *
  * Regras de negócio da O.S.: abertura (US#2.1), edição, atribuição de responsável (US#2.3)
  * e alteração de status (US#2.4).
  *
  * Regras da abertura e da edição:
- *  - tipo, titulo, descricao, departamento_id e sla_manual são obrigatórios;
+ *  - tipo, titulo, descricao e departamento_id são obrigatórios;
  *  - data_criacao assume a data atual quando não informada;
  *  - campos opcionais ausentes recebem null no cadastro;
  *  - anterior_id, se informado, deve apontar para uma O.S. existente;
@@ -15,7 +17,7 @@
  * Regras da alteração de status:
  *  - o novo status deve ser um dos 5 oficiais;
  *  - o Gestor altera qualquer O.S.; o Técnico, só as que estão atribuídas a ele;
- *  - O.S. concluída não tem o status alterado;
+ *  - O.S. concluída ou bloqueada não tem o status alterado;
  *  - o parecer técnico é obrigatório para concluir e opcional nos demais status;
  *  - a alteração e o registro de auditoria são gravados na mesma transação.
  *
@@ -47,9 +49,9 @@ import { AppError } from '../errors/AppError';
 import { repositoryOrdemServico, type RepositoryOrdemServico } from '../repositories/repositoryOrdemServico';
 import { repositoryFuncionario, type RepositoryFuncionario } from '../repositories/repositoryFuncionario';
 import { serviceAuditoria } from './serviceAuditoria';
+import { calcularEstadoSla, type EstadoSla } from '../utils/estadoSla';
 import { serviceSla } from './serviceSla';
 import type { DadosRegistroAuditoria } from '../models/modelAuditoria';
-import { calcularEstadoSla, type EstadoSla } from '../utils/estadoSla';
 import { bloquearOrdemServico, bloquearProjetosRelacionados, validarProjetoDaOrdem } from '../utils/projetoOsInvariant';
 import type { PerfilFuncionario } from '../models/modelFuncionario';
 import {
@@ -150,11 +152,8 @@ export class ServiceOrdemServico {
         this.funcionarios = funcionarios
     }
 
-
-
     /** Lista somente as O.S. ativas, cada uma com o estado do SLA. */
-    async listar(): Promise<OrdemServicoComSla[]> {
-        const ordens = await this.repositorio.listar();
+    async listar(): Promise<OrdemServicoComSla[]> {       const ordens = await this.repositorio.listar();
         const ativas = ordens.filter((ordem) => ordem.ativo);
         const agora = new Date();
         return ativas.map((ordem) => comEstadoSla(ordem,agora));
@@ -371,6 +370,46 @@ export class ServiceOrdemServico {
         const parecer = parecerEnviado
             ? exigirTexto(dados.parecer_tecnico, 'parecer_tecnico', { maximo: TEXTO_MAXIMO_PARECER })
             : undefined;
+
+        // 2. Busca a O.S.
+        const ordem = await this.repositorio.buscarPorId(idOS);
+        if (!ordem) {
+            throw AppError.naoEncontrado(`O.S. ${idOS} não encontrada`);
+        }
+
+        // 3. Checa a permissão
+        const ehGestor = usuario.tipo === 'gestor';
+        const ehResponsavel = ordem.responsavel_id === usuario.id;
+
+        //gestor altera qualquer O.S. Os demais, só as atribuídas a eles
+        if (!ehGestor && !ehResponsavel) {
+            throw AppError.acessoNegado('Apenas o gestor ou o responsável pela O.S. pode alterar o status');
+        }
+
+        // bloquear é ação só do gestor
+
+
+        // 4. Checa a trava: O.S. concluída não muda mais
+        if (ordem.status === 'concluido') {
+            throw AppError.requisicaoInvalida(`A O.S. ${idOS} está concluída e não pode ter o status alterado`);
+        }
+        if (ordem.status === 'bloqueado') {
+            throw AppError.requisicaoInvalida(
+                `A O.S. ${idOS} está bloqueada e não pode ser desbloqueada. ` +
+                'Para retomar o trabalho, crie uma nova O.S. vinculada a esta.'
+            );
+        }
+
+        if (ordem.status === novoStatus) {
+            throw AppError.requisicaoInvalida(`A O.S. ${idOS} já está com o status ${novoStatus}`)
+        }
+
+        // 5. Checa o parecer: obrigatório para concluir
+        if (novoStatus === 'concluido' && parecer === undefined) {
+            throw AppError.requisicaoInvalida('parecer_tecnico é obrigatório para concluir a O.S.');
+        }
+
+        // 6. Grava o status e a auditoria na mesma transação
         const dadosStatus: DadosAlteracaoStatus = { status: novoStatus };
         if (parecer !== undefined) dadosStatus.parecer_tecnico = parecer;
 
@@ -421,7 +460,8 @@ export class ServiceOrdemServico {
             return ordemAtualizada;
         });
 
-        this.repositorio.atualizarCache(atualizada);
+        // 7. Atualiza o cache só depois que a transação terminou
+        this.repositorio.atualizarCache(atualizada)
         return atualizada;
     }
 
@@ -556,6 +596,24 @@ export class ServiceOrdemServico {
      */
     async bloquear(id: number, usuarioId: number): Promise<OrdemServico> {
         const idOS = exigirInteiroPositivo(id, "id");
+        const ordem = await this.repositorio.buscarPorId(idOS);
+
+        if (!ordem) {
+            throw AppError.naoEncontrado(`O.S. ${idOS} não encontrada`);
+        }
+
+        if (ordem.status === "concluido") {
+            throw AppError.requisicaoInvalida(
+                "Uma O.S. concluída não pode ser bloqueada.",
+            );
+        }
+
+        if (ordem.status === "bloqueado") {
+            throw AppError.requisicaoInvalida(
+                "A O.S. já está bloqueada.",
+            );
+        }
+
         const atualizada = await prisma.$transaction(async (conexao) => {
             await bloquearOrdemServico(conexao, idOS);
             const ordemAtual = await conexao.ordens_servico.findUnique({ where: { id: idOS } });
@@ -640,7 +698,6 @@ export class ServiceOrdemServico {
             funcionarioId,
         });
     }
-
     /** Remove uma O.S. (bloqueada pelo banco se houver vínculos). */
     remover(id: number): Promise<void> {
         return this.repositorio.remover(id);
@@ -816,6 +873,7 @@ export class ServiceOrdemServico {
 
         return alteracoes;
     }
+
 }
 
 function exigirDataValida(valor: unknown, campo: string): Date {

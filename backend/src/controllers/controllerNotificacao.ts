@@ -16,6 +16,22 @@ export class ControllerNotificacao {
         const notificacoes = await serviceNotificacao.listarDoFuncionario(usuario.id);
         return resp.status(200).json(notificacoes);
     }
+
+    public async dispensar(req: Request, resp: Response): Promise<Response> {
+        const usuario = usuarioAutenticado(req);
+        const id = Array.isArray(req.params.id)
+            ? req.params.id[0]
+            : req.params.id;
+
+        if (!id) {
+            const { AppError } = await import('../errors/AppError.js');
+            throw AppError.requisicaoInvalida('ID da notificação é obrigatório.');
+        }
+
+        await serviceNotificacao.dispensarNotificacao(usuario.id, id);
+
+        return resp.status(204).send();
+    }
 }
 
 /** Instância única usada pelas rotas. */

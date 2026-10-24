@@ -197,8 +197,8 @@ export class RepositoryOrdemServico {
             });
         });
 
-        // A transação já foi confirmada, invalida o cache para que a próxima leitura busque o estado persistido.
-        ordemServicoCache.remover(osId);
+        // A transação já foi confirmada: atualiza o cache com o estado persistido.
+        ordemServicoCache.definir(atualizada);
 
         return atualizada;
     }
@@ -277,6 +277,7 @@ export class RepositoryOrdemServico {
             where: { id },
             data: dados,
         });
+
         return atualizada;
     }
 }

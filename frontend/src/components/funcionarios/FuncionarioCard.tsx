@@ -8,7 +8,7 @@ interface FuncionarioCardProps {
     bloqueado: boolean;
     onAbrir: (funcionario: Funcionario) => void;
     onEditar: (funcionario: Funcionario) => void;
-    onAlterarStatus: (funcionario: Funcionario, acao: "inativar" | "reativar") => void;
+    onAlterarStatus: (funcionario: Funcionario, acao: "inativar") => void;
 }
 
 function iniciais(nome: string): string {
@@ -47,17 +47,10 @@ export default function FuncionarioCard({
             </button>
             {podeGerenciar && (
                 <div className="projeto-card-actions funcionario-card-actions">
-                    {funcionario.ativo ? (
-                        <>
-                            <button type="button" className="projeto-btn-secondary" onClick={() => onEditar(funcionario)} disabled={bloqueado}>Editar</button>
-                            <button type="button" className="projeto-btn-danger" onClick={() => onAlterarStatus(funcionario, "inativar")} disabled={bloqueado}>Inativar</button>
-                        </>
-                    ) : (
-                        <>
-                            <button type="button" className="projeto-btn-secondary" onClick={() => onEditar(funcionario)} disabled={bloqueado}>Editar</button>
-                            <button type="button" className="projeto-btn-primary" onClick={() => onAlterarStatus(funcionario, "reativar")} disabled={bloqueado}>Reativar</button>
-                        </>
-                    )}
+                    {funcionario.ativo && <>
+                        <button type="button" className="projeto-btn-secondary" onClick={() => onEditar(funcionario)} disabled={bloqueado}>Editar</button>
+                        <button type="button" className="projeto-btn-danger" onClick={() => onAlterarStatus(funcionario, "inativar")} disabled={bloqueado}>Inativar</button>
+                    </>}
                 </div>
             )}
         </article>

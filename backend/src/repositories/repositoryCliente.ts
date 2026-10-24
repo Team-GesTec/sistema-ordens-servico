@@ -20,6 +20,14 @@ export class RepositoryCliente {
         return clienteCache.obterTodos(() => prisma.clientes.findMany({ orderBy: { id: 'asc' } }));
     }
 
+    /** Lista clientes inativos. */
+    async listarInativos(): Promise<Cliente[]> {
+        return prisma.clientes.findMany({
+            where: { ativo: false },
+            orderBy: { id: 'asc' },
+        });
+    }
+
     /** Busca um cliente pelo id (cache → banco). Devolve `null` se não existir. */
     async buscarPorId(id: number): Promise<Cliente | null> {
         return clienteCache.obterPorId(id, () => prisma.clientes.findUnique({ where: { id } }));

@@ -1,10 +1,5 @@
-/**
- * Página de O.S.: monta a toolbar, a grade de cards e os modais (detalhes, ativar/inativar e formulário)
- * a partir do estado do hook useOrdens. O cadastro de O.S. antiga (AJ-06) só é liberado para o gestor.
- * US#2.6: os anexos da O.S. aberta nos detalhes vêm do hook useAnexosOrdem.
- */
-
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { calcularDiasUteisRestantes } from "../utils/filtroPrazo";
 import { useSearchParams } from "react-router-dom";
 import "../styles/variaveis.css";
 import "../styles/global.css";
@@ -22,12 +17,88 @@ import OrdemServicoAtivoModal from "../components/ordens/OrdemServicoAtivoModal"
 import OrdemServicoCard from "../components/ordens/OrdemServicoCard";
 import OrdemServicoDetalhesModal from "../components/ordens/OrdemServicoDetalhesModal";
 import OrdemServicoFormModal from "../components/ordens/OrdemServicoFormModal";
+import OrdemServicoKanban from "../components/ordens/OrdemServicoKanban";
+import OrdemServicoVisualizacoesSalvas, { type TipoVisualizacaoOrdens } from "../components/ordens/OrdemServicoVisualizacoesSalvas";
 import { useOrdens } from "../hooks/useOrdens";
 import { useAnexosOrdem } from "../hooks/useAnexosOrdem";
 
+import type { NivelCriticidade } from "../types/api";
+
+type FiltroPrazo = "todos" | "proximos3" | "proximos5" | "proximos7";
+
+// Quanto maior o peso, maior a prioridade da O.S.
+const PESO_CRITICIDADE: Record<NivelCriticidade, number> = {
+    baixo: 1,
+    medio: 2,
+    alto: 3,
+    muito_alto: 4,
+    urgente: 5,
+};
+
+function pesoCriticidade(
+    criticidade: NivelCriticidade | null | undefined,
+): number {
+    return criticidade ? PESO_CRITICIDADE[criticidade] : 0;
+}
+
 function Ordens() {
     const ordens = useOrdens();
-    const anexosOrdem = useAnexosOrdem(ordens.detalhesAbertos ? ordens.ordemSelecionada : null);
+    const anexosOrdem = useAnexosOrdem(
+        ordens.detalhesAbertos ? ordens.ordemSelecionada : null,
+    );
+    const [visualizacao, setVisualizacao] = useState<TipoVisualizacaoOrdens>("cartoes");
+
+    const [filtroPrazo, setFiltroPrazo] = useState<FiltroPrazo>("todos");
+
+    const ordensExibidas = useMemo(() => {
+        const limiteDias =
+            filtroPrazo === "todos"
+                ? null
+                : {
+                      proximos3: 3,
+                      proximos5: 5,
+                      proximos7: 7,
+                  }[filtroPrazo];
+
+        // Calcula os dias úteis restantes para cada O.S.
+        const resultado = ordens.ordensFiltradas
+            .map((ordem) => ({
+                ordem,
+                dias: calcularDiasUteisRestantes(ordem.data_limite_sla),
+            }))
+            // Primeiro, prazo mais próximo.
+            // Em empate, maior criticidade.
+            // Persistindo o empate, menor ID.
+            .sort((a, b) => {
+                const diasA = a.dias ?? Number.POSITIVE_INFINITY;
+                const diasB = b.dias ?? Number.POSITIVE_INFINITY;
+
+                return (
+                    diasA - diasB ||
+                    pesoCriticidade(b.ordem.criticidade) -
+                        pesoCriticidade(a.ordem.criticidade) ||
+                    a.ordem.id - b.ordem.id
+                );
+            });
+
+        // "Todos os prazos" mantém todas as O.S.,
+        // inclusive as vencidas e as que não possuem prazo válido.
+        if (limiteDias === null) {
+            return resultado.map((item) => item.ordem);
+        }
+
+        // Os filtros de prazo mostram apenas O.S. com prazo
+        // entre 1 e o limite selecionado, em dias úteis.
+        return resultado
+            .filter(
+                (item) =>
+                    item.dias !== null &&
+                    item.dias >= 1 &&
+                    item.dias <= limiteDias,
+            )
+            .map((item) => item.ordem);
+    }, [ordens.ordensFiltradas, filtroPrazo]);
+
     const [searchParams, setSearchParams] = useSearchParams();
     const idVisualizar = searchParams.get("visualizar");
     const idVisualizarProcessado = useRef<string | null>(null);
@@ -90,6 +161,19 @@ function Ordens() {
                         filtroStatus={ordens.filtroStatus}
                         onFiltroStatusChange={ordens.setFiltroStatus}
                         ordens={fonteAtual}
+                        funcionarios={ordens.funcionariosConhecidos}
+                        filtroResponsavelId={ordens.filtroResponsavelId}
+                        onFiltroResponsavelChange={ordens.setFiltroResponsavelId}
+                        onLimparFiltros={() => {
+                            ordens.setBusca("");
+                            ordens.setFiltroStatus("todos");
+                            ordens.setFiltroResponsavelId("todos");
+                        }}
+                        temFiltrosAplicados={Boolean(
+                            ordens.busca.trim() ||
+                            ordens.filtroStatus !== "todos" ||
+                            ordens.filtroResponsavelId !== "todos"
+                        )}
                         podeGerenciar={ordens.podeGerenciar}
                         mostrarInativas={ordens.mostrarInativas}
                         carregandoInativas={ordens.carregandoInativas}
@@ -101,14 +185,60 @@ function Ordens() {
                                 void ordens.carregarOrdensInativas();
                             }
                         }}
+                        visualizacoesSalvas={
+                            <OrdemServicoVisualizacoesSalvas
+                                usuarioId={ordens.usuarioAtualId}
+                                busca={ordens.busca}
+                                status={ordens.filtroStatus}
+                                responsavelId={ordens.filtroResponsavelId}
+                                visualizacao={visualizacao}
+                                        onAplicar={(salva) => {
+                                    ordens.setBusca(salva.busca);
+                                    ordens.setFiltroStatus(salva.status);
+                                    ordens.setFiltroResponsavelId(salva.responsavelId);
+                                    setVisualizacao(salva.visualizacao);
+                                    ordens.limparErro();
+                                }}
+                            />
+                        }
                     />
 
-                    <div className="projetos-list-header">
+                    <div className="projetos-list-header ordens-list-header">
                         <div>
                             <h2>{ordens.mostrarInativas ? "Ordens de serviço inativas" : "Ordens de serviço ativas"}</h2>
-                            <p>{ordens.ordensFiltradas.length} resultado(s)</p>
+                            <p>{ordensExibidas.length} resultado(s)</p>
                         </div>
-                        {carregamentoAtual && <span className="projetos-loading" role="status">Carregando…</span>}
+                        <div className="ordens-list-header-actions">
+                        <div className="ordens-prazo-filtro">
+                            <label htmlFor="filtro-prazo">Prazo:</label>
+
+                            <select
+                                id="filtro-prazo"
+                                value={filtroPrazo}
+                                onChange={(evento) =>
+                                    setFiltroPrazo(
+                                        evento.target.value as FiltroPrazo,
+                                    )
+                                }
+                            >
+                                <option value="todos">Todos os prazos</option>
+                                <option value="proximos3">
+                                    1 a 3 dias úteis
+                                </option>
+                                <option value="proximos5">
+                                    1 a 5 dias úteis
+                                </option>
+                                <option value="proximos7">
+                                    1 a 7 dias úteis
+                                </option>
+                            </select>
+                            </div>
+                            <div className="ordens-view-switch" role="group" aria-label="Visualização das ordens de serviço">
+                                <button type="button" className={visualizacao === "cartoes" ? "active" : ""} aria-pressed={visualizacao === "cartoes"} onClick={() => setVisualizacao("cartoes")}>Cartões</button>
+                                <button type="button" className={visualizacao === "kanban" ? "active" : ""} aria-pressed={visualizacao === "kanban"} onClick={() => setVisualizacao("kanban")}>Kanban</button>
+                            </div>
+                            {carregamentoAtual && <span className="projetos-loading" role="status">Carregando…</span>}
+                        </div>
                     </div>
 
                     {carregamentoAtual ? (
@@ -116,26 +246,45 @@ function Ordens() {
                             <span className="projetos-loading-mark" aria-hidden="true" />
                             {ordens.mostrarInativas ? "Carregando ordens inativas..." : "Carregando ordens de serviço..."}
                         </div>
-                    ) : ordens.ordensFiltradas.length === 0 ? (
+                    ) : ordensExibidas.length === 0 ? (
                         <div className="projetos-empty">
                             <strong>{fonteAtual.length === 0
                                 ? ordens.mostrarInativas ? "Nenhuma O.S. inativa cadastrada" : "Nenhuma O.S. cadastrada"
-                                : "Nenhuma ordem corresponde à busca e aos filtros selecionados."}</strong>
+                                : filtroPrazo !== "todos"
+                                    ? "Nenhuma ordem corresponde ao filtro de prazo selecionado."
+                                    : "Nenhuma ordem corresponde à busca e aos filtros selecionados."}</strong>
                             <p>{fonteAtual.length === 0
                                 ? ordens.mostrarInativas ? "Não há registros inativos para exibir." : "Cadastre uma ordem de serviço para começar."
-                                : "Altere a pesquisa ou os filtros para ver outros resultados."}</p>
+                                : filtroPrazo !== "todos"
+                                    ? "Tente selecionar outro intervalo de prazo para visualizar mais ordens."
+                                    : "Altere a pesquisa ou os filtros para ver outros resultados."}</p>
                         </div>
+                    ) : visualizacao === "kanban" ? (
+                        <OrdemServicoKanban
+                            ordens={ordensExibidas}
+                            clientes={ordens.clientes}
+                            departamentos={ordens.departamentos}
+                            funcionarios={ordens.funcionariosConhecidos}
+                            podeEditar={ordens.podeOperarDepartamento}
+                            bloqueado={ordens.salvando || ordens.alterandoStatusId !== null}
+                            podeMoverParaStatus={ordens.podeMoverOrdemParaStatus}
+                            onAbrir={(selecionada) => void ordens.abrirDetalhes(selecionada)}
+                            onEditar={ordens.iniciarEdicao}
+                            onAlterarAtivo={ordens.solicitarAlteracaoAtivo}
+                            onMoverStatus={ordens.moverOrdemKanban}
+                        />
                     ) : (
                         <div className="projetos-grid ordens-grid">
-                            {ordens.ordensFiltradas.map((ordem) => (
+                            {ordensExibidas.map((ordem) => (
                                 <OrdemServicoCard
                                     key={ordem.id}
                                     ordem={ordem}
                                     onAlterarAtivo={ordens.solicitarAlteracaoAtivo}
                                     clientes={ordens.clientes}
                                     departamentos={ordens.departamentos}
-                                    podeEditar={ordens.podeGerenciar}
-                                    bloqueado={ordens.salvando}
+                                    funcionarios={ordens.funcionariosConhecidos}
+                                    podeEditar={ordens.podeOperarDepartamento}
+                                    bloqueado={ordens.salvando || ordens.alterandoStatusId === ordem.id}
                                     onAbrir={(selecionada) => void ordens.abrirDetalhes(selecionada)}
                                     onEditar={ordens.iniciarEdicao}
                                 />
@@ -150,28 +299,34 @@ function Ordens() {
                 ordem={ordens.ordemSelecionada}
                 carregando={ordens.carregandoDetalhes}
                 erro={ordens.detalhesAbertos ? ordens.erro : null}
-                podeEditar={ordens.podeGerenciar}
+                podeEditar={ordens.podeOperarDepartamento}
                 clientes={ordens.clientes}
                 departamentos={ordens.departamentos}
                 funcionarios={ordens.funcionariosConhecidos}
-                funcionariosElegiveis={ordens.funcionariosAtivos}
+                funcionariosElegiveis={ordens.podeOperarDepartamento
+                    ? ordens.funcionariosAtivos
+                    : ordens.funcionariosAtivos.filter((funcionario) =>
+                        funcionario.id === ordens.usuarioAtualId &&
+                        funcionario.departamento_id === ordens.ordemSelecionada?.departamento_id
+                    )}
                 atribuindoResponsavel={ordens.atribuindoResponsavel}
-                podeReatribuirResponsavel={ordens.podeGerenciar}
+                podeReatribuirResponsavel={ordens.podeAtribuirResponsavel}
                 onAtribuirResponsavel={(funcionarioId) => void ordens.atribuirResponsavelOrdem(funcionarioId)}
                 onFechar={ordens.fecharDetalhes}
                 onEditar={ordens.iniciarEdicao}
                 podeAlterarStatus={ordens.podeAlterarStatus}
                 alterandoStatusId={ordens.alterandoStatusId}
                 onAlterarStatus={ordens.alterarStatusOrdem}
-                podeAlterarPrazo={ordens.podeGerenciar}
-                alterandoPrazo={ordens.alterandoPrazo}
-                onAlterarPrazo={ordens.alterarPrazoOrdem}
+                statusSugerido={ordens.statusSolicitadoDetalhes}
                 anexos={anexosOrdem.anexos}
                 carregandoAnexos={anexosOrdem.carregandoAnexos}
                 erroAnexos={anexosOrdem.erroAnexos}
                 tiposPermitidos={anexosOrdem.tiposPermitidos}
                 onEnviarAnexo={anexosOrdem.enviarAnexo}
                 onBaixarAnexo={anexosOrdem.baixarAnexo}
+                podeAlterarPrazo={ordens.podeGerenciar}
+                alterandoPrazo={ordens.alterandoPrazo}
+                onAlterarPrazo={ordens.alterarPrazoOrdem}
             />
 
             <OrdemServicoAtivoModal

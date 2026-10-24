@@ -19,8 +19,8 @@ interface FuncionariosToolbarProps {
 
 const PERFIL_OPTIONS: { value: PerfilFuncionario | "todos"; label: string }[] = [
     { value: "todos", label: "Todos os perfis" },
-    { value: "gestor", label: "Gestor" },
-    { value: "analista", label: "Analista" },
+    { value: "gestor", label: "Gestor/Admin" },
+    { value: "analista", label: "Analista/Líder" },
     { value: "tecnico", label: "Técnico" },
 ];
 
