@@ -1,4 +1,3 @@
-
 import type { Cliente } from "../types/api";
 import { ApiError } from "../services/api";
 

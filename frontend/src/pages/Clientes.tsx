@@ -7,8 +7,8 @@ import "../styles/cards.css";
 import "../styles/details.css";
 import "../styles/darkmode.css";
 import "../styles/forms.css";
-import "../styles/clientes.css";
 import "../styles/projetos.css";
+import "../styles/clientes.css";
 
 import ClienteCard from "../components/clientes/ClienteCard";
 import ClienteFormModal from "../components/clientes/ClienteFormModal";

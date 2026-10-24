@@ -7,6 +7,7 @@ import type { Request, Response } from 'express';
 import { serviceOrdemServico } from '../services/serviceOrdemServico';
 import { usuarioAutenticado } from '../middlewares/authMiddleware';
 import { lerId } from '../utils/validacao';
+import { serviceAuditoria } from '../services/serviceAuditoria';
 
 export class ControllerOrdemServico {
     /** GET /ordens-servico — lista todas as O.S. cadastradas. */
@@ -109,12 +110,11 @@ export class ControllerOrdemServico {
         );
     }
 
-    /** DELETE /ordens-servico/:id — exclui a O.S. */
-    public async deleteOrdem(req: Request, resp: Response): Promise<Response> {
+    public async listarHistorico(req: Request, resp: Response): Promise<Response> {
         const id = lerId(req.params.id);
-        await serviceOrdemServico.remover(id);
+        const historico = await serviceAuditoria.listarPorOrdemServico(id);
 
-        return resp.status(200).json({ mensagem: 'Ordem excluída com sucesso' });
+        return resp.status(200).json(historico);
     }
 }
 

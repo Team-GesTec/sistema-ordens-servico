@@ -1,7 +1,3 @@
-/**
- * Exibe o dashboard da aplicação e as notificações visuais de SLA (US#3.2).
- */
-
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
     ResponsiveContainer,
@@ -37,6 +33,7 @@ import type {
 
 import NotificacoesSla from "../components/NotificacoesSla";
 import type { NotificacaoSla } from "../types/notificacao";
+
 const CORES_STATUS: Record<StatusOrdemServico, string> = {
     em_andamento: "#1689ca",
     aguardando: "#f59e0b",
@@ -100,75 +97,70 @@ function Dashboard() {
         projetos: [],
     });
 
-const [carregando, setCarregando] = useState(true);
+    const [carregando, setCarregando] = useState(true);
+    const [erro, setErro] = useState<string | null>(null);
+    const [notificacoes, setNotificacoes] = useState<NotificacaoSla[]>([]);
 
-const [erro, setErro] = useState<string | null>(null);
-const [notificacoes, setNotificacoes] = useState<NotificacaoSla[]>([]);
+    // Carrega as notificações de SLA.
+    useEffect(() => {
+        apiRequest<NotificacaoSla[]>("/notificacoes")
+            .then(setNotificacoes)
+            .catch((error: unknown) => {
+                console.error("Erro ao carregar notificações de SLA:", error);
+            });
+    }, []);
 
-// Carrega as notificações de SLA.
-useEffect(() => {
-    apiRequest<NotificacaoSla[]>("/notificacoes")
-        .then(setNotificacoes)
-        .catch((error: unknown) => {
-            console.error("Erro ao carregar notificações de SLA:", error);
-        });
-}, []);
+    const carregarDados = useCallback(async (inicial = false) => {
+        if (inicial) {
+            setCarregando(true);
+        }
+        setErro(null);
 
-const carregarDados = useCallback(async (inicial = false) => {
-    if (inicial) {
-        setCarregando(true);
-    } else {
-        
-    }
+        try {
+            const [ordens, departamentos, funcionarios, projetos] =
+                await Promise.all([
+                    ordemServicoService.listar(),
+                    departamentoService.listar(),
+                    funcionarioService.listar(),
+                    projetoService.listar(),
+                ]);
 
-    setErro(null);
+            setDados({
+                ordens,
+                departamentos,
+                funcionarios,
+                projetos,
+            });
+        } catch (error: unknown) {
+            setErro(
+                error instanceof ApiError
+                    ? error.message
+                    : "Não foi possível carregar os dados do dashboard.",
+            );
+        } finally {
+            setCarregando(false);
+        }
+    }, []);
 
-    try {
-        const [ordens, departamentos, funcionarios, projetos] =
-            await Promise.all([
-                ordemServicoService.listar(),
-                departamentoService.listar(),
-                funcionarioService.listar(),
-                projetoService.listar(),
-            ]);
+    useEffect(() => {
+        void carregarDados(true);
+    }, [carregarDados]);
 
-        setDados({
-            ordens,
-            departamentos,
-            funcionarios,
-            projetos,
-        });
-    } catch (error: unknown) {
-        setErro(
-            error instanceof ApiError
-                ? error.message
-                : "Não foi possível carregar os dados do dashboard.",
-        );
-    } finally {
-        setCarregando(false);
-        
-    }
-}, []);
+    const departamentoId = usuario?.departamento_id;
 
-useEffect(() => {
-    void carregarDados(true);
-}, [carregarDados]);
+    const ordensDepartamento = useMemo(
+        () =>
+            dados.ordens.filter(
+                (ordem) => ordem.departamento_id === departamentoId,
+            ),
+        [dados.ordens, departamentoId],
+    );
 
-const departamentoId = usuario?.departamento_id;
+    const ordensVisiveis =
+        usuario?.tipo === "gestor"
+            ? dados.ordens
+            : ordensDepartamento;
 
-
-const ordensDepartamento = useMemo(
-    () =>
-        dados.ordens.filter(
-            (ordem) => ordem.departamento_id === departamentoId,
-        ),
-    [dados.ordens, departamentoId],
-);
-
-const ordensVisiveis =
-    usuario?.tipo === "gestor"
-        ? dados.ordens
-        : ordensDepartamento;
     const ordensDoTecnico = useMemo(
         () =>
             ordensDepartamento.filter(
@@ -187,16 +179,17 @@ const ordensVisiveis =
         [dados.funcionarios, departamentoId],
     );
 
-const statusData = useMemo(
-    () =>
-        contar(
-            ordensVisiveis.map((ordem) => ordem.status),
-            Object.keys(ROTULOS_STATUS) as StatusOrdemServico[],
-            ROTULOS_STATUS,
-            CORES_STATUS,
-        ),
-    [ordensVisiveis],
-);
+    const statusData = useMemo(
+        () =>
+            contar(
+                ordensVisiveis.map((ordem) => ordem.status),
+                Object.keys(ROTULOS_STATUS) as StatusOrdemServico[],
+                ROTULOS_STATUS,
+                CORES_STATUS,
+            ),
+        [ordensVisiveis],
+    );
+
     // Usa as mesmas ordens visíveis ao usuário para calcular a criticidade.
     const criticidadeData = useMemo(
         () =>
@@ -238,46 +231,44 @@ const statusData = useMemo(
         [funcionariosDepartamento, ordensDepartamento],
     );
 
-
-
-
     const totalHoras = null as number | null;
 
-   if (carregando) {
-    return (
-        <main className="dashboard">
-            <div className="dashboard-mensagem">
-                Carregando indicadores...
-            </div>
-        </main>
-    );
-}
+    if (carregando) {
+        return (
+            <main className="dashboard">
+                <div className="dashboard-mensagem">
+                    Carregando indicadores...
+                </div>
+            </main>
+        );
+    }
 
-if (erro) {
-    return (
-        <main className="dashboard">
-            <div className="dashboard-erro">
-                <p>{erro}</p>
-                <button
-                    type="button"
-                    onClick={() => void carregarDados()}
-                >
-                    Tentar novamente
-                </button>
-            </div>
-        </main>
-    );
-}
+    if (erro) {
+        return (
+            <main className="dashboard">
+                <div className="dashboard-erro">
+                    <p>{erro}</p>
+                    <button
+                        type="button"
+                        onClick={() => void carregarDados()}
+                    >
+                        Tentar novamente
+                    </button>
+                </div>
+            </main>
+        );
+    }
 
-if (!usuario) {
-    return (
-        <main className="dashboard">
-            <div className="dashboard-mensagem">
-                Não foi possível identificar o usuário conectado.
-            </div>
-        </main>
-    );
-}
+    if (!usuario) {
+        return (
+            <main className="dashboard">
+                <div className="dashboard-mensagem">
+                    Não foi possível identificar o usuário conectado.
+                </div>
+            </main>
+        );
+    }
+
     const ehGestor = usuario.tipo === "gestor";
     const ehTecnico = usuario.tipo === "tecnico";
 
@@ -300,37 +291,37 @@ if (!usuario) {
     ).length;
 
     return (
-    <main className="dashboard">
-        <NotificacoesSla
-            notificacoes={notificacoes}
-            onDispensar={async (id) => {
-                try {
-                    await apiRequest<void>(
-                        `/notificacoes/${encodeURIComponent(id)}`,
-                        { method: "DELETE" },
-                    );
+        <main className="dashboard">
+            <NotificacoesSla
+                notificacoes={notificacoes}
+                onDispensar={async (id) => {
+                    try {
+                        await apiRequest<void>(
+                            `/notificacoes/${encodeURIComponent(id)}`,
+                            { method: "DELETE" },
+                        );
 
-                    setNotificacoes((atuais) =>
-                        atuais.filter(
-                            (notificacao) => notificacao.id !== id,
-                        ),
-                    );
-                } catch (error: unknown) {
-                    console.error(
-                        "Erro ao dispensar notificação:",
-                        error,
-                    );
+                        setNotificacoes((atuais) =>
+                            atuais.filter(
+                                (notificacao) => notificacao.id !== id,
+                            ),
+                        );
+                    } catch (error: unknown) {
+                        console.error(
+                            "Erro ao dispensar notificação:",
+                            error,
+                        );
 
-                    window.alert(
-                        error instanceof ApiError
-                            ? error.message
-                            : "Não foi possível dispensar a notificação. Tente novamente.",
-                    );
-                }
-            }}
-        />
+                        window.alert(
+                            error instanceof ApiError
+                                ? error.message
+                                : "Não foi possível dispensar a notificação. Tente novamente.",
+                        );
+                    }
+                }}
+            />
 
-        <header className="dashboard-header">
+            <header className="dashboard-header">
                 <div>
                     <span className="dashboard-eyebrow">
                         GESTEC / INDICADORES

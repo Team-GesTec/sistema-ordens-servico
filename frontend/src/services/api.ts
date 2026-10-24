@@ -88,3 +88,50 @@ export async function apiRequest<T>(
 
     return body as T;
 }
+
+
+/** Faz download autenticado de um arquivo gerado pelo backend, sem expor URLs internas. */
+export async function apiDownload(path: string, nomeArquivoSugerido: string): Promise<void> {
+    const headers = new Headers();
+    const token = getAuthToken();
+    if (token) headers.set("Authorization", `Bearer ${token}`);
+
+    let response: Response;
+    try {
+        response = await fetch(`${getApiUrl()}${path}`, { method: "GET", headers });
+    } catch {
+        throw new ApiError(0, "Não foi possível conectar à API para gerar o arquivo.");
+    }
+
+    if (!response.ok) {
+        const body = await response.text();
+        let message = `Erro HTTP ${response.status} ao gerar o arquivo.`;
+        try {
+            const parsed: unknown = body ? JSON.parse(body) : undefined;
+            if (typeof parsed === "object" && parsed !== null && "mensagem" in parsed && typeof parsed.mensagem === "string") {
+                message = parsed.mensagem;
+            }
+        } catch {
+            // Mantém a mensagem HTTP quando a API não retorna JSON estruturado.
+        }
+        if (response.status === 401) {
+            clearAuthToken();
+            sessionStorage.removeItem("sgos.user");
+        }
+        throw new ApiError(response.status, message);
+    }
+
+    const blob = await response.blob();
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    const contentDisposition = response.headers.get("Content-Disposition");
+    const match = contentDisposition?.match(/filename\*?=(?:UTF-8''|")?([^;"]+)/i);
+    const nomeArquivo = match?.[1]?.trim() || nomeArquivoSugerido;
+    link.href = url;
+    link.download = decodeURIComponent(nomeArquivo.replace(/^"|"$/g, ""));
+    link.style.display = "none";
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+}

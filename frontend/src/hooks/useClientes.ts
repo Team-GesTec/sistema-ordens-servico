@@ -1,4 +1,3 @@
-
 import { useEffect, useMemo, useState } from "react";
 import { authService, getStoredUser } from "../services/auth";
 import { clienteService } from "../services/cliente";
@@ -45,20 +44,36 @@ export function useClientes() {
 
         async function carregarDados() {
             try {
+                let isGestor = getStoredUser()?.tipo === "gestor";
+
                 if (authService.hasSession()) {
                     const usuario = await authService.me();
+                    isGestor = usuario.tipo === "gestor";
 
                     if (ativo) {
-                        setPerfilGestor(usuario.tipo === "gestor");
+                        setPerfilGestor(isGestor);
                     }
                 } else if (ativo) {
                     setPerfilGestor(false);
+                    isGestor = false;
                 }
 
                 const resultado = await clienteService.listar();
+                let inativos: Cliente[] = [];
+
+                if (isGestor) {
+                    try {
+                        inativos = await clienteService.listarInativos();
+                    } catch (errorInativos) {
+                        if (ativo) setErro(mensagemErro(errorInativos, "Não foi possível consultar o histórico de clientes inativos."));
+                    }
+                }
 
                 if (ativo) {
-                    setClientes(resultado);
+                    setClientes(
+                        [...resultado, ...inativos.filter((item) => !resultado.some((ativoItem) => ativoItem.id === item.id))]
+                            .sort((a, b) => a.id - b.id)
+                    );
                 }
             } catch (error) {
                 if (ativo) {

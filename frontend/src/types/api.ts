@@ -70,6 +70,13 @@ export interface DepartamentoInput {
     responsavel_id: number | null;
 }
 
+export interface VisaoEquipe {
+    departamento: Departamento;
+    projetos: Array<Pick<Projeto, "id" | "nome" | "ativo" | "status" | "cliente_id">>;
+    ordens_servico: Array<Pick<OrdemServico, "id" | "titulo" | "status" | "ativo" | "data_criacao" | "data_limite_sla" | "responsavel_id" | "solicitante_id">>;
+    funcionarios: Array<Pick<Funcionario, "id" | "nome" | "usuario" | "tipo" | "ativo" | "departamento_id">>;
+}
+
 export interface FuncionarioInput {
     departamento_id: number;
     usuario: string;
@@ -143,11 +150,13 @@ export interface OrdemServico {
     data_criacao: string;
     /** US#3.2: Disponibiliza as datas usadas no cálculo dos alertas de SLA. */
     data_inicio?: string | null;
-
+    data_fim: string | null;
     /** Prazo final (SLA) devolvido pela API; ISO ou null quando não definido. */
     data_limite_sla?: string | null;
-
+    prazo_dias_uteis?: number | null;
     sla_manual?: boolean;
+    /** Preenchido somente no endpoint de detalhes, a partir da auditoria existente. */
+    data_ultima_atualizacao?: string | null;
 }
 
 export interface OrdemServicoInput {
@@ -162,13 +171,28 @@ export interface OrdemServicoInput {
     responsavel_id?: number;
     /** AJ-06 — cadastro de O.S. antiga (somente gestor): data de abertura no passado, em ISO. */
     data_criacao?: string;
+    /** US#3.2: Define as datas necessárias para calcular os alertas de SLA. */
+    data_inicio?: string | null;
+    /** Prazo de conclusão opcional / Prazo final (SLA); null/vazio remove um prazo existente. */
+    data_limite_sla?: string | null;
     /** AJ-06 — status atual da O.S. antiga. */
     status?: StatusOrdemServico;
     /** AJ-06 — obrigatório quando a O.S. antiga já está concluída. */
     parecer_tecnico?: string;
     /** AJ-06 — data de conclusão (ISO), obrigatória quando a O.S. antiga já está concluída. */
     data_fim?: string;
-    /** US#3.2: Define as datas necessárias para calcular os alertas de SLA. */
-    data_inicio?: string | null;
-    data_limite_sla?: string | null;
+}
+
+/** Registro real e imutável da auditoria de uma O.S. (nunca inclui credenciais). */
+export interface HistoricoOrdemServico {
+    id: number;
+    os_id: number;
+    funcionario_id: number;
+    data_modificacao: string;
+    acao: "insercao" | "atualizacao" | "exclusao";
+    campo_alterado: string | null;
+    dado_antigo: string | null;
+    dado_novo: string | null;
+    justificativa: string | null;
+    funcionarios: Pick<Funcionario, "id" | "nome" | "usuario">;
 }

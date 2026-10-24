@@ -1,0 +1,104 @@
+
+.equipes-main { min-width: 0; }
+.equipes-container { display: grid; gap: 18px; }
+.equipes-header { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 14px; }
+.equipes-header h1 { margin: 0; }
+.equipes-selector { display: grid; gap: 7px; max-width: 480px; }
+.equipes-selector label { color: var(--texto-principal, #172033); font-weight: 650; font-size: .88rem; }
+.equipes-selector select { width: 100%; min-height: 42px; padding: 9px 12px; border: 1px solid var(--borda, #dbe3ec); border-radius: 10px; background: var(--superficie-card, #fff); color: var(--texto-principal, #172033); }
+.equipes-state { padding: 16px 18px; border: 1px solid var(--borda, #dbe3ec); border-radius: 12px; background: var(--superficie-card, #fff); color: var(--texto-secundario, #64748b); }
+.equipes-summary { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+.equipes-summary > div { display: grid; gap: 5px; min-width: 0; padding: 15px; border: 1px solid var(--borda, #dbe3ec); border-radius: 12px; background: var(--superficie-card, #fff); }
+.equipes-summary span, .equipes-summary small { color: var(--texto-secundario, #64748b); font-size: .8rem; }
+.equipes-summary strong { color: var(--texto-principal, #172033); overflow-wrap: anywhere; }
+.equipes-accordions { display: grid; gap: 12px; }
+.equipes-accordion { overflow: hidden; border: 1px solid var(--borda, #dbe3ec); border-radius: 12px; background: var(--superficie-card, #fff); }
+.equipes-accordion summary { display: flex; align-items: center; justify-content: space-between; gap: 12px; cursor: pointer; padding: 16px; font-weight: 700; color: var(--texto-principal, #172033); list-style-position: inside; }
+.equipes-accordion summary:focus-visible { outline: 3px solid var(--azul-claro, #1589ca); outline-offset: -3px; }
+.equipes-accordion summary span { padding: 3px 9px; border-radius: 999px; background: var(--surface-muted, #f1f5f9); font-size: .8rem; }
+.equipes-accordion-content { padding: 0 16px 16px; color: var(--texto-secundario, #64748b); }
+.equipes-accordion-content ul { display: grid; gap: 8px; padding: 0; margin: 0; list-style: none; }
+.equipes-accordion-content li { display: grid; gap: 4px; padding: 12px; border: 1px solid var(--borda, #dbe3ec); border-radius: 9px; }
+.equipes-accordion-content li strong { color: var(--texto-principal, #172033); overflow-wrap: anywhere; }
+.equipes-accordion-content li span { font-size: .82rem; text-transform: capitalize; }
+.equipes-note { margin: 0; color: var(--texto-secundario, #64748b); font-size: .82rem; line-height: 1.5; }
+[data-theme="dark"] .equipes-accordion, [data-theme="dark"] .equipes-state, [data-theme="dark"] .equipes-summary > div { background: var(--superficie-card, #17212f); }
+@media (max-width: 760px) { .equipes-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); } .equipes-header { align-items: flex-start; flex-direction: column; } }
+@media (max-width: 420px) { .equipes-summary { grid-template-columns: minmax(0, 1fr); } }
+
+/* Extensões da tela integrada de Departamentos/Equipes, alinhadas aos cartões de Projetos. */
+.equipes-integradas-grid { align-items: start; }
+.equipes-integradas-card { min-width: 0; }
+.equipes-integradas-card .projeto-card-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 15px; }
+.equipes-integradas-card .projeto-card-client { overflow-wrap: anywhere; }
+.equipes-integradas-details { display: grid; gap: 9px; margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--borda, #dbe3ec); }
+.equipes-integradas-details h3 { display: flex; justify-content: space-between; gap: 10px; margin: 7px 0 0; color: var(--texto, #173d57); font-size: .9rem; }
+.equipes-integradas-details h3 span { flex: 0 0 auto; color: var(--texto-secundario, #64748b); font-variant-numeric: tabular-nums; }
+.equipes-integradas-details p { margin: 0; color: var(--texto-secundario, #64748b); font-size: .85rem; }
+.equipes-integradas-details ul { display: grid; gap: 7px; margin: 0; padding: 0; list-style: none; }
+.equipes-integradas-details li { display: grid; gap: 3px; min-width: 0; padding: 9px 10px; border: 1px solid var(--borda, #dbe3ec); border-radius: 8px; background: var(--superficie-card, #fff); }
+.equipes-integradas-details li strong { overflow-wrap: anywhere; color: var(--texto, #17212d); font-size: .84rem; }
+.equipes-integradas-details li span { overflow-wrap: anywhere; color: var(--texto-secundario, #64748b); font-size: .78rem; }
+.equipes-integradas-details .equipes-state-inactive { color: #b45309; }
+.equipes-history-toggle { display: inline-flex; align-items: center; gap: 8px; color: var(--texto-secundario, #64748b); font-size: .84rem; }
+.equipes-history-toggle input { accent-color: var(--cor-primaria, #2583bd); }
+
+.equipes-field-hint { margin: 4px 0 0; color: var(--texto-secundario, #64748b); font-size: .8rem; line-height: 1.5; }
+
+/* Modal de detalhes de Departamento reutiliza a estrutura-base de detalhe de Projeto. */
+.equipes-departamento-title {
+    display: block;
+    width: 100%;
+    margin: 8px 0 6px;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: var(--cor-texto-primario, #173d57);
+    font: inherit;
+    font-size: 18px;
+    font-weight: 750;
+    line-height: 1.35;
+    text-align: left;
+    cursor: pointer;
+}
+.equipes-departamento-title:hover { color: var(--cor-primaria, #21658c); text-decoration: underline; }
+.equipes-departamento-title:focus-visible { outline: 2px solid var(--cor-primaria, #21658c); outline-offset: 4px; border-radius: 3px; }
+.departamento-details-modal { max-height: min(90vh, 900px); display: flex; flex-direction: column; }
+.departamento-details-content { min-height: 0; overflow-y: auto; padding: 2px 2px 8px; }
+.departamento-accordion-section { padding-top: 2px; }
+.departamento-accordion-trigger {
+    width: 100%;
+    border: 0;
+    padding: 4px 0;
+    background: transparent;
+    text-align: left;
+    cursor: pointer;
+}
+.departamento-accordion-trigger h3 { margin: 0; flex: 1; }
+.departamento-accordion-trigger:focus-visible { outline: 2px solid var(--cor-primaria, #21658c); outline-offset: 3px; border-radius: 4px; }
+.departamento-accordion-chevron { color: #21658c; font-size: 18px; font-weight: 800; min-width: 20px; text-align: center; }
+.departamento-vinculo-item {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 12px;
+    padding: 11px 12px;
+    border: 1px solid #dfeaf0;
+    border-radius: 7px;
+    background: #fff;
+}
+.departamento-vinculo-item--inativo { background: #f0f3f5; opacity: .86; }
+.departamento-vinculo-main { display: flex; min-width: 0; flex-direction: column; gap: 4px; }
+.departamento-vinculo-main strong { color: #214b66; font-size: 11px; overflow-wrap: anywhere; }
+.departamento-vinculo-main span { color: #718797; font-size: 10px; overflow-wrap: anywhere; }
+@media (max-width: 600px) {
+    .departamento-details-modal { max-height: 94vh; }
+    .departamento-vinculo-item { align-items: flex-start; gap: 8px; }
+    .departamento-details-modal .projeto-modal-actions { justify-content: stretch; }
+    .departamento-details-modal .projeto-modal-actions button { flex: 1 1 auto; }
+}
+
+.departamento-vinculo-item--link { width: 100%; font: inherit; text-align: left; cursor: pointer; }
+.departamento-vinculo-item--link:hover { border-color: #bdd4e2; background: #f6fbfe; }
+.departamento-vinculo-item--link:focus-visible { outline: 2px solid var(--cor-primaria, #21658c); outline-offset: 2px; }
+.departamento-vinculo-item--link.departamento-vinculo-item--inativo:hover { background: #e9eef1; }

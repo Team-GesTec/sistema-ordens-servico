@@ -50,12 +50,8 @@ function ClienteCard({
                 <div className="projeto-card-actions cliente-actions">
                     {cliente.ativo ? (
                         <>
-                            <button type="button" className="projeto-btn-secondary" onClick={() => onEditar(cliente)} disabled={bloqueado}>
-                                Editar
-                            </button>
-                            <button type="button" className="projeto-btn-danger" onClick={() => onAlterarStatus(cliente, "inativar")} disabled={bloqueado}>
-                                Inativar
-                            </button>
+                            <button type="button" className="projeto-btn-secondary" onClick={() => onEditar(cliente)} disabled={bloqueado}>Editar</button>
+                            <button type="button" className="projeto-btn-danger" onClick={() => onAlterarStatus(cliente, "inativar")} disabled={bloqueado}>Inativar</button>
                         </>
                     ) : (
                         <button type="button" className="projeto-btn-primary" onClick={() => onAlterarStatus(cliente, "reativar")} disabled={bloqueado}>

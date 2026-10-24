@@ -5,7 +5,6 @@
  * Leituras passam pelo cache; escritas vão ao banco e, confirmadas, atualizam o cache.
  */
 
-
 import { prisma } from '../prisma/client';
 import type { Prisma } from '../prisma/generated/client';
 import { ordemServicoCache } from '../cache/ordemServicoCache';
@@ -86,20 +85,8 @@ export class RepositoryOrdemServico {
         }
     }
 
-    /** Remove uma O.S. e invalida o cache após a exclusão. */
-    async remover(id: number): Promise<void> {
-        try {
-            await prisma.ordens_servico.delete({ where: { id }, select: { id: true } });
-            ordemServicoCache.remover(id);
-        } catch (erro) {
-            throw traduzirErroPrisma(erro, {
-                registroNaoEncontrado: 'Ordem de Serviço não encontrada',
-                referenciaEmUso: 'Não é possível excluir: a OS ainda tem anexos ou funcionários vinculados.',
-            });
-        }
-    }
-
-    /**
+    /** Coloca no cache a versão já gravada de uma OS. Chamar depois que a transação terminar */
+        /**
      * Atualiza os campos informados de uma OS dentro de uma transação.
      * Não mexe no cache: quem chama deve chamar `atualizarCache` depois que a transação terminar.
      */
@@ -197,8 +184,8 @@ export class RepositoryOrdemServico {
             });
         });
 
-        // A transação já foi confirmada, invalida o cache para que a próxima leitura busque o estado persistido.
-        ordemServicoCache.remover(osId);
+        // A transação já foi confirmada: atualiza o cache com o estado persistido.
+        ordemServicoCache.definir(atualizada);
 
         return atualizada;
     }
@@ -277,6 +264,7 @@ export class RepositoryOrdemServico {
             where: { id },
             data: dados,
         });
+
         return atualizada;
     }
 }

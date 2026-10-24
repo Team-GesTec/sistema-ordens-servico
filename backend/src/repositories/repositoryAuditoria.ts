@@ -9,9 +9,28 @@ export class RepositoryAuditoria {
     async registrar(
         dados: DadosRegistroAuditoria,
         conexao: Prisma.TransactionClient = prisma,
-    ): Promise<Auditoria>{
-        const registro = await conexao.auditoria.create({data:dados});
+    ): Promise<Auditoria> {
+        const registro = await conexao.auditoria.create({ data: dados });
         return registro
+    }
+
+    async listarPorOrdemServico(osId: number) {
+        return prisma.auditoria.findMany({
+            where: {
+                os_id: osId,
+                tipo_entidade: 'ordem_servico',
+            },
+            include: {
+                funcionarios: {
+                    select: {
+                        nome: true,
+                    },
+                },
+            },
+            orderBy: {
+                data_modificacao: 'desc',
+            },
+        });
     }
 }
 

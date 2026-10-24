@@ -9,7 +9,7 @@ interface FuncionarioDetalhesModalProps {
     podeGerenciar: boolean;
     onClose: () => void;
     onEditar: (funcionario: Funcionario) => void;
-    onAlterarStatus: (funcionario: Funcionario, acao: "inativar" | "reativar") => void;
+    onAlterarStatus: (funcionario: Funcionario, acao: "inativar") => void;
 }
 
 const PERFIL_LABELS = { gestor: "Gestor", analista: "Analista", tecnico: "Técnico" } as const;
@@ -36,7 +36,7 @@ export default function FuncionarioDetalhesModal({
                         <h2 id="funcionario-detail-title">{funcionario?.nome ?? "Detalhes do funcionário"}</h2>
                         {funcionario && <p>Funcionário #{funcionario.id}</p>}
                     </div>
-                    <button type="button" className="projeto-modal-close" onClick={onClose} aria-label="Fechar detalhes">×</button>
+                    <button type="button" className="projeto-modal-close" onClick={onClose} aria-label="Fechar detalles">×</button>
                 </header>
                 <div className="funcionario-detail-body">
                     {carregando && <p className="projetos-loading" role="status">Carregando dados atualizados...</p>}
@@ -64,10 +64,8 @@ export default function FuncionarioDetalhesModal({
                 </div>
                 <footer className="projeto-modal-actions">
                     <button type="button" className="projeto-btn-secondary" onClick={onClose}>Fechar</button>
-                    {funcionario && podeGerenciar && <button type="button" className="projeto-btn-secondary" onClick={() => onEditar(funcionario)}>Editar</button>}
-                    {funcionario && podeGerenciar && (funcionario.ativo
-                        ? <button type="button" className="projeto-btn-danger" onClick={() => onAlterarStatus(funcionario, "inativar")}>Inativar</button>
-                        : <button type="button" className="projeto-btn-primary" onClick={() => onAlterarStatus(funcionario, "reativar")}>Reativar</button>)}
+                    {funcionario && podeGerenciar && funcionario.ativo && <button type="button" className="projeto-btn-secondary" onClick={() => onEditar(funcionario)}>Editar</button>}
+                    {funcionario && podeGerenciar && funcionario.ativo && <button type="button" className="projeto-btn-danger" onClick={() => onAlterarStatus(funcionario, "inativar")}>Inativar</button>}
                 </footer>
             </section>
         </div>

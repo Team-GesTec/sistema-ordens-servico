@@ -37,7 +37,6 @@ export function useProjetos() {
     const [mensagem, setMensagem] = useState<string | null>(null);
     const [erro, setErro] = useState<string | null>(null);
 
-
     useEffect(() => {
         let montado = true;
         async function inicializar() {
@@ -56,9 +55,14 @@ export function useProjetos() {
                 setDepartamentos(departamentosApi);
                 setCarregandoOpcoes(false);
                 setProjetosAtivos(projetosApi);
+                
                 if (gestor) {
-                    const inativos = await projetoService.listarInativos();
-                    if (montado) setProjetosInativos(inativos);
+                    try {
+                        const inativos = await projetoService.listarInativos();
+                        if (montado) setProjetosInativos(inativos);
+                    } catch (errorInativos) {
+                        if (montado) setErro(mensagemErro(errorInativos, "Não foi possível consultar projetos inativos."));
+                    }
                 }
             } catch (error) {
                 if (montado) setErro(mensagemErro(error, "Não foi possível carregar os projetos."));

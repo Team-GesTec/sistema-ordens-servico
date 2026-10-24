@@ -60,13 +60,15 @@ export class ServiceProjeto {
 
     async criar(corpo: unknown, funcionarioId: number): Promise<Projeto> {
         const dados = lerCorpo(corpo);
-        if (campoPresente(dados, 'ativo')) {
-            throw AppError.requisicaoInvalida('O estado ativo/inativo deve ser alterado pela rota específica do projeto.');
+        if (typeof dados.nome !== 'string' || !dados.nome.trim()) {
+            throw AppError.requisicaoInvalida('nome é obrigatório');
         }
+
+        const nome = dados.nome.trim();
         const clienteId = exigirInteiroPositivo(dados.cliente_id, 'cliente_id');
         const departamentos = exigirListaDeIds(dados.departamentos, 'departamentos');
         const novo: DadosCriacaoProjeto = {
-            nome: exigirTexto(dados.nome, 'nome'),
+            nome,
             cliente_id: clienteId,
             departamentos,
             data_inicio: dataOpcional(dados.data_inicio, 'data_inicio'),

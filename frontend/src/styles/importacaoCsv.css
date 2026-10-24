@@ -1,0 +1,204 @@
+/* Regras exclusivas para o fluxo CSV; o fluxo Excel e as demais páginas não são afetados. */
+.import-panel--csv .import-selected-file {
+    align-items: flex-start;
+    border-color: var(--azul-claro, #1589ca);
+    background: var(--surface-muted, #f0f9ff);
+}
+.import-panel--csv .import-file-mark {
+    min-width: 54px;
+    background: #dcfce7;
+    color: #166534;
+    font-size: .78rem;
+}
+.import-panel--csv .import-preview {
+    display: grid;
+    min-width: 0;
+    padding: 16px;
+    border: 1px solid var(--borda, #dbe3ec);
+    border-radius: 12px;
+    background: var(--superficie-card, #fff);
+}
+.import-panel--csv .import-preview > h3 {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.import-panel--csv .import-preview > h3::before {
+    content: "";
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    flex: 0 0 auto;
+    border-radius: 50%;
+    background: #16a34a;
+}
+.import-panel--csv .import-sample-table {
+    max-width: 100%;
+    overflow-x: auto;
+    border: 1px solid var(--borda, #dbe3ec);
+    border-radius: 9px;
+    overscroll-behavior-inline: contain;
+}
+.import-panel--csv .import-sample-table table {
+    width: 100%;
+    min-width: 580px;
+    border-collapse: collapse;
+    background: var(--superficie-card, #fff);
+}
+.import-panel--csv .import-sample-table th,
+.import-panel--csv .import-sample-table td {
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--borda, #dbe3ec);
+    text-align: left;
+    vertical-align: top;
+    font-size: .82rem;
+    line-height: 1.45;
+    overflow-wrap: anywhere;
+}
+.import-panel--csv .import-sample-table th {
+    background: var(--surface-muted, #f1f5f9);
+    font-weight: 750;
+}
+.import-panel--csv .import-sample-table tr:last-child td { border-bottom: 0; }
+.import-panel--csv .import-error-list { padding: 14px 16px; }
+.import-panel--csv .import-error-list h4 { margin-top: 0; }
+.import-panel--csv .import-result { display: grid; gap: 8px; }
+.dark-mode .import-panel--csv .import-preview,
+[data-theme="dark"] .import-panel--csv .import-preview,
+.dark-mode .import-panel--csv .import-sample-table table,
+[data-theme="dark"] .import-panel--csv .import-sample-table table {
+    background: var(--superficie-card, #182433);
+    color: var(--texto-principal, #e2e8f0);
+}
+.dark-mode .import-panel--csv .import-sample-table th,
+[data-theme="dark"] .import-panel--csv .import-sample-table th {
+    background: #263445;
+}
+.dark-mode .import-panel--csv .import-sample-table th,
+.dark-mode .import-panel--csv .import-sample-table td,
+[data-theme="dark"] .import-panel--csv .import-sample-table th,
+[data-theme="dark"] .import-panel--csv .import-sample-table td {
+    border-color: var(--borda, #334155);
+}
+@media (max-width: 640px) {
+    .import-panel--csv .import-preview { padding: 11px; }
+    .import-panel--csv .import-sample-table th,
+    .import-panel--csv .import-sample-table td { padding: 8px; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .import-panel--csv * { scroll-behavior: auto; }
+}
+
+.import-panel--csv .import-form-grid {
+    gap: 18px;
+    align-items: start;
+}
+.import-panel--csv .import-form-grid label {
+    display: grid;
+    align-content: start;
+    gap: 7px;
+    min-width: 0;
+    color: var(--texto, #17212d);
+    font-size: .86rem;
+    font-weight: 700;
+}
+.import-panel--csv .import-form-grid input,
+.import-panel--csv .import-form-grid select {
+    box-sizing: border-box;
+    width: 100%;
+    min-width: 0;
+    min-height: 42px;
+    padding: 9px 11px;
+    border: 1px solid var(--borda, #cbd5e1);
+    border-radius: 9px;
+    background: var(--superficie-input, #fff);
+    color: var(--texto, #17212d);
+    font: inherit;
+    font-weight: 400;
+}
+.import-panel--csv .import-form-grid input:focus-visible,
+.import-panel--csv .import-form-grid select:focus-visible,
+.import-panel--csv .import-actions button:focus-visible,
+.import-panel--csv .import-preview button:focus-visible {
+    outline: 3px solid var(--cor-foco, #1769aa);
+    outline-offset: 2px;
+}
+.import-panel--csv .import-file-input { padding: 7px !important; }
+.import-panel--csv .import-form-grid small {
+    color: var(--texto-secundario, #64748b);
+    font-size: .78rem;
+    font-weight: 400;
+    line-height: 1.45;
+}
+.import-panel--csv .import-column-help {
+    display: grid;
+    gap: 7px;
+    overflow-wrap: anywhere;
+}
+.import-panel--csv .import-column-help code {
+    display: block;
+    padding: 10px 12px;
+    border: 1px solid var(--borda, #dbe3ec);
+    border-radius: 8px;
+    background: var(--surface-muted, #f1f5f9);
+    white-space: normal;
+    overflow-wrap: anywhere;
+}
+.import-panel--csv .import-actions { display: flex; flex-wrap: wrap; gap: 9px; }
+.import-panel--csv .import-actions button,
+.import-panel--csv .import-preview > button { min-height: 40px; }
+.import-panel--csv .import-error-list {
+    border: 1px solid #f0b5b5;
+    border-radius: 10px;
+    background: #fff7f7;
+    color: var(--texto, #17212d);
+    line-height: 1.5;
+}
+.import-panel--csv .import-error-list li,
+.import-panel--csv .import-result li { margin-block: 5px; overflow-wrap: anywhere; }
+.import-panel--csv .import-result {
+    padding: 15px;
+    border: 1px solid var(--borda, #dbe3ec);
+    border-radius: 10px;
+    background: var(--superficie-card, #fff);
+}
+.import-panel--csv .import-result h3 { margin: 0; }
+.import-panel--csv .import-result p { margin: 0; line-height: 1.5; }
+.import-panel--csv .import-selected-file {
+    display: flex;
+    gap: 12px;
+    border-radius: 10px;
+    padding: 12px;
+}
+.import-panel--csv .import-selected-file strong { overflow-wrap: anywhere; }
+.dark-mode .import-panel--csv .import-form-grid label,
+[data-theme="dark"] .import-panel--csv .import-form-grid label { color: var(--texto, #e5edf5); }
+.dark-mode .import-panel--csv .import-form-grid input,
+.dark-mode .import-panel--csv .import-form-grid select,
+[data-theme="dark"] .import-panel--csv .import-form-grid input,
+[data-theme="dark"] .import-panel--csv .import-form-grid select {
+    background: var(--superficie-input, #14202d);
+    color: var(--texto, #e5edf5);
+    border-color: var(--borda, #475569);
+}
+.dark-mode .import-panel--csv .import-column-help code,
+[data-theme="dark"] .import-panel--csv .import-column-help code {
+    background: #263445;
+    color: var(--texto, #e5edf5);
+}
+.dark-mode .import-panel--csv .import-selected-file,
+[data-theme="dark"] .import-panel--csv .import-selected-file {
+    background: #132b3d;
+    border-color: #27658a;
+    color: #e5edf5;
+}
+.dark-mode .import-panel--csv .import-error-list,
+[data-theme="dark"] .import-panel--csv .import-error-list {
+    background: #351d24;
+    border-color: #7f1d1d;
+    color: #fee2e2;
+}
+@media (max-width: 640px) {
+    .import-panel--csv .import-actions { flex-direction: column; }
+    .import-panel--csv .import-actions button { width: 100%; }
+}

@@ -756,6 +756,7 @@ PR:
 
 ### Antes do merge para a `main`
 
+## Segurança e uso do banco Supabase compartilhado
 - [ ] O PR final tem como destino a `main`.
 - [ ] A revisão foi feita por outro integrante.
 - [ ] Os testes necessários passaram.

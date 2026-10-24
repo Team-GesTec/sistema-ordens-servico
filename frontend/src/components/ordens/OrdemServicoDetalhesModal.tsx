@@ -1,26 +1,29 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import Autocomplete, { type AutocompleteOption } from "../common/Autocomplete";
+import OrdemServicoHistorico from "./OrdemServicoHistorico";
 import type {
     Cliente,
     Departamento,
     OrdemServico,
     Funcionario,
+    Projeto,
     StatusOrdemServico,
 } from "../../types/api";
 import {
     CRITICIDADE_LABELS,
     STATUS_LABELS,
     TIPO_LABELS,
+    formatarDataOrdem,
+    ordemEstaAtrasada,
 } from "../../utils/ordemServicoUtils";
-
-type OrdemComSla = OrdemServico & { data_limite_sla?: string | null };
 
 interface OrdemServicoDetalhesModalProps {
     aberto: boolean;
     ordem: OrdemServico | null;
     clientes: Cliente[];
     departamentos: Departamento[];
+    projetos?: Projeto[];
     funcionarios: Funcionario[];
     funcionariosElegiveis: Funcionario[];
     atribuindoResponsavel: boolean;
@@ -35,28 +38,28 @@ interface OrdemServicoDetalhesModalProps {
     onAtribuirResponsavel: (funcionarioId: number) => void;
     onFechar: () => void;
     onEditar: (ordem: OrdemServico) => void;
-    onAlterarStatus: (status: StatusOrdemServico) => void;
+    podeDuplicar?: boolean;
+    onDuplicar?: (ordem: OrdemServico) => void;
+    podeSalvarParecerTecnico?: boolean;
+    salvandoParecerTecnicoId?: number | null;
+    onSalvarParecerTecnico?: (parecerTecnico: string) => void;
+    onBaixarPDF?: (ordemId: number) => void;
+    baixandoRelatorioId?: number | null;
+    onAlterarStatus: (
+        status: StatusOrdemServico,
+        parecerTecnico?: string,
+    ) => void;
     // Recebe a data (AAAA-MM-DD) e o motivo da alteração
     onAlterarPrazo?: (dataLimite: string, justificativa: string) => void;
+    statusSugerido?: StatusOrdemServico | null;
 }
 
 const STATUS_EDITAVEIS: StatusOrdemServico[] = [
     "em_andamento",
     "aguardando",
     "validacao_testes",
+    "concluido",
 ];
-
-function formatarData(data: string | null | undefined): string {
-    if (!data) return "Não definida";
-
-    const dataConvertida = new Date(data);
-
-    if (Number.isNaN(dataConvertida.getTime())) {
-        return "Não definida";
-    }
-
-    return dataConvertida.toLocaleString("pt-BR");
-}
 
 // Converte o valor do backend para o formato aceito pelo <input type="date">.
 function paraInputData(data: string | null | undefined): string {
@@ -77,6 +80,7 @@ function OrdemServicoDetalhesModal({
     alterandoPrazo = false,
     clientes,
     departamentos,
+    projetos = [],
     funcionarios,
     funcionariosElegiveis,
     atribuindoResponsavel,
@@ -84,35 +88,58 @@ function OrdemServicoDetalhesModal({
     onAtribuirResponsavel,
     onFechar,
     onEditar,
+    podeDuplicar = false,
+    onDuplicar,
+    podeSalvarParecerTecnico = false,
+    salvandoParecerTecnicoId = null,
+    onSalvarParecerTecnico,
+    onBaixarPDF,
+    baixandoRelatorioId = null,
     onAlterarStatus,
     onAlterarPrazo,
+    statusSugerido = null,
 }: OrdemServicoDetalhesModalProps) {
     const [parecerTemporario, setParecerTemporario] = useState("");
-    const [responsavelNovoId, setResponsavelNovoId] = useState<number | null>(null);
+    const [responsavelNovoId, setResponsavelNovoId] = useState<number | null>(
+        null,
+    );
     const [statusSelecionado, setStatusSelecionado] =
         useState<StatusOrdemServico>("em_andamento");
     const [prazoSelecionado, setPrazoSelecionado] = useState("");
     const [justificativaAberta, setJustificativaAberta] = useState(false);
     const [justificativaPrazo, setJustificativaPrazo] = useState("");
 
-    const prazoAtual = paraInputData((ordem as OrdemComSla | null)?.data_limite_sla);
+    const prazoAtual = paraInputData(ordem?.data_limite_sla);
 
-    // Descarta o rascunho ao fechar o modal ou trocar de OS.
     useEffect(() => {
-        setParecerTemporario("");
+        setParecerTemporario(ordem?.parecer_tecnico ?? "");
+    }, [aberto, ordem?.id, ordem?.parecer_tecnico]);
+
+    useEffect(() => {
+        const sugestaoValida =
+            statusSugerido && STATUS_EDITAVEIS.includes(statusSugerido)
+                ? statusSugerido
+                : null;
+
+        setStatusSelecionado(
+            sugestaoValida ?? ordem?.status ?? "em_andamento",
+        );
+    }, [aberto, ordem?.id, ordem?.status, statusSugerido]);
+
+    useEffect(() => {
+        setResponsavelNovoId(null);
+    }, [aberto, ordem?.id, ordem?.responsavel_id]);
+
+    // Descarta o rascunho do motivo ao fechar o modal ou trocar de OS.
+    useEffect(() => {
         setJustificativaAberta(false);
         setJustificativaPrazo("");
     }, [aberto, ordem?.id]);
 
-    // Sincroniza o seletor com o status atual da ordem.
-    useEffect(() => {
-        setStatusSelecionado(ordem?.status ?? "em_andamento");
-    }, [aberto, ordem?.id, ordem?.status]);
-
     // Sincroniza o seletor de data com o prazo atual da ordem.
     useEffect(() => {
         setPrazoSelecionado(prazoAtual);
-    }, [aberto, ordem?.id, ordem?.responsavel_id]);
+    }, [aberto, ordem?.id, prazoAtual]);
 
     // Permite fechar o modal com a tecla Escape.
     useEffect(() => {
@@ -157,6 +184,7 @@ function OrdemServicoDetalhesModal({
     const podeEditarOrdem =
         podeEditar &&
         ordem !== null &&
+        ordem.ativo &&
         ordem.status !== "bloqueado" &&
         ordem.status !== "concluido";
 
@@ -167,14 +195,24 @@ function OrdemServicoDetalhesModal({
     const departamento = ordem
         ? departamentos.find((item) => item.id === ordem.departamento_id)
         : undefined;
-    const responsavelAtual = ordem?.responsavel_id
-        ? funcionarios.find((item) => item.id === ordem.responsavel_id)
+    const projeto = ordem?.projeto_id
+        ? projetos.find((item) => item.id === ordem.projeto_id)
         : undefined;
-    const responsavelOptions: AutocompleteOption[] = funcionariosElegiveis.map((funcionario) => ({
-        value: funcionario.id,
-        label: funcionario.nome || `Funcionário #${funcionario.id}`,
-        description: `${funcionario.usuario} · ${funcionario.ativo ? "Ativo" : "Inativo"}`,
-    }));
+
+    const responsavelAtual = ordem?.responsavel_id
+        ? funcionarios.find(
+              (item) => item.id === ordem.responsavel_id,
+          )
+        : undefined;
+
+    const responsavelOptions: AutocompleteOption[] =
+        funcionariosElegiveis.map((funcionario) => ({
+            value: funcionario.id,
+            label: funcionario.nome || `Funcionário #${funcionario.id}`,
+            description: `${funcionario.usuario} · ${
+                funcionario.ativo ? "Ativo" : "Inativo"
+            }`,
+        }));
 
     return (
         <div
@@ -198,7 +236,8 @@ function OrdemServicoDetalhesModal({
                         </span>
 
                         <h2 id="ordem-detalhes-titulo">
-                            {ordem?.titulo ?? "Detalhes da ordem de serviço"}
+                            {ordem?.titulo ??
+                                "Detalhes da ordem de serviço"}
                         </h2>
                     </div>
 
@@ -287,121 +326,261 @@ function OrdemServicoDetalhesModal({
                                     <span>Criticidade</span>
                                     <strong>
                                         {ordem.criticidade
-                                            ? CRITICIDADE_LABELS[ordem.criticidade]
+                                            ? CRITICIDADE_LABELS[
+                                                  ordem.criticidade
+                                              ]
                                             : "Não definida"}
                                     </strong>
                                 </div>
 
                                 <div className="ordem-detalhe">
-                                    <span>Data de criação</span>
+                                    <span>Data de abertura</span>
                                     <strong>
-                                        {formatarData(ordem.data_criacao)}
+                                        {formatarDataOrdem(
+                                            ordem.data_criacao,
+                                            true,
+                                        )}
                                     </strong>
                                 </div>
 
                                 <div className="ordem-detalhe">
                                     <span>Projeto</span>
                                     <strong>
-                                        {ordem.projeto_id
-                                            ? `Projeto #${ordem.projeto_id}`
-                                            : "Sem projeto associado"}
+                                        {projeto
+                                            ? projeto.nome
+                                            : ordem.projeto_id
+                                              ? `Projeto #${ordem.projeto_id}`
+                                              : "Sem projeto associado"}
+                                    </strong>
+                                </div>
+
+                                <div
+                                    className={`ordem-detalhe${
+                                        ordemEstaAtrasada(ordem)
+                                            ? " ordem-detalhe--atrasado"
+                                            : ""
+                                    }`}
+                                >
+                                    <span>Prazo do SLA</span>
+                                    <strong>
+                                        {formatarDataOrdem(
+                                            ordem.data_limite_sla,
+                                            true,
+                                        )}
+                                        {ordemEstaAtrasada(ordem) && (
+                                            <span
+                                                className="ordem-prazo-vencido"
+                                                role="status"
+                                            >
+                                                Prazo vencido
+                                            </span>
+                                        )}
                                     </strong>
                                 </div>
 
                                 <div className="ordem-detalhe">
-                                    <span>Prazo do SLA</span>
+                                    <span>Data de conclusão</span>
                                     <strong>
-                                        {"data_limite_sla" in ordem
-                                            ? formatarData(
-                                                  (ordem as OrdemComSla)
-                                                      .data_limite_sla,
-                                              )
-                                            : "Não informado"}
+                                        {formatarDataOrdem(
+                                            ordem.data_fim,
+                                            true,
+                                        )}
+                                    </strong>
+                                </div>
+
+                                <div className="ordem-detalhe">
+                                    <span>Última alteração registrada</span>
+                                    <strong>
+                                        {formatarDataOrdem(
+                                            ordem.data_ultima_atualizacao,
+                                            true,
+                                        )}
                                     </strong>
                                 </div>
                             </div>
 
                             <section className="ordem-detalhes-descricao ordem-responsavel-edicao">
                                 <h3>Responsável</h3>
+
                                 <p className="ordem-responsavel-atual">
                                     {responsavelAtual
                                         ? `${responsavelAtual.nome} (${responsavelAtual.usuario})`
                                         : ordem.responsavel_id !== null
-                                            ? `Funcionário #${ordem.responsavel_id}`
-                                            : "Sem responsável atribuído"}
-                                    {responsavelAtual && !responsavelAtual.ativo && <span className="ordem-responsavel-inativo"> · Inativo — vínculo histórico preservado</span>}
+                                          ? `Funcionário #${ordem.responsavel_id}`
+                                          : "Sem responsável atribuído"}
+
+                                    {responsavelAtual &&
+                                        !responsavelAtual.ativo && (
+                                            <span className="ordem-responsavel-inativo">
+                                                {" "}
+                                                · Inativo — vínculo histórico
+                                                preservado
+                                            </span>
+                                        )}
                                 </p>
-                                {podeReatribuirResponsavel && ordem.ativo && ordem.status !== "concluido" && (
-                                    <div className="ordem-reatribuicao-controles">
-                                        <div className="ordem-reatribuicao-campo">
-                                            <label htmlFor="ordem-responsavel-novo">Atribuir ou reatribuir para funcionário ativo</label>
-                                            <Autocomplete
-                                                id="ordem-responsavel-novo"
-                                                options={responsavelOptions}
-                                                value={responsavelNovoId}
-                                                onChange={(value) => setResponsavelNovoId(value === null ? null : Number(value))}
-                                                placeholder="Pesquisar funcionário ativo"
-                                                clearable
-                                                disabled={atribuindoResponsavel}
-                                                emptyMessage="Nenhum funcionário ativo encontrado."
-                                            />
+
+                                {podeReatribuirResponsavel &&
+                                    ordem.ativo &&
+                                    ordem.status !== "concluido" && (
+                                        <div className="ordem-reatribuicao-controles">
+                                            <div className="ordem-reatribuicao-campo">
+                                                <label htmlFor="ordem-responsavel-novo">
+                                                    {podeEditar
+                                                        ? "Atribuir ou reatribuir para funcionário ativo"
+                                                        : "Assumir O.S. não atribuída do seu departamento"}
+                                                </label>
+
+                                                <Autocomplete
+                                                    id="ordem-responsavel-novo"
+                                                    options={responsavelOptions}
+                                                    value={responsavelNovoId}
+                                                    onChange={(value) =>
+                                                        setResponsavelNovoId(
+                                                            value === null
+                                                                ? null
+                                                                : Number(value),
+                                                        )
+                                                    }
+                                                    placeholder={
+                                                        podeEditar
+                                                            ? "Pesquisar funcionário ativo"
+                                                            : "Selecionar seu usuário"
+                                                    }
+                                                    clearable
+                                                    disabled={
+                                                        atribuindoResponsavel
+                                                    }
+                                                    emptyMessage="Nenhum funcionário ativo encontrado."
+                                                />
+                                            </div>
+
+                                            <button
+                                                type="button"
+                                                className="ordens-btn-primary ordem-responsavel-atualizar"
+                                                onClick={() => {
+                                                    if (
+                                                        responsavelNovoId !==
+                                                        null
+                                                    ) {
+                                                        onAtribuirResponsavel(
+                                                            responsavelNovoId,
+                                                        );
+                                                    }
+                                                }}
+                                                disabled={
+                                                    atribuindoResponsavel ||
+                                                    responsavelNovoId ===
+                                                        null ||
+                                                    responsavelNovoId ===
+                                                        ordem.responsavel_id
+                                                }
+                                                aria-busy={
+                                                    atribuindoResponsavel
+                                                }
+                                            >
+                                                {atribuindoResponsavel
+                                                    ? "Salvando..."
+                                                    : !podeEditar
+                                                      ? "Assumir O.S."
+                                                      : ordem.responsavel_id ===
+                                                          null
+                                                        ? "Atribuir responsável"
+                                                        : "Reatribuir responsável"}
+                                            </button>
                                         </div>
-                                        <button
-                                            type="button"
-                                            className="ordens-btn-primary ordem-responsavel-atualizar"
-                                            onClick={() => { if (responsavelNovoId !== null) onAtribuirResponsavel(responsavelNovoId); }}
-                                            disabled={atribuindoResponsavel || responsavelNovoId === null || responsavelNovoId === ordem.responsavel_id}
-                                            aria-busy={atribuindoResponsavel}
-                                        >
-                                            {atribuindoResponsavel ? "Salvando..." : ordem.responsavel_id === null ? "Atribuir responsável" : "Reatribuir responsável"}
-                                        </button>
-                                    </div>
-                                )}
+                                    )}
                             </section>
 
-                            {podeAlterarStatus && (
-                                <section className="ordem-detalhes-descricao ordem-status-edicao">
-                                    <h3>Alterar status</h3>
+                            {ordem.ativo &&
+                                ordem.status !== "bloqueado" &&
+                                ordem.status !== "concluido" &&
+                                (podeAlterarStatus ? (
+                                    <section className="ordem-detalhes-descricao ordem-status-edicao">
+                                        <h3>Alterar status</h3>
 
-                                    <div className="ordem-status-controls">
-                                        <div className="ordem-status-field">
-                                            <label htmlFor="ordem-status-select">Novo status</label>
-                                            <select
-                                                id="ordem-status-select"
-                                                className="ordem-status-select"
-                                                value={statusSelecionado}
-                                                onChange={(event) =>
-                                                    setStatusSelecionado(
-                                                        event.target.value as StatusOrdemServico,
+                                        <div className="ordem-status-controls">
+                                            <div className="ordem-status-field">
+                                                <label htmlFor="ordem-status-select">
+                                                    Novo status
+                                                </label>
+
+                                                <select
+                                                    id="ordem-status-select"
+                                                    className="ordem-status-select"
+                                                    value={statusSelecionado}
+                                                    onChange={(event) =>
+                                                        setStatusSelecionado(
+                                                            event.target
+                                                                .value as StatusOrdemServico,
+                                                        )
+                                                    }
+                                                    disabled={
+                                                        alterandoStatusId !==
+                                                        null
+                                                    }
+                                                >
+                                                    {STATUS_EDITAVEIS.map(
+                                                        (status) => (
+                                                            <option
+                                                                key={status}
+                                                                value={status}
+                                                            >
+                                                                {
+                                                                    STATUS_LABELS[
+                                                                        status
+                                                                    ]
+                                                                }
+                                                            </option>
+                                                        ),
+                                                    )}
+                                                </select>
+                                            </div>
+
+                                            <button
+                                                type="button"
+                                                className="ordens-btn-primary ordem-status-atualizar"
+                                                onClick={() =>
+                                                    onAlterarStatus(
+                                                        statusSelecionado,
+                                                        statusSelecionado ===
+                                                            "concluido"
+                                                            ? parecerTemporario.trim()
+                                                            : undefined,
                                                     )
                                                 }
-                                                disabled={alterandoStatusId !== null}
+                                                disabled={
+                                                    alterandoStatusId !==
+                                                        null ||
+                                                    statusSelecionado ===
+                                                        ordem.status ||
+                                                    (statusSelecionado ===
+                                                        "concluido" &&
+                                                        !parecerTemporario.trim())
+                                                }
+                                                aria-busy={
+                                                    alterandoStatusId ===
+                                                    ordem.id
+                                                }
                                             >
-                                                {STATUS_EDITAVEIS.map((status) => (
-                                                    <option key={status} value={status}>
-                                                        {STATUS_LABELS[status]}
-                                                    </option>
-                                                ))}
-                                            </select>
+                                                {alterandoStatusId ===
+                                                ordem.id
+                                                    ? "Atualizando..."
+                                                    : "Atualizar status"}
+                                            </button>
                                         </div>
-
-                                        <button
-                                            type="button"
-                                            className="ordens-btn-primary ordem-status-atualizar"
-                                            onClick={() => onAlterarStatus(statusSelecionado)}
-                                            disabled={
-                                                alterandoStatusId !== null ||
-                                                statusSelecionado === ordem.status
-                                            }
-                                            aria-busy={alterandoStatusId === ordem.id}
-                                        >
-                                            {alterandoStatusId === ordem.id
-                                                ? "Atualizando..."
-                                                : "Atualizar status"}
-                                        </button>
-                                    </div>
-                                </section>
-                            )}
+                                    </section>
+                                ) : (
+                                    <section
+                                        className="ordem-detalhes-descricao ordem-status-edicao"
+                                        role="note"
+                                    >
+                                        <h3>Alteração de status</h3>
+                                        <p>
+                                            Apenas o Gestor ou o responsável
+                                            pela O.S. pode alterar seu status.
+                                        </p>
+                                    </section>
+                                ))}
 
                             {podeAlterarPrazo && (
                                 <section className="ordem-detalhes-descricao ordem-status-edicao">
@@ -443,19 +622,45 @@ function OrdemServicoDetalhesModal({
                                 </p>
                             </section>
 
-                            <section className="ordem-detalhes-descricao">
-                                <h3>Parecer técnico registrado</h3>
-                                <p>
-                                    {ordem.parecer_tecnico ||
-                                        "Nenhum parecer registrado."}
-                                </p>
+                            {/* Histórico de pareceres técnicos registrados */}
+                            <section className="ordem-detalhes-descricao ordem-parecer-historico">
+                                <h3>Histórico de pareceres técnicos</h3>
+
+                                {ordem.parecer_tecnico?.trim() ? (
+                                    <article className="ordem-parecer-item">
+                                        <p className="ordem-parecer-item-texto">
+                                            {ordem.parecer_tecnico}
+                                        </p>
+                                        <span className="ordem-form-note">
+                                            Parecer técnico atualmente
+                                            registrado nesta O.S.
+                                        </span>
+                                    </article>
+                                ) : (
+                                    <p>
+                                        Nenhum parecer técnico registrado para
+                                        esta ordem de serviço.
+                                    </p>
+                                )}
                             </section>
 
+                            <OrdemServicoHistorico osId={ordem.id} />
+
                             <section className="ordem-detalhes-descricao ordem-parecer-rascunho">
-                                <h3>Parecer técnico — rascunho temporário</h3>
+                                <h3>
+                                    {statusSelecionado === "concluido"
+                                        ? "Parecer técnico obrigatório para conclusão"
+                                          : ordem.parecer_tecnico
+                                            ? "Texto de parecer para eventual conclusão"
+                                            : "Parecer técnico — rascunho temporário"}
+                                </h3>
 
                                 <label htmlFor="parecer-tecnico-temporario">
-                                    Seu rascunho
+                                    {statusSelecionado === "concluido"
+                                        ? "Parecer que será registrado"
+                                          : ordem.parecer_tecnico
+                                            ? "Texto local (não altera o parecer registrado)"
+                                            : "Seu rascunho"}
                                 </label>
 
                                 <textarea
@@ -464,10 +669,83 @@ function OrdemServicoDetalhesModal({
                                     rows={6}
                                     value={parecerTemporario}
                                     onChange={(event) =>
-                                        setParecerTemporario(event.target.value)
+                                        setParecerTemporario(
+                                            event.target.value,
+                                        )
                                     }
-                                    placeholder="Escreva aqui seu rascunho..."
+                                    placeholder={
+                                        statusSelecionado === "concluido"
+                                            ? "Informe o parecer técnico para concluir a O.S."
+                                            : "Escreva aqui seu rascunho..."
+                                    }
+                                    maxLength={1000}
+                                    aria-required={
+                                        statusSelecionado === "concluido"
+                                    }
+                                    aria-invalid={
+                                        statusSelecionado === "concluido" &&
+                                        !parecerTemporario.trim()
+                                    }
+                                    disabled={alterandoStatusId !== null}
                                 />
+
+                                {podeSalvarParecerTecnico && onSalvarParecerTecnico && (
+                                    <div className="ordem-parecer-acoes">
+                                        <span className="ordem-form-note">
+                                            Salvar o parecer não altera o status, prazo nem responsável da O.S.
+                                        </span>
+                                        <button
+                                            type="button"
+                                            className="ordens-btn-primary"
+                                            onClick={() => onSalvarParecerTecnico(parecerTemporario)}
+                                            disabled={
+                                                salvandoParecerTecnicoId !== null ||
+                                                alterandoStatusId !== null ||
+                                                parecerTemporario.length > 1000
+                                            }
+                                            aria-busy={salvandoParecerTecnicoId === ordem.id}
+                                        >
+                                            {salvandoParecerTecnicoId === ordem.id
+                                                ? "Salvando parecer..."
+                                                : "Salvar parecer técnico"}
+                                        </button>
+                                    </div>
+                                )}
+                                <p className="ordem-form-note" aria-live="polite">
+                                    {parecerTemporario.length}/1.000 caracteres.
+                                </p>
+
+                                {statusSelecionado === "concluido" ? (
+                                    <>
+                                        <p
+                                            className="ordem-form-note"
+                                            role="status"
+                                        >
+                                            O parecer será enviado à API e
+                                            persistido na mesma transação da
+                                            conclusão. Se a operação falhar,
+                                            ele não será registrado.
+                                        </p>
+
+                                        {!parecerTemporario.trim() && (
+                                            <p
+                                                className="ordens-feedback ordens-feedback--aviso"
+                                                role="status"
+                                            >
+                                                Preencha o parecer técnico para
+                                                habilitar a conclusão.
+                                            </p>
+                                        )}
+                                    </>
+                                ) : (
+                                    <p className="ordem-form-note">
+                                        Texto digitado aqui permanece local. Ele
+                                        só é registrado se você selecionar
+                                        Concluído e confirmar a transição; o
+                                        parecer registrado acima não muda antes
+                                        disso.
+                                    </p>
+                                )}
                             </section>
                         </>
                     )}
@@ -481,6 +759,30 @@ function OrdemServicoDetalhesModal({
                     >
                         Fechar
                     </button>
+
+                    {ordem && podeDuplicar && onDuplicar && (
+                        <button
+                            type="button"
+                            className="ordens-btn-secondary"
+                            onClick={() => onDuplicar(ordem)}
+                        >
+                            Duplicar como nova O.S.
+                        </button>
+                    )}
+
+                    {ordem && onBaixarPDF && (
+                        <button
+                            type="button"
+                            className="ordens-btn-secondary"
+                            onClick={() => onBaixarPDF(ordem.id)}
+                            disabled={baixandoRelatorioId !== null}
+                            aria-busy={baixandoRelatorioId === ordem.id}
+                        >
+                            {baixandoRelatorioId === ordem.id
+                                ? "Gerando PDF..."
+                                : "Baixar PDF"}
+                        </button>
+                    )}
 
                     {podeEditarOrdem && ordem && (
                         <button
