@@ -57,4 +57,5 @@ export type DadosAtualizacaoOrdemServico =
 export interface DadosAlteracaoStatus {
     status: StatusOrdemServico;
     parecer_tecnico?: string | null;
+    data_fim?: Date;
 }

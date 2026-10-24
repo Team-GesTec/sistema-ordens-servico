@@ -411,7 +411,12 @@ export class ServiceOrdemServico {
 
         // 6. Grava o status e a auditoria na mesma transação
         const dadosStatus: DadosAlteracaoStatus = { status: novoStatus };
-        if (parecer !== undefined) dadosStatus.parecer_tecnico = parecer;
+        if (novoStatus === 'concluido') {
+            dadosStatus.parecer_tecnico = parecer ?? null;
+            dadosStatus.data_fim = new Date();
+        } else if (parecer !== undefined) {
+            dadosStatus.parecer_tecnico = parecer;
+        }
 
         const atualizada = await prisma.$transaction(async (conexao) => {
             // Releitura sob lock evita aceitar uma transição usando status em cache

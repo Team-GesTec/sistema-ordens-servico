@@ -315,6 +315,7 @@ function Ordens() {
                 onFechar={ordens.fecharDetalhes}
                 onEditar={ordens.iniciarEdicao}
                 podeAlterarStatus={ordens.podeAlterarStatus}
+                podeConcluir={ordens.podeConcluir}
                 alterandoStatusId={ordens.alterandoStatusId}
                 onAlterarStatus={ordens.alterarStatusOrdem}
                 statusSugerido={ordens.statusSolicitadoDetalhes}

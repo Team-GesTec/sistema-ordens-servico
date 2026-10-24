@@ -541,6 +541,10 @@ export function useOrdens() {
             setErro("O bloqueio deve utilizar a operação específica de bloqueio.");
             return;
         }
+        if (novoStatus === "concluido" && !ehResponsavel) {
+            setErro("Apenas o responsável designado pode concluir esta O.S.");
+            return;
+        }
         const parecerFinal = parecerTecnico?.trim();
         if (novoStatus === "concluido" && !parecerFinal) {
             setErro("Informe o parecer técnico para concluir a O.S.");
@@ -589,6 +593,7 @@ export function useOrdens() {
             (!podeGerenciar && ordem.responsavel_id !== usuarioAtualId) ||
             ordem.status === "bloqueado" ||
             ordem.status === "concluido" ||
+            (destino === "concluido" && ordem.responsavel_id !== usuarioAtualId) ||
             destino === ordem.status
         ) return false;
         if (destino === "bloqueado") return true;
@@ -867,6 +872,14 @@ export function useOrdens() {
             ordemSelecionada.ativo &&
             usuarioAtualId !== null &&
             (podeGerenciar || ordemSelecionada.responsavel_id === usuarioAtualId) &&
+            ordemSelecionada.status !== "bloqueado" &&
+            ordemSelecionada.status !== "concluido",
+        ),
+        podeConcluir: Boolean(
+            ordemSelecionada &&
+            ordemSelecionada.ativo &&
+            usuarioAtualId !== null &&
+            ordemSelecionada.responsavel_id === usuarioAtualId &&
             ordemSelecionada.status !== "bloqueado" &&
             ordemSelecionada.status !== "concluido",
         ),

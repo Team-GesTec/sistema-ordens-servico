@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ChangeEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type ChangeEvent } from "react";
 import { Link } from "react-router-dom";
 import Autocomplete, { type AutocompleteOption } from "../common/Autocomplete";
 import OrdemServicoHistorico from "./OrdemServicoHistorico";
@@ -67,6 +67,7 @@ interface OrdemServicoDetalhesModalProps {
     erro: string | null;
     podeEditar: boolean;
     podeAlterarStatus: boolean;
+    podeConcluir: boolean;
     podeAlterarPrazo?: boolean;
     alterandoStatusId: number | null;
     alterandoPrazo?: boolean;
@@ -74,7 +75,7 @@ interface OrdemServicoDetalhesModalProps {
     onAtribuirResponsavel: (funcionarioId: number) => void;
     onFechar: () => void;
     onEditar: (ordem: OrdemServico) => void;
-    onAlterarStatus: (status: StatusOrdemServico) => void;
+    onAlterarStatus: (status: StatusOrdemServico, parecerTecnico?: string) => void;
     // Recebe a data (AAAA-MM-DD) e o motivo da alteração
     onAlterarPrazo?: (dataLimite: string, justificativa: string) => void;
     statusSugerido?: StatusOrdemServico | null;
@@ -126,6 +127,7 @@ function OrdemServicoDetalhesModal({
     erro,
     podeEditar,
     podeAlterarStatus,
+    podeConcluir,
     podeAlterarPrazo = false,
     alterandoStatusId,
     alterandoPrazo = false,
@@ -166,6 +168,10 @@ function OrdemServicoDetalhesModal({
     const [enviandoAnexo, setEnviandoAnexo] = useState(false);
 
     const prazoAtual = paraInputData((ordem as OrdemComSla | null)?.data_limite_sla);
+    const statusEditaveis = useMemo<StatusOrdemServico[]>(
+        () => podeConcluir ? [...STATUS_EDITAVEIS, "concluido"] : STATUS_EDITAVEIS,
+        [podeConcluir],
+    );
 
     // Descarta o rascunho ao fechar o modal ou trocar de OS.
     useEffect(() => {
@@ -185,11 +191,13 @@ function OrdemServicoDetalhesModal({
     // Sincroniza o seletor com o status atual da ordem.
     useEffect(() => {
         const statusInicial =
-            statusSugerido && STATUS_EDITAVEIS.includes(statusSugerido)
+            statusSugerido &&
+            (STATUS_EDITAVEIS.includes(statusSugerido) ||
+                (statusSugerido === "concluido" && podeConcluir))
                 ? statusSugerido
                 : ordem?.status ?? "em_andamento";
         setStatusSelecionado(statusInicial);
-    }, [aberto, ordem?.id, ordem?.status, statusSugerido]);
+    }, [aberto, ordem?.id, ordem?.status, statusSugerido, podeConcluir]);
 
     // Sincroniza o seletor de data com o prazo atual da ordem.
     useEffect(() => {
@@ -599,7 +607,7 @@ function OrdemServicoDetalhesModal({
                                                 }
                                                 disabled={alterandoStatusId !== null}
                                             >
-                                                {STATUS_EDITAVEIS.map((status) => (
+                                                {statusEditaveis.map((status) => (
                                                     <option key={status} value={status}>
                                                         {STATUS_LABELS[status]}
                                                     </option>
@@ -610,7 +618,10 @@ function OrdemServicoDetalhesModal({
                                         <button
                                             type="button"
                                             className="ordens-btn-primary ordem-status-atualizar"
-                                            onClick={() => onAlterarStatus(statusSelecionado)}
+                                            onClick={() => onAlterarStatus(
+                                                statusSelecionado,
+                                                statusSelecionado === "concluido" ? parecerTemporario : undefined,
+                                            )}
                                             disabled={
                                                 alterandoStatusId !== null ||
                                                 statusSelecionado === ordem.status
@@ -619,7 +630,9 @@ function OrdemServicoDetalhesModal({
                                         >
                                             {alterandoStatusId === ordem.id
                                                 ? "Atualizando..."
-                                                : "Atualizar status"}
+                                                : statusSelecionado === "concluido"
+                                                  ? "Concluir O.S."
+                                                  : "Atualizar status"}
                                         </button>
                                     </div>
                                 </section>
@@ -676,10 +689,18 @@ function OrdemServicoDetalhesModal({
                             <OrdemServicoHistorico osId={ordem.id} />
 
                             <section className="ordem-detalhes-descricao ordem-parecer-rascunho">
-                                <h3>Parecer técnico — rascunho temporário</h3>
+                                <h3>
+                                    {podeConcluir
+                                        ? "Parecer técnico"
+                                        : "Parecer técnico — rascunho temporário"}
+                                </h3>
+
+                                {podeConcluir && (
+                                    <p>O parecer será registrado ao concluir a O.S. e é obrigatório para essa ação.</p>
+                                )}
 
                                 <label htmlFor="parecer-tecnico-temporario">
-                                    Seu rascunho
+                                    {podeConcluir ? "Parecer técnico" : "Seu rascunho"}
                                 </label>
 
                                 <textarea
@@ -690,7 +711,9 @@ function OrdemServicoDetalhesModal({
                                     onChange={(event) =>
                                         setParecerTemporario(event.target.value)
                                     }
-                                    placeholder="Escreva aqui seu rascunho..."
+                                    placeholder={podeConcluir
+                                        ? "Descreva o trabalho realizado e o resultado dos testes..."
+                                        : "Escreva aqui seu rascunho..."}
                                 />
                             </section>
                         </>
