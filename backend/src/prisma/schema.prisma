@@ -155,7 +155,6 @@ model projetos {
   ordens_servico         ordens_servico[]
   clientes               clientes                 @relation(fields: [cliente_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   projetos_departamentos projetos_departamentos[]
-  auditoria_projetos     auditoria_projetos[]
 }
 
 model auditoria_projetos {
@@ -174,21 +173,6 @@ model auditoria_projetos {
   @@index([projeto_id, data_modificacao], map: "idx_auditoria_projetos_data")
 }
 
-model auditoria_projetos {
-  id               Int            @id @default(autoincrement())
-  projeto_id       Int
-  funcionario_id   Int
-  data_modificacao DateTime       @default(now()) @db.Timestamptz(6)
-  acao             tipo_auditoria
-  campo_alterado   String?
-  dado_antigo      String?
-  dado_novo        String?
-  justificativa    String?
-  funcionarios     funcionarios   @relation(fields: [funcionario_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  projetos         projetos       @relation(fields: [projeto_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-
-  @@index([projeto_id, data_modificacao], map: "idx_auditoria_projetos_data")
-}
 
 model projetos_departamentos {
   projeto_id      Int
