@@ -1,4 +1,3 @@
-
 import { useEffect, useMemo, useState } from "react";
 import { authService, getStoredUser } from "../services/auth";
 import { clienteService } from "../services/cliente";
@@ -22,7 +21,6 @@ export function useClientes() {
         useState<FiltroSituacao>("ativos");
 
     const [modalAberto, setModalAberto] = useState(false);
-    const [modoDuplicacao, setModoDuplicacao] = useState(false);
     const [clienteEmEdicao, setClienteEmEdicao] =
         useState<Cliente | null>(null);
 
@@ -46,27 +44,36 @@ export function useClientes() {
 
         async function carregarDados() {
             try {
+                let isGestor = getStoredUser()?.tipo === "gestor";
+
                 if (authService.hasSession()) {
                     const usuario = await authService.me();
+                    isGestor = usuario.tipo === "gestor";
 
                     if (ativo) {
-                        setPerfilGestor(usuario.tipo === "gestor");
+                        setPerfilGestor(isGestor);
                     }
                 } else if (ativo) {
                     setPerfilGestor(false);
+                    isGestor = false;
                 }
 
                 const resultado = await clienteService.listar();
                 let inativos: Cliente[] = [];
-                try {
-                    inativos = await clienteService.listarInativos();
-                } catch (errorInativos) {
-                    // O backend decide quais históricos o perfil pode consultar.
-                    if (ativo) setErro(mensagemErro(errorInativos, "Não foi possível consultar o histórico de clientes."));
+
+                if (isGestor) {
+                    try {
+                        inativos = await clienteService.listarInativos();
+                    } catch (errorInativos) {
+                        if (ativo) setErro(mensagemErro(errorInativos, "Não foi possível consultar o histórico de clientes inativos."));
+                    }
                 }
 
                 if (ativo) {
-                    setClientes([...resultado, ...inativos.filter((item) => !resultado.some((ativoItem) => ativoItem.id === item.id))].sort((a, b) => a.id - b.id));
+                    setClientes(
+                        [...resultado, ...inativos.filter((item) => !resultado.some((ativoItem) => ativoItem.id === item.id))]
+                            .sort((a, b) => a.id - b.id)
+                    );
                 }
             } catch (error) {
                 if (ativo) {
@@ -117,7 +124,6 @@ export function useClientes() {
 
     function abrirCadastro() {
         setClienteEmEdicao(null);
-        setModoDuplicacao(false);
         setErro(null);
         setMensagem(null);
         setModalAberto(true);
@@ -130,25 +136,11 @@ export function useClientes() {
 
         setModalAberto(false);
         setClienteEmEdicao(null);
-        setModoDuplicacao(false);
         setErro(null);
     }
 
     function iniciarEdicao(cliente: Cliente) {
-        setModoDuplicacao(false);
         setClienteEmEdicao(cliente);
-        setErro(null);
-        setMensagem(null);
-        setModalAberto(true);
-    }
-
-    function duplicarCliente(cliente: Cliente) {
-        if (!podeGerenciar) {
-            setErro("Apenas gestores podem duplicar clientes.");
-            return;
-        }
-        setClienteEmEdicao(cliente);
-        setModoDuplicacao(true);
         setErro(null);
         setMensagem(null);
         setModalAberto(true);
@@ -176,7 +168,7 @@ export function useClientes() {
         setMensagem(null);
 
         try {
-            if (clienteEmEdicao && !modoDuplicacao) {
+            if (clienteEmEdicao) {
                 const atualizado = await clienteService.atualizar(
                     clienteEmEdicao.id,
                     {
@@ -216,19 +208,18 @@ export function useClientes() {
                 setBusca("");
                 setFiltroSituacao("ativos");
 
-                setMensagem(modoDuplicacao
-                    ? `Cliente "${criado.nome}" duplicado com sucesso.`
-                    : `Cliente "${criado.nome}" cadastrado com sucesso.`);
+                setMensagem(
+                    `Cliente "${criado.nome}" cadastrado com sucesso.`
+                );
             }
 
             setModalAberto(false);
             setClienteEmEdicao(null);
-            setModoDuplicacao(false);
         } catch (error) {
             setErro(
                 mensagemErro(
                     error,
-                    clienteEmEdicao && !modoDuplicacao
+                    clienteEmEdicao
                         ? "Não foi possível atualizar o cliente."
                         : "Não foi possível cadastrar o cliente."
                 )
@@ -246,7 +237,13 @@ export function useClientes() {
             return;
         }
 
-        if (!cliente.ativo) return;
+        if (acao === "inativar" && !cliente.ativo) {
+            return;
+        }
+
+        if (acao === "reativar" && cliente.ativo) {
+            return;
+        }
 
         setClienteConfirmacao(cliente);
         setAcaoConfirmacao(acao);
@@ -275,22 +272,43 @@ export function useClientes() {
         }
 
         const cliente = clienteConfirmacao;
+        const acao = acaoConfirmacao;
+
         setInativandoId(cliente.id);
         setErro(null);
         setMensagem(null);
 
         try {
-            await clienteService.excluir(cliente.id);
+            if (acao === "inativar") {
+                await clienteService.excluir(cliente.id);
 
-            setClientes((anteriores) =>
-                anteriores.map((item) =>
-                    item.id === cliente.id
-                        ? { ...item, ativo: false }
-                        : item
-                )
-            );
+                setClientes((anteriores) =>
+                    anteriores.map((item) =>
+                        item.id === cliente.id
+                            ? { ...item, ativo: false }
+                            : item
+                    )
+                );
 
-            setMensagem(`Cliente "${cliente.nome}" inativado com sucesso.`);
+                setMensagem(
+                    `Cliente "${cliente.nome}" inativado com sucesso.`
+                );
+            } else {
+                const resposta = await clienteService.ativar(cliente.id);
+
+                setClientes((anteriores) =>
+                    anteriores.map((item) =>
+                        item.id === resposta.cliente.id
+                            ? { ...item, ...resposta.cliente }
+                            : item
+                    )
+                );
+
+                setMensagem(
+                    resposta.mensagem ||
+                    `Cliente "${cliente.nome}" reativado com sucesso.`
+                );
+            }
 
             setClienteConfirmacao(null);
             setAcaoConfirmacao(null);
@@ -298,7 +316,9 @@ export function useClientes() {
             setErro(
                 mensagemErro(
                     error,
-                    "Não foi possível inativar o cliente."
+                    acao === "inativar"
+                        ? "Não foi possível inativar o cliente."
+                        : "Não foi possível reativar o cliente."
                 )
             );
         } finally {
@@ -327,9 +347,7 @@ export function useClientes() {
 
         modalAberto,
         clienteEmEdicao,
-        modoDuplicacao,
         abrirCadastro,
-        duplicarCliente,
         fecharModal,
         iniciarEdicao,
         salvarCliente,

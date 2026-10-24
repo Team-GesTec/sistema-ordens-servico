@@ -63,7 +63,7 @@ function Funcionarios() {
 
                     <div className="projetos-list-header">
                         <div>
-                            <h2>{funcionarios.situacao === "inativos" ? "Funcionários inativos" : funcionarios.situacao === "todos" ? "Todos os funcionários" : "Funcionários ativos"}</h2>
+                            <h2>{funcionarios.situacao === "inativos" && funcionarios.podeGerenciar ? "Funcionários inativos" : funcionarios.situacao === "todos" && funcionarios.podeGerenciar ? "Todos os funcionários" : "Funcionários ativos"}</h2>
                             <p>{funcionarios.funcionariosFiltrados.length} resultado(s)</p>
                         </div>
                         {funcionarios.carregando && <span className="projetos-loading" role="status">Carregando…</span>}
@@ -89,7 +89,6 @@ function Funcionarios() {
                                     bloqueado={funcionarios.salvando || funcionarios.alterandoStatusId !== null}
                                     onAbrir={(selecionado) => void funcionarios.abrirDetalhes(selecionado)}
                                     onEditar={funcionarios.iniciarEdicao}
-                                    onDuplicar={funcionarios.duplicarFuncionario}
                                     onAlterarStatus={funcionarios.solicitarAlteracaoStatus}
                                 />
                             ))}
@@ -101,7 +100,6 @@ function Funcionarios() {
             <FuncionarioFormModal
                 aberto={funcionarios.formularioAberto}
                 funcionario={funcionarios.funcionarioEmEdicao}
-                modoDuplicacao={funcionarios.modoDuplicacao}
                 departamentos={funcionarios.departamentos}
                 salvando={funcionarios.salvando}
                 carregandoOpcoes={funcionarios.carregandoOpcoes}

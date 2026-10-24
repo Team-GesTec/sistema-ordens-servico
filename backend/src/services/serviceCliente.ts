@@ -79,6 +79,15 @@ export class ServiceCliente {
             ramo_atuacao: exigirTexto(dados.ramo_atuacao, 'ramo_atuacao', { maximo: TEXTO_MAXIMO }),
             locais_operacionais: locaisOperacionais,
         };
+
+        if ((await this.repositorio.listar()).some(os => os.nome == novo.nome)) {
+            throw AppError.conflito(`já existe um cliente com nome ${novo.nome}`);
+        }
+
+        if ((await this.repositorio.listar()).some(os => os.razao_social === novo.razao_social)) {
+            throw AppError.conflito(`já existe um cliente com razão social ${novo.razao_social}`);
+        }
+
         return this.repositorio.criar(novo);
     }
 
@@ -91,14 +100,83 @@ export class ServiceCliente {
      */
     async atualizar(id: number, corpo: unknown, parcial: boolean): Promise<Cliente> {
         const dados = lerCorpo(corpo);
+
+        if (dados.nome) {
+            const existe = (await this.repositorio.listar()).some(
+                cliente => cliente.nome === dados.nome && cliente.id !== id
+            );
+
+            if (existe) {
+                throw AppError.conflito(`já existe um cliente com nome ${dados.nome}`);
+            }
+        }
+        
+        if (dados.razao_social) {
+            const existe = (await this.repositorio.listar()).some(
+                cliente => cliente.razao_social === dados.razao_social && cliente.id !== id
+            );
+
+            if (existe) {
+                throw AppError.conflito(`já existe um cliente com razão social ${dados.razao_social}`);
+            }
+        }
+
         const alteracoes = this.montarAlteracoes(dados, parcial);
         exigirAlteracoes(alteracoes);
         return this.repositorio.atualizar(id, alteracoes);
     }
 
-    /** Remove um cliente. */
-    remover(id: number): Promise<void> {
-        return this.repositorio.remover(id);
+    /** Inativa o cliente somente quando não existem vínculos ativos. */
+    async inativar(id: number): Promise<Cliente> {
+        const cliente = await this.repositorio.buscarPorId(id);
+
+        if (!cliente) {
+            throw AppError.naoEncontrado('Cliente não encontrado');
+        }
+
+        if (!cliente.ativo) {
+            return cliente;
+        }
+
+        const [projetosAtivos, ordensAtivas] = await Promise.all([
+            this.repositorio.contarProjetosNaoConcluidos(id),
+            this.repositorio.contarOrdensServicoNaoConcluidas(id),
+        ]);
+
+        if (projetosAtivos > 0 || ordensAtivas > 0) {
+            const vinculos: string[] = [];
+
+            if (projetosAtivos > 0) {
+                vinculos.push(`${projetosAtivos} projeto(s) não concluído(s)`);
+            }
+
+            if (ordensAtivas > 0) {
+                vinculos.push(`${ordensAtivas} ordem(ns) de serviço não concluída(s)`);
+            }
+
+            throw AppError.conflito(
+                `Não é possível inativar o cliente "${cliente.nome}": ` +
+                `existem ${vinculos.join(' e ')} vinculados. ` +
+                'Conclua os vínculos antes de inativar o cliente.',
+            );
+        }
+
+        return this.repositorio.inativar(id);
+    }
+
+    /** Reativa um cliente inativo. */
+    async ativar(id: number): Promise<Cliente> {
+        const cliente = await this.repositorio.buscarPorId(id);
+
+        if (!cliente) {
+            throw AppError.naoEncontrado("Cliente não encontrado");
+        }
+
+        if (cliente.ativo) {
+            return cliente;
+        }
+
+        return this.repositorio.ativar(id);
     }
 
     /** Monta o objeto de alterações conforme o modo (PUT ou PATCH). */

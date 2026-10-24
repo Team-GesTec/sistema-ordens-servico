@@ -2,10 +2,8 @@ import { useEffect, useState } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 
 import logo from "../images/logo_gestec.png";
-import { getStoredUser } from "../services/auth";
-import { authService } from "../services/auth";
+import { getStoredUser, authService } from "../services/auth";
 import type { PerfilFuncionario } from "../types/api";
-
 
 interface SidebarProps {
     darkMode: boolean;

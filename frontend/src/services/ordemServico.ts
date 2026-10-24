@@ -1,35 +1,23 @@
-import { apiDownload, apiRequest } from "./api";
-import type { HistoricoOrdemServico, OrdemServico, OrdemServicoInput, StatusOrdemServico } from "../types/api";
-import type { FiltrosPrazoOrdem } from "../utils/prazoOrdem";
-
-type FiltrosExportacaoOrdens = {
-    busca?: string;
-    status?: StatusOrdemServico | "todos";
-    responsavel_id?: number | "sem_responsavel" | "todos";
-    inativas?: boolean;
-} & Partial<FiltrosPrazoOrdem>;
-
-function adicionarFiltrosPrazo(params: URLSearchParams, filtros: Partial<FiltrosPrazoOrdem>): void {
-    if (filtros.dataEntregaInicio) params.set("dataEntregaInicio", filtros.dataEntregaInicio);
-    if (filtros.dataEntregaFim) params.set("dataEntregaFim", filtros.dataEntregaFim);
-    if (filtros.diasRestantesMin !== undefined && filtros.diasRestantesMin !== "") params.set("diasRestantesMin", filtros.diasRestantesMin);
-    if (filtros.diasRestantesMax !== undefined && filtros.diasRestantesMax !== "") params.set("diasRestantesMax", filtros.diasRestantesMax);
-}
+import { apiRequest } from "./api";
+import type { HistoricoOrdemServico, OrdemServico, OrdemServicoInput } from "../types/api";
 
 export const ordemServicoService = {
-    listar(filtros: Partial<FiltrosPrazoOrdem> = {}): Promise<OrdemServico[]> {
-        const params = new URLSearchParams();
-        adicionarFiltrosPrazo(params, filtros);
-        const query = params.toString();
-        return apiRequest<OrdemServico[]>(`/ordens-servico${query ? `?${query}` : ""}`);
+    /** GET /ordens-servico — o backend não lê filtros de prazo; eles são aplicados no cliente. */
+    listar(): Promise<OrdemServico[]> {
+        return apiRequest<OrdemServico[]>("/ordens-servico");
     },
 
+    /** GET /ordens-servico/inativas — somente gestor. */
     listarInativas(): Promise<OrdemServico[]> {
         return apiRequest<OrdemServico[]>("/ordens-servico/inativas");
     },
 
-    inativar(id: number): Promise<OrdemServico> {
-        return apiRequest<OrdemServico>(`/ordens-servico/${id}/inativar`, { method: 'PATCH' });
+    /** PATCH /ordens-servico/:id/ativo — somente gestor. */
+    alterarAtivo(id: number, ativo: boolean): Promise<OrdemServico> {
+        return apiRequest<OrdemServico>(`/ordens-servico/${id}/ativo`, {
+            method: "PATCH",
+            body: JSON.stringify({ ativo }),
+        });
     },
 
     /** O bloqueio possui rota e autorização próprias no backend. */
@@ -47,32 +35,6 @@ export const ordemServicoService = {
         return apiRequest<HistoricoOrdemServico[]>(`/ordens-servico/${id}/historico`);
     },
 
-    baixarRelatorioPDF(id: number): Promise<void> {
-        return apiDownload(`/ordens-servico/${id}/relatorio.pdf`, `ordem-servico-${id}.pdf`);
-    },
-
-    exportarCSV(filtros: FiltrosExportacaoOrdens): Promise<void> {
-        const params = new URLSearchParams();
-        if (filtros.busca?.trim()) params.set("busca", filtros.busca.trim());
-        if (filtros.status && filtros.status !== "todos") params.set("status", filtros.status);
-        if (filtros.responsavel_id !== undefined && filtros.responsavel_id !== "todos") params.set("responsavel_id", String(filtros.responsavel_id));
-        if (filtros.inativas) params.set("inativas", "1");
-        adicionarFiltrosPrazo(params, filtros);
-        const suffix = params.toString();
-        return apiDownload(`/ordens-servico/exportar.csv${suffix ? `?${suffix}` : ""}`, "sgos-ordens.csv");
-    },
-
-    exportarXLSX(filtros: FiltrosExportacaoOrdens): Promise<void> {
-        const params = new URLSearchParams();
-        if (filtros.busca?.trim()) params.set("busca", filtros.busca.trim());
-        if (filtros.status && filtros.status !== "todos") params.set("status", filtros.status);
-        if (filtros.responsavel_id !== undefined && filtros.responsavel_id !== "todos") params.set("responsavel_id", String(filtros.responsavel_id));
-        if (filtros.inativas) params.set("inativas", "1");
-        adicionarFiltrosPrazo(params, filtros);
-        const suffix = params.toString();
-        return apiDownload(`/ordens-servico/exportar.xlsx${suffix ? `?${suffix}` : ""}`, "sgos-ordens.xlsx");
-    },
-
     criar(payload: OrdemServicoInput): Promise<OrdemServico> {
         return apiRequest<OrdemServico>("/ordens-servico", {
             method: "POST",
@@ -80,33 +42,39 @@ export const ordemServicoService = {
         });
     },
 
-        salvarParecerTecnico(id: number, parecerTecnico: string): Promise<OrdemServico> {
-        return apiRequest<OrdemServico>(`/ordens-servico/${id}/parecer-tecnico`, {
+    /** PATCH /ordens-servico/:id/status — também registra o parecer técnico. */
+    alterarStatus(
+        id: number,
+        status: OrdemServico["status"],
+        parecerTecnico?: string,
+    ): Promise<OrdemServico> {
+        const payload = {
+            status,
+            ...(parecerTecnico !== undefined
+                ? { parecer_tecnico: parecerTecnico }
+                : {}),
+        };
+
+        return apiRequest<OrdemServico>(`/ordens-servico/${id}/status`, {
             method: "PATCH",
-            body: JSON.stringify({ parecer_tecnico: parecerTecnico }),
+            body: JSON.stringify(payload),
         });
     },
 
-    alterarStatus(
-            id: number,
-            status: OrdemServico["status"],
-            parecerTecnico?: string,
-        ): Promise<OrdemServico> {
-            const payload = {
-                status,
-                ...(parecerTecnico !== undefined
-                    ? { parecer_tecnico: parecerTecnico }
-                    : {}),
-            };
-
-            return apiRequest<OrdemServico>(
-                `/ordens-servico/${id}/status`,
-                {
-                    method: "PATCH",
-                    body: JSON.stringify(payload),
-                },
-            );
-        },
+    /** PATCH /ordens-servico/:id/sla-manual — altera o prazo final (somente gestor). */
+    alterarPrazo(
+        id: number,
+        dataLimiteSla: string,
+        justificativa: string,
+    ): Promise<OrdemServico> {
+        return apiRequest<OrdemServico>(`/ordens-servico/${id}/sla-manual`, {
+            method: "PATCH",
+            body: JSON.stringify({
+                data_limite_sla: dataLimiteSla,
+                justificativa_sla_manual: justificativa,
+            }),
+        });
+    },
 
     atribuirResponsavel(id: number, funcionarioId: number): Promise<OrdemServico> {
         return apiRequest<OrdemServico>(`/ordens-servico/atribuir/${id}`, {

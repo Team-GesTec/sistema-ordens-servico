@@ -5,7 +5,6 @@ import type { DadosFormularioCliente } from "../../utils/clienteUtils";
 interface ClienteFormModalProps {
     aberto: boolean;
     cliente: Cliente | null;
-    modoDuplicacao?: boolean;
     salvando: boolean;
     erro: string | null;
     onClose: () => void;
@@ -28,7 +27,6 @@ const FORMULARIO_INICIAL: FormularioState = {
 function ClienteFormModal({
     aberto,
     cliente,
-    modoDuplicacao = false,
     salvando,
     erro,
     onClose,
@@ -48,10 +46,10 @@ function ClienteFormModal({
                       razaoSocial: cliente.razao_social,
                       ramoAtuacao: cliente.ramo_atuacao,
                   }
-                : FORMULARIO_INICIAL,
+                : FORMULARIO_INICIAL
         );
         setErroLocal(null);
-    }, [aberto, cliente, modoDuplicacao]);
+    }, [aberto, cliente]);
 
     function atualizarCampo(campo: keyof FormularioState, valor: string) {
         setForm((anterior) => ({ ...anterior, [campo]: valor }));
@@ -61,6 +59,7 @@ function ClienteFormModal({
 
     async function handleSubmit(event: FormEvent<HTMLFormElement>) {
         event.preventDefault();
+
         const nome = form.nome.trim();
         const razaoSocial = form.razaoSocial.trim();
         const ramoAtuacao = form.ramoAtuacao.trim();
@@ -93,7 +92,7 @@ function ClienteFormModal({
                     <div>
                         <span className="projetos-eyebrow">GESTÃO DE CLIENTES</span>
                         <h2 id="cliente-modal-titulo">
-                            {modoDuplicacao ? "Duplicar cliente — revisar dados" : cliente ? "Editar cliente" : "Cadastrar cliente"}
+                            {cliente ? "Editar cliente" : "Cadastrar cliente"}
                         </h2>
                         <p>Dados cadastrais e identificação do cliente.</p>
                     </div>
@@ -164,7 +163,7 @@ function ClienteFormModal({
                             Cancelar
                         </button>
                         <button type="submit" className="projeto-btn-primary" disabled={salvando}>
-                            {salvando ? "Salvando..." : modoDuplicacao ? "Criar novo cliente" : cliente ? "Salvar alterações" : "Cadastrar cliente"}
+                            {salvando ? "Salvando..." : cliente ? "Salvar alterações" : "Cadastrar cliente"}
                         </button>
                     </footer>
                 </form>

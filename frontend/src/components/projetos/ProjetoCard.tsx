@@ -13,11 +13,10 @@ interface ProjetoCardProps {
     bloqueado: boolean;
     onAbrir: (projeto: Projeto) => void;
     onEditar: (projeto: Projeto) => void;
-    onDuplicar: (projeto: Projeto) => void;
-    onAlterarAtivo: (projeto: Projeto, acao: "inativar") => void;
+    onAlterarAtivo: (projeto: Projeto, acao: "inativar" | "reativar") => void;
 }
 
-export default function ProjetoCard({ projeto, podeGerenciar, bloqueado, onAbrir, onEditar, onDuplicar, onAlterarAtivo }: ProjetoCardProps) {
+export default function ProjetoCard({ projeto, podeGerenciar, bloqueado, onAbrir, onEditar, onAlterarAtivo }: ProjetoCardProps) {
     return (
         <article className={`projeto-card${projeto.ativo ? "" : " projeto-card--inativo"}`}>
             <button
@@ -52,11 +51,12 @@ export default function ProjetoCard({ projeto, podeGerenciar, bloqueado, onAbrir
 
             {podeGerenciar && (
                 <footer className="projeto-card-actions">
-                    {projeto.ativo && <>
-                        <button type="button" className="projeto-btn-secondary" onClick={() => onEditar(projeto)} disabled={bloqueado}>Editar</button>
+                    <button type="button" className="projeto-btn-secondary" onClick={() => onEditar(projeto)} disabled={bloqueado}>Editar</button>
+                    {projeto.ativo ? (
                         <button type="button" className="projeto-btn-danger" onClick={() => onAlterarAtivo(projeto, "inativar")} disabled={bloqueado}>Inativar</button>
-                    </>}
-                    <button type="button" className="projeto-btn-secondary" onClick={() => onDuplicar(projeto)} disabled={bloqueado}>Duplicar</button>
+                    ) : (
+                        <button type="button" className="projeto-btn-primary" onClick={() => onAlterarAtivo(projeto, "reativar")} disabled={bloqueado}>Reativar</button>
+                    )}
                 </footer>
             )}
         </article>

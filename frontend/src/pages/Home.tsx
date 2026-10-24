@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
     ResponsiveContainer,
     PieChart,
@@ -15,7 +15,7 @@ import {
 
 import "../styles/dashboard.css";
 
-import { ApiError } from "../services/api";
+import { ApiError, apiRequest } from "../services/api";
 import { getStoredUser } from "../services/auth";
 import { ordemServicoService } from "../services/ordemServico";
 import { departamentoService } from "../services/departamento";
@@ -30,6 +30,9 @@ import type {
     Projeto,
     StatusOrdemServico,
 } from "../types/api";
+
+import NotificacoesSla from "../components/NotificacoesSla";
+import type { NotificacaoSla } from "../types/notificacao";
 
 const CORES_STATUS: Record<StatusOrdemServico, string> = {
     em_andamento: "#1689ca",
@@ -96,50 +99,52 @@ function Dashboard() {
 
     const [carregando, setCarregando] = useState(true);
     const [erro, setErro] = useState<string | null>(null);
+    const [notificacoes, setNotificacoes] = useState<NotificacaoSla[]>([]);
+
+    // Carrega as notificações de SLA.
+    useEffect(() => {
+        apiRequest<NotificacaoSla[]>("/notificacoes")
+            .then(setNotificacoes)
+            .catch((error: unknown) => {
+                console.error("Erro ao carregar notificações de SLA:", error);
+            });
+    }, []);
+
+    const carregarDados = useCallback(async (inicial = false) => {
+        if (inicial) {
+            setCarregando(true);
+        }
+        setErro(null);
+
+        try {
+            const [ordens, departamentos, funcionarios, projetos] =
+                await Promise.all([
+                    ordemServicoService.listar(),
+                    departamentoService.listar(),
+                    funcionarioService.listar(),
+                    projetoService.listar(),
+                ]);
+
+            setDados({
+                ordens,
+                departamentos,
+                funcionarios,
+                projetos,
+            });
+        } catch (error: unknown) {
+            setErro(
+                error instanceof ApiError
+                    ? error.message
+                    : "Não foi possível carregar os dados do dashboard.",
+            );
+        } finally {
+            setCarregando(false);
+        }
+    }, []);
 
     useEffect(() => {
-        let ativo = true;
-
-        async function carregar() {
-            setCarregando(true);
-            setErro(null);
-
-            try {
-                const [ordens, departamentos, funcionarios, projetos] =
-                    await Promise.all([
-                        ordemServicoService.listar(),
-                        departamentoService.listar(),
-                        funcionarioService.listar(),
-                        projetoService.listar(),
-                    ]);
-
-                if (ativo) {
-                    setDados({
-                        ordens,
-                        departamentos,
-                        funcionarios,
-                        projetos,
-                    });
-                }
-            } catch (error: unknown) {
-                if (ativo) {
-                    setErro(
-                        error instanceof ApiError
-                            ? error.message
-                            : "Não foi possível carregar os dados do dashboard.",
-                    );
-                }
-            } finally {
-                if (ativo) setCarregando(false);
-            }
-        }
-
-        void carregar();
-
-        return () => {
-            ativo = false;
-        };
-    }, []);
+        void carregarDados(true);
+    }, [carregarDados]);
 
     const departamentoId = usuario?.departamento_id;
 
@@ -185,19 +190,21 @@ function Dashboard() {
         [ordensVisiveis],
     );
 
+    // Usa as mesmas ordens visíveis ao usuário para calcular a criticidade.
     const criticidadeData = useMemo(
         () =>
             contar(
-                ordensDepartamento
+                ordensVisiveis
                     .map((ordem) => ordem.criticidade)
                     .filter(
-                        (valor): valor is NivelCriticidade => valor !== null,
+                        (valor): valor is NivelCriticidade =>
+                            valor !== null,
                     ),
                 Object.keys(ROTULOS_CRITICIDADE) as NivelCriticidade[],
                 ROTULOS_CRITICIDADE,
                 CORES_CRITICIDADE,
             ),
-        [ordensDepartamento],
+        [ordensVisiveis],
     );
 
     const statusTecnicoData = useMemo(
@@ -239,7 +246,15 @@ function Dashboard() {
     if (erro) {
         return (
             <main className="dashboard">
-                <div className="dashboard-erro">{erro}</div>
+                <div className="dashboard-erro">
+                    <p>{erro}</p>
+                    <button
+                        type="button"
+                        onClick={() => void carregarDados()}
+                    >
+                        Tentar novamente
+                    </button>
+                </div>
             </main>
         );
     }
@@ -264,11 +279,12 @@ function Dashboard() {
           : "Visão geral do departamento";
 
     const totalOrdens = ordensVisiveis.length;
+
     const totalConcluidas = ordensVisiveis.filter(
         (ordem) => ordem.status === "concluido",
     ).length;
 
-    const totalCriticas = ordensDepartamento.filter(
+    const totalCriticas = ordensVisiveis.filter(
         (ordem) =>
             ordem.criticidade === "muito_alto" ||
             ordem.criticidade === "urgente",
@@ -276,6 +292,35 @@ function Dashboard() {
 
     return (
         <main className="dashboard">
+            <NotificacoesSla
+                notificacoes={notificacoes}
+                onDispensar={async (id) => {
+                    try {
+                        await apiRequest<void>(
+                            `/notificacoes/${encodeURIComponent(id)}`,
+                            { method: "DELETE" },
+                        );
+
+                        setNotificacoes((atuais) =>
+                            atuais.filter(
+                                (notificacao) => notificacao.id !== id,
+                            ),
+                        );
+                    } catch (error: unknown) {
+                        console.error(
+                            "Erro ao dispensar notificação:",
+                            error,
+                        );
+
+                        window.alert(
+                            error instanceof ApiError
+                                ? error.message
+                                : "Não foi possível dispensar a notificação. Tente novamente.",
+                        );
+                    }
+                }}
+            />
+
             <header className="dashboard-header">
                 <div>
                     <span className="dashboard-eyebrow">
@@ -289,6 +334,7 @@ function Dashboard() {
                     <span className="dashboard-avatar">
                         {usuario.nome.charAt(0).toUpperCase()}
                     </span>
+
                     <div>
                         <strong>{usuario.nome}</strong>
                         <span>
@@ -316,7 +362,9 @@ function Dashboard() {
                     <strong>{totalConcluidas}</strong>
                     <small>
                         {totalOrdens > 0
-                            ? `${Math.round((totalConcluidas / totalOrdens) * 100)}% das O.S.`
+                            ? `${Math.round(
+                                  (totalConcluidas / totalOrdens) * 100,
+                              )}% das O.S.`
                             : "Nenhuma O.S. cadastrada"}
                     </small>
                 </article>
@@ -526,7 +574,9 @@ function Dashboard() {
                             <div className="dashboard-card-header">
                                 <div>
                                     <h2>Horas por departamento</h2>
-                                    <p>Total de horas efetivamente registradas</p>
+                                    <p>
+                                        Total de horas efetivamente registradas
+                                    </p>
                                 </div>
                                 <span className="dashboard-card-icone">◷</span>
                             </div>

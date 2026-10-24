@@ -13,10 +13,15 @@ model anexos {
   os_id          Int
   nome           String         @db.VarChar(255)
   tamanho_bytes  BigInt
-  caminho        String
+  caminho        String         @unique
   data_upload    DateTime       @default(now()) @db.Timestamptz(6)
   tipo           String
+  funcionario_id Int
+  relato         String?
+  funcionarios   funcionarios   @relation(fields: [funcionario_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   ordens_servico ordens_servico @relation(fields: [os_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([os_id, data_upload], map: "idx_anexos_os_data")
 }
 
 model auditoria {
@@ -74,6 +79,7 @@ model funcionarios {
   nome                                                       String
   tipo                                                       tipo_perfil          @default(tecnico)
   ativo                                                      Boolean              @default(true)
+  anexos                                                     anexos[]
   apontamento_horas                                          apontamento_horas[]
   auditoria                                                  auditoria[]
   auditoria_projetos                                         auditoria_projetos[]
@@ -151,6 +157,22 @@ model projetos {
   projetos_departamentos projetos_departamentos[]
 }
 
+model auditoria_projetos {
+  id               Int            @id @default(autoincrement())
+  projeto_id       Int
+  funcionario_id   Int
+  data_modificacao DateTime       @default(now()) @db.Timestamptz(6)
+  acao             tipo_auditoria
+  campo_alterado   String?
+  dado_antigo      String?
+  dado_novo        String?
+  justificativa    String?
+  funcionarios     funcionarios   @relation(fields: [funcionario_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  projetos         projetos       @relation(fields: [projeto_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([projeto_id, data_modificacao], map: "idx_auditoria_projetos_data")
+}
+
 model projetos_departamentos {
   projeto_id      Int
   departamento_id Int
@@ -195,23 +217,6 @@ model sla_config {
   @@unique([tipo, criticidade], map: "config_unica")
 }
 
-/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
-model auditoria_projetos {
-  id               Int            @id @default(autoincrement())
-  projeto_id       Int
-  funcionario_id   Int
-  data_modificacao DateTime       @default(now()) @db.Timestamptz(6)
-  acao             tipo_auditoria
-  campo_alterado   String?
-  dado_antigo      String?
-  dado_novo        String?
-  justificativa    String?
-  funcionarios     funcionarios   @relation(fields: [funcionario_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  projetos         projetos       @relation(fields: [projeto_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-
-  @@index([projeto_id, data_modificacao], map: "idx_auditoria_projetos_data")
-}
-
 enum nivel_criticidade {
   baixo
   medio
@@ -247,7 +252,6 @@ enum tipo_ordem_servico {
 enum tipo_perfil {
   gestor
   tecnico
-  analista
 }
 
 enum status_enum {

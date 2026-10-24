@@ -21,10 +21,7 @@ interface ProjetoDetalhesModalProps {
     podeGerenciar: boolean;
     onClose: () => void;
     onEditar: (projeto: Projeto) => void;
-    onAlterarAtivo: (projeto: Projeto, acao: "inativar") => void;
-    onBaixarPDF: (projetoId: number) => void;
-    baixandoRelatorioPDF: boolean;
-    erroRelatorioPDF: string | null;
+    onAlterarAtivo: (projeto: Projeto, acao: "inativar" | "reativar") => void;
 }
 
 function dataFormatada(valor: string | null): string {
@@ -33,7 +30,7 @@ function dataFormatada(valor: string | null): string {
     return Number.isNaN(data.getTime()) ? "Não informada" : data.toLocaleDateString("pt-BR", { timeZone: "UTC" });
 }
 
-export default function ProjetoDetalhesModal({ projeto, podeGerenciar, onClose, onEditar, onAlterarAtivo, erroRelatorioPDF }: ProjetoDetalhesModalProps) {
+export default function ProjetoDetalhesModal({ projeto, podeGerenciar, onClose, onEditar, onAlterarAtivo }: ProjetoDetalhesModalProps) {
     const navigate = useNavigate();
 
     function abrirOrdem(ordemId: number) {
@@ -92,14 +89,12 @@ export default function ProjetoDetalhesModal({ projeto, podeGerenciar, onClose, 
                         </div>
                     )}
                 </section>
-                {erroRelatorioPDF && <p className="projetos-feedback projetos-feedback--error" role="alert">{erroRelatorioPDF}</p>}
                 <footer className="projeto-modal-actions">
-                    {/* Exportação PDF desativada no frontend.
-                    <button type="button" className="projeto-btn-secondary" onClick={() => onBaixarPDF(projeto.id)} disabled={baixandoRelatorioPDF} aria-busy={baixandoRelatorioPDF}>{baixandoRelatorioPDF ? "Gerando PDF..." : "Baixar relatório PDF"}</button>
-                    */}
                     <button type="button" className="projeto-btn-secondary" onClick={onClose}>Fechar</button>
-                    {podeGerenciar && projeto.ativo && <button type="button" className="projeto-btn-secondary" onClick={() => onEditar(projeto)}>Editar</button>}
-                    {podeGerenciar && projeto.ativo && <button type="button" className="projeto-btn-danger" onClick={() => onAlterarAtivo(projeto, "inativar")}>Inativar</button>}
+                    {podeGerenciar && <button type="button" className="projeto-btn-secondary" onClick={() => onEditar(projeto)}>Editar</button>}
+                    {podeGerenciar && (projeto.ativo
+                        ? <button type="button" className="projeto-btn-danger" onClick={() => onAlterarAtivo(projeto, "inativar")}>Inativar</button>
+                        : <button type="button" className="projeto-btn-primary" onClick={() => onAlterarAtivo(projeto, "reativar")}>Reativar</button>)}
                 </footer>
             </section>
         </div>

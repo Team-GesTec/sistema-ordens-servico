@@ -64,18 +64,20 @@ export default function FuncionariosToolbar({
                 />
             </div>
 
-            <div className="projetos-filter-wrap">
-                <label htmlFor="funcionarios-situacao">Situação</label>
-                <select
-                    id="funcionarios-situacao"
-                    value={situacao}
-                    onChange={(event) => onSituacaoChange(event.target.value as SituacaoFuncionario)}
-                >
-                    <option value="ativos">Ativos</option>
-                    <option value="inativos">Inativos</option>
-                    {podeGerenciar && <option value="todos">Todos</option>}
-                </select>
-            </div>
+            {podeGerenciar && (
+                <div className="projetos-filter-wrap">
+                    <label htmlFor="funcionarios-situacao">Situação</label>
+                    <select
+                        id="funcionarios-situacao"
+                        value={situacao}
+                        onChange={(event) => onSituacaoChange(event.target.value as SituacaoFuncionario)}
+                    >
+                        <option value="ativos">Ativos</option>
+                        <option value="inativos">Inativos</option>
+                        <option value="todos">Todos</option>
+                    </select>
+                </div>
+            )}
 
             <div className="projetos-filter-wrap funcionarios-perfil-wrap">
                 <label htmlFor="funcionarios-perfil">Perfil</label>

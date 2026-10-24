@@ -9,16 +9,17 @@ import "../styles/filters.css";
 import "../styles/forms.css";
 import "../styles/autocomplete.css";
 import "../styles/projetos.css";
+
 import ProjetoAtivoModal from "../components/projetos/ProjetoAtivoModal";
 import ProjetoCard from "../components/projetos/ProjetoCard";
 import ProjetoDetalhesModal from "../components/projetos/ProjetoDetalhesModal";
 import ProjetoFormModal from "../components/projetos/ProjetoFormModal";
 import ProjetosBuscaAutocomplete from "../components/projetos/ProjetosBuscaAutocomplete";
-import { useProjetos } from "../hooks/useProjetos";
-import type { StatusProjeto } from "../types/api";
 import Autocomplete, { type AutocompleteOption } from "../components/common/Autocomplete";
+import { useProjetos } from "../hooks/useProjetos";
 import { ApiError } from "../services/api";
 import { projetoService } from "../services/projeto";
+import type { StatusProjeto } from "../types/api";
 
 const STATUS_OPTIONS: AutocompleteOption[] = [
     { value: "todos", label: "Todos os status" },
@@ -34,8 +35,7 @@ function Projetos() {
     const idVisualizar = searchParams.get("visualizar");
     const idVisualizarProcessado = useRef<string | null>(null);
     const [erroDetalheDireto, setErroDetalheDireto] = useState<string | null>(null);
-    const [baixandoRelatorioPDF, setBaixandoRelatorioPDF] = useState(false);
-    const [erroRelatorioPDF, setErroRelatorioPDF] = useState<string | null>(null);
+    
     const modalAberto = projetos.formularioAberto || Boolean(projetos.confirmacaoAtivo);
 
     useEffect(() => {
@@ -44,8 +44,10 @@ function Projetos() {
             return;
         }
         if (projetos.carregando || idVisualizarProcessado.current === idVisualizar) return;
+        
         idVisualizarProcessado.current = idVisualizar;
         const id = Number(idVisualizar);
+        
         if (Number.isSafeInteger(id) && id > 0) {
             setErroDetalheDireto(null);
             void projetoService.buscarPorId(id)
@@ -54,24 +56,13 @@ function Projetos() {
         } else {
             setErroDetalheDireto("Identificador do projeto inválido.");
         }
+        
         setSearchParams((atuais) => {
             const proximos = new URLSearchParams(atuais);
             proximos.delete("visualizar");
             return proximos;
         }, { replace: true });
     }, [idVisualizar, projetos.carregando, projetos.setProjetoSelecionado, setSearchParams]);
-
-    async function baixarRelatorioPDF(projetoId: number): Promise<void> {
-        setBaixandoRelatorioPDF(true);
-        setErroRelatorioPDF(null);
-        try {
-            await projetoService.baixarRelatorioPDF(projetoId);
-        } catch (error) {
-            setErroRelatorioPDF(error instanceof ApiError ? error.message : "Não foi possível gerar o relatório do projeto.");
-        } finally {
-            setBaixandoRelatorioPDF(false);
-        }
-    }
 
     return (
         <div className="layout">
@@ -109,9 +100,11 @@ function Projetos() {
                                 emptyMessage="Nenhum status encontrado."
                             />
                         </div>
-                        <button type="button" className="projeto-btn-secondary projetos-toggle-inativos" onClick={() => void projetos.alternarInativos()} aria-pressed={projetos.mostrarInativos}>
+                        {projetos.podeGerenciar && (
+                            <button type="button" className="projeto-btn-secondary projetos-toggle-inativos" onClick={() => void projetos.alternarInativos()} aria-pressed={projetos.mostrarInativos}>
                                 {projetos.mostrarInativos ? "Ver projetos ativos" : "Consultar inativos"}
                             </button>
+                        )}
                     </section>
 
                     <div className="projetos-list-header">
@@ -139,7 +132,6 @@ function Projetos() {
                                     bloqueado={projetos.salvando || projetos.alterandoAtivoId !== null}
                                     onAbrir={(selecionado) => void projetos.abrirDetalhes(selecionado)}
                                     onEditar={projetos.iniciarEdicao}
-                                    onDuplicar={projetos.duplicarProjeto}
                                     onAlterarAtivo={projetos.solicitarAlteracaoAtivo}
                                 />
                             ))}
@@ -151,7 +143,6 @@ function Projetos() {
             <ProjetoFormModal
                 aberto={projetos.formularioAberto}
                 projeto={projetos.projetoEmEdicao}
-                modoDuplicacao={projetos.modoDuplicacao}
                 clientes={projetos.clientes}
                 departamentos={projetos.departamentos}
                 salvando={projetos.salvando}
@@ -166,9 +157,6 @@ function Projetos() {
                 onClose={() => projetos.setProjetoSelecionado(null)}
                 onEditar={projetos.iniciarEdicao}
                 onAlterarAtivo={projetos.solicitarAlteracaoAtivo}
-                onBaixarPDF={(id) => void baixarRelatorioPDF(id)}
-                baixandoRelatorioPDF={baixandoRelatorioPDF}
-                erroRelatorioPDF={erroRelatorioPDF}
             />
             <ProjetoAtivoModal
                 projeto={projetos.confirmacaoAtivo?.projeto ?? null}

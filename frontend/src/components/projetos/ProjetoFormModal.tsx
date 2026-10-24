@@ -34,7 +34,6 @@ function dataInput(valor: string | null | undefined): string {
 interface ProjetoFormModalProps {
     aberto: boolean;
     projeto: Projeto | null;
-    modoDuplicacao?: boolean;
     clientes: Cliente[];
     departamentos: Departamento[];
     salvando: boolean;
@@ -44,7 +43,7 @@ interface ProjetoFormModalProps {
     onSave: (dados: ProjetoInput) => Promise<void>;
 }
 
-export default function ProjetoFormModal({ aberto, projeto, modoDuplicacao = false, clientes, departamentos, salvando, erro, carregandoOpcoes = false, onClose, onSave }: ProjetoFormModalProps) {
+export default function ProjetoFormModal({ aberto, projeto, clientes, departamentos, salvando, erro, carregandoOpcoes = false, onClose, onSave }: ProjetoFormModalProps) {
     const [form, setForm] = useState<FormularioProjeto>(FORM_INICIAL);
     const [departamentoAtual, setDepartamentoAtual] = useState<number | null>(null);
     const [erroLocal, setErroLocal] = useState<string | null>(null);
@@ -53,7 +52,7 @@ export default function ProjetoFormModal({ aberto, projeto, modoDuplicacao = fal
         if (!aberto) return;
         setForm(projeto ? {
             nome: projeto.nome,
-            clienteId: modoDuplicacao && !clientes.some((cliente) => cliente.id === projeto.cliente_id && cliente.ativo) ? null : projeto.cliente_id,
+            clienteId: projeto.cliente_id,
             dataInicio: dataInput(projeto.data_inicio),
             dataFim: dataInput(projeto.data_fim),
             status: projeto.status,
@@ -61,7 +60,7 @@ export default function ProjetoFormModal({ aberto, projeto, modoDuplicacao = fal
         } : FORM_INICIAL);
         setDepartamentoAtual(null);
         setErroLocal(null);
-    }, [aberto, projeto, modoDuplicacao, clientes]);
+    }, [aberto, projeto]);
 
     if (!aberto) return null;
 
@@ -112,7 +111,7 @@ export default function ProjetoFormModal({ aberto, projeto, modoDuplicacao = fal
             <section className="projeto-modal projeto-form-modal" role="dialog" aria-modal="true" aria-labelledby="projeto-form-title">
                 <header className="projeto-modal-header">
                     <div>
-                        <h2 id="projeto-form-title">{modoDuplicacao ? "Duplicar projeto — revisar dados" : projeto ? "Editar projeto" : "Cadastrar projeto"}</h2>
+                        <h2 id="projeto-form-title">{projeto ? "Editar projeto" : "Cadastrar projeto"}</h2>
                         <p>Preencha os dados do projeto e seus relacionamentos.</p>
                     </div>
                     <button type="button" className="projeto-modal-close" onClick={onClose} disabled={salvando} aria-label="Fechar">×</button>
@@ -158,7 +157,7 @@ export default function ProjetoFormModal({ aberto, projeto, modoDuplicacao = fal
                     </div>
                     <footer className="projeto-modal-actions">
                         <button type="button" className="projeto-btn-secondary" onClick={onClose} disabled={salvando}>Cancelar</button>
-                        <button type="submit" className="projeto-btn-primary" disabled={salvando}>{salvando ? "Salvando…" : modoDuplicacao ? "Criar novo projeto" : projeto ? "Salvar alterações" : "Cadastrar projeto"}</button>
+                        <button type="submit" className="projeto-btn-primary" disabled={salvando}>{salvando ? "Salvando…" : projeto ? "Salvar alterações" : "Cadastrar projeto"}</button>
                     </footer>
                 </form>
             </section>

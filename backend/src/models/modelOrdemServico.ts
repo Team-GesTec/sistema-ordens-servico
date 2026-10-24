@@ -45,7 +45,10 @@ export interface DadosCriacaoOrdemServico {
 }
 
 /** Dados validados para atualizar uma OS (só os campos presentes são alterados.) */
-export type DadosAtualizacaoOrdemServico = Partial<DadosCriacaoOrdemServico>;
+export type DadosAtualizacaoOrdemServico =
+    Partial<DadosCriacaoOrdemServico> & {
+        ativo?: boolean;
+    };
 
 /**
  * Dados validados para alterar o status de uma O.S. (US#2.4).

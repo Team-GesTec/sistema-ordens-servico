@@ -1,6 +1,6 @@
 import { Given, When, Then } from "@cucumber/cucumber";
 import assert from "assert/strict";
-import { api } from "../support/api";
+import { apiAuth } from "../support/apiAuth";
 import { CustomWorld } from "../support/world";
 
 Given(
@@ -21,8 +21,8 @@ Given(
 
 When(
     "solicita o acesso",
-    async function(this: CustomWorld){
-        this.response = await api
+    async function(this: CustomWorld) {
+        this.response = await apiAuth
             .post("/auth/login")
             .send({
                 usuario: this.data.usuario,

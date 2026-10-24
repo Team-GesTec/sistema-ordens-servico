@@ -190,6 +190,48 @@
     background: rgba(255, 255, 255, 0.22);
 }
 
+
+.ordens-prazo-filtro {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.ordens-prazo-filtro label {
+    color: var(--preto);
+    font-size: 0.875rem;
+    font-weight: 600;
+}
+
+.ordens-prazo-filtro select {
+    max-width: 100%;
+    padding: 9px 32px 9px 12px;
+    border: 1px solid rgba(9, 12, 92, 0.2);
+    border-radius: 8px;
+    background: var(--branco);
+    color: var(--azul-escuro);
+    font: inherit;
+    cursor: pointer;
+}
+
+.ordens-prazo-filtro select:focus {
+    outline: 2px solid var(--azul-claro);
+    outline-offset: 2px;
+}
+
+@media (max-width: 600px) {
+    .ordens-prazo-filtro {
+        width: 100%;
+    }
+
+    .ordens-prazo-filtro select {
+        flex: 1;
+        min-width: 0;
+    }
+}
+
+
 /* Grade de cartões */
 
 .ordens-grid {
@@ -424,6 +466,15 @@
 
 .ordem-modal--detalhes {
     width: min(820px, 100%);
+}
+
+/* Modal pequeno de motivo, aberto por cima dos detalhes */
+.ordem-modal-overlay--sobreposto {
+    z-index: 1600;
+}
+
+.ordem-modal--justificativa {
+    width: min(480px, 100%);
 }
 
 @keyframes ordemModalEntrada {
@@ -2051,22 +2102,6 @@
 .dark-mode .ordem-historico-item, [data-theme="dark"] .ordem-historico-item { background: var(--superficie-card, #182433); border-color: var(--borda, #334155); }
 @media (max-width: 640px) { .ordem-historico-meta { align-items: flex-start; flex-direction: column; gap: 3px; } }
 
-/* AJ-15/AJ-16 — duplicação identificável e preferências pessoais de visualização. */
-.ordem-duplicacao-note {
-    margin: 0 0 14px;
-    padding: 11px 13px;
-    border: 1px solid var(--borda, #dbe3ec);
-    border-radius: 10px;
-    background: var(--superficie-card, #f8fafc);
-    color: var(--texto, #17212d);
-    font-size: .9rem;
-    line-height: 1.45;
-}
-.ordem-duplicacao-note--warning {
-    border-color: #d7a24b;
-    background: #fff8e8;
-    color: #754b00;
-}
 /* Visualizações salvas: controle compacto e modal, isolados da Home. */
 .ordens-views-control {
     display: flex;
@@ -2176,18 +2211,6 @@
 }
 .dark-mode .ordens-views-manage, [data-theme="dark"] .ordens-views-manage { background: var(--superficie-card, #182433); border-color: var(--borda, #334155); }
 .dark-mode .ordens-views-limit, [data-theme="dark"] .ordens-views-limit { color: #fecaca; background: #351d24; border-color: #7f1d1d; }
-.dark-mode .ordem-duplicacao-note,
-[data-theme="dark"] .ordem-duplicacao-note {
-    background: var(--superficie-card, #182433);
-    border-color: var(--borda, #475569);
-    color: var(--texto, #e5edf5);
-}
-.dark-mode .ordem-duplicacao-note--warning,
-[data-theme="dark"] .ordem-duplicacao-note--warning {
-    background: #382c17;
-    border-color: #b8873d;
-    color: #ffe5b3;
-}
 @media (max-width: 640px) {
     .ordens-views-dialog-header, .ordens-views-dialog-body, .ordens-views-dialog-footer { padding-left: 14px; padding-right: 14px; }
     .ordens-views-fields { grid-template-columns: minmax(0, 1fr); }

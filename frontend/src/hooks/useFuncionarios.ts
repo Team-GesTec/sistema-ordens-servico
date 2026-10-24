@@ -7,7 +7,7 @@ import type { Departamento, Funcionario, FuncionarioAtualizacaoInput, Funcionari
 import type { DadosFormularioFuncionario } from "../components/funcionarios/FuncionarioFormModal";
 import type { SituacaoFuncionario } from "../components/funcionarios/FuncionariosToolbar";
 
-export type AcaoStatusFuncionario = "inativar";
+export type AcaoStatusFuncionario = "inativar" | "reativar";
 
 function mensagemErro(error: unknown, fallback: string): string {
     if (error instanceof ApiError) {
@@ -38,7 +38,6 @@ export function useFuncionarios() {
     const [perfil, setPerfil] = useState<PerfilFuncionario | "todos">("todos");
 
     const [formularioAberto, setFormularioAberto] = useState(false);
-    const [modoDuplicacao, setModoDuplicacao] = useState(false);
     const [funcionarioEmEdicao, setFuncionarioEmEdicao] = useState<Funcionario | null>(null);
     const [detalhesAbertos, setDetalhesAbertos] = useState(false);
     const [funcionarioSelecionado, setFuncionarioSelecionado] = useState<Funcionario | null>(null);
@@ -53,6 +52,7 @@ export function useFuncionarios() {
             const usuario = await authService.me();
             const gestor = usuario.tipo === "gestor";
             setPodeGerenciar(gestor);
+            if (!gestor) setSituacao("ativos");
 
             const [ativos, departamentosApi] = await Promise.all([
                 funcionarioService.listar(),
@@ -61,13 +61,16 @@ export function useFuncionarios() {
             setFuncionariosAtivos(ativos);
             setDepartamentos(departamentosApi);
 
-            try {
-                // O endpoint aplica o escopo do perfil no backend; não ampliar consulta no cliente.
-                setFuncionariosInativos(await funcionarioService.listarInativos());
-            } catch (errorInativos) {
+            if (gestor) {
+                try {
+                    setFuncionariosInativos(await funcionarioService.listarInativos());
+                } catch (errorInativos) {
+                    setFuncionariosInativos([]);
+                    setErro(mensagemErro(errorInativos, "Não foi possível consultar funcionários inativos."));
+                    return false;
+                }
+            } else {
                 setFuncionariosInativos([]);
-                setErro(mensagemErro(errorInativos, "Não foi possível consultar funcionários inativos."));
-                return false;
             }
             setErro(null);
             return true;
@@ -82,7 +85,6 @@ export function useFuncionarios() {
 
     useEffect(() => {
         void carregarDados(true);
-        // A carga inicial é intencionalmente feita uma vez; recargas posteriores são chamadas após mutações.
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
@@ -93,15 +95,15 @@ export function useFuncionarios() {
     const departamentosPorId = useMemo(() => new Map(departamentos.map((item) => [item.id, item])), [departamentos]);
 
     const funcionariosParaBusca = useMemo(() => {
-        if (situacao === "ativos") return funcionariosAtivos;
+        if (!podeGerenciar || situacao === "ativos") return funcionariosAtivos;
         if (situacao === "inativos") return funcionariosInativos;
         return todosConhecidos;
-    }, [situacao, funcionariosAtivos, funcionariosInativos, todosConhecidos]);
+    }, [podeGerenciar, situacao, funcionariosAtivos, funcionariosInativos, todosConhecidos]);
 
     const funcionariosFiltrados = useMemo(() => {
-        const fonte = situacao === "inativos"
+        const fonte = situacao === "inativos" && podeGerenciar
             ? funcionariosInativos
-            : situacao === "todos"
+            : situacao === "todos" && podeGerenciar
                 ? todosConhecidos
                 : funcionariosAtivos;
         const termo = normalizar(busca.trim());
@@ -112,7 +114,7 @@ export function useFuncionarios() {
             const departamento = departamentosPorId.get(funcionario.departamento_id)?.nome ?? "";
             return normalizar(`${funcionario.nome} ${funcionario.usuario} ${departamento} ${funcionario.id}`).includes(termo);
         });
-    }, [situacao, funcionariosInativos, todosConhecidos, funcionariosAtivos, funcionarioFiltroId, perfil, busca, departamentosPorId]);
+    }, [situacao, podeGerenciar, funcionariosInativos, todosConhecidos, funcionariosAtivos, funcionarioFiltroId, perfil, busca, departamentosPorId]);
 
     function aplicarFuncionarioLocal(funcionario: Funcionario): void {
         setFuncionariosAtivos((atuais) => {
@@ -141,7 +143,6 @@ export function useFuncionarios() {
         }
         limparMensagens();
         setFuncionarioEmEdicao(null);
-        setModoDuplicacao(false);
         setFormularioAberto(true);
     }
 
@@ -154,20 +155,6 @@ export function useFuncionarios() {
         setDetalhesAbertos(false);
         setFuncionarioSelecionado(null);
         setFuncionarioEmEdicao(funcionario);
-        setModoDuplicacao(false);
-        setFormularioAberto(true);
-    }
-
-    function duplicarFuncionario(funcionario: Funcionario) {
-        if (!podeGerenciar || salvando) {
-            setErro("Apenas Gestores podem duplicar funcionários.");
-            return;
-        }
-        limparMensagens();
-        setDetalhesAbertos(false);
-        setFuncionarioSelecionado(null);
-        setFuncionarioEmEdicao(funcionario);
-        setModoDuplicacao(true);
         setFormularioAberto(true);
     }
 
@@ -175,7 +162,6 @@ export function useFuncionarios() {
         if (salvando) return;
         setFormularioAberto(false);
         setFuncionarioEmEdicao(null);
-        setModoDuplicacao(false);
         setErro(null);
     }
 
@@ -194,7 +180,7 @@ export function useFuncionarios() {
         setMensagem(null);
         let funcionarioSalvo: Funcionario;
         try {
-            if (funcionarioEmEdicao && !modoDuplicacao) {
+            if (funcionarioEmEdicao) {
                 const payload: FuncionarioAtualizacaoInput = {
                     nome: dados.nome,
                     usuario: dados.usuario,
@@ -214,19 +200,18 @@ export function useFuncionarios() {
                 funcionarioSalvo = await funcionarioService.criar(payload);
             }
         } catch (error) {
-            setErro(mensagemErro(error, funcionarioEmEdicao && !modoDuplicacao ? "Não foi possível atualizar o funcionário." : "Não foi possível cadastrar o funcionário."));
+            setErro(mensagemErro(error, funcionarioEmEdicao ? "Não foi possível atualizar o funcionário." : "Não foi possível cadastrar o funcionário."));
             setSalvando(false);
             return;
         }
 
         aplicarFuncionarioLocal(funcionarioSalvo);
-        const textoSucesso = funcionarioEmEdicao && !modoDuplicacao
+        const textoSucesso = funcionarioEmEdicao
             ? `Funcionário "${funcionarioSalvo.nome}" atualizado com sucesso.`
             : `Funcionário "${funcionarioSalvo.nome}" cadastrado com sucesso.`;
         setMensagem(textoSucesso);
         setFormularioAberto(false);
         setFuncionarioEmEdicao(null);
-        setModoDuplicacao(false);
         setSalvando(false);
 
         const atualizado = await carregarDados(false);
@@ -252,7 +237,7 @@ export function useFuncionarios() {
 
     function solicitarAlteracaoStatus(funcionario: Funcionario, acao: AcaoStatusFuncionario): void {
         if (!podeGerenciar || alterandoStatusId !== null) {
-            setErro("Apenas Gestores podem inativar funcionários.");
+            setErro("Apenas Gestores podem inativar ou reativar funcionários.");
             return;
         }
         setErro(null);
@@ -268,18 +253,20 @@ export function useFuncionarios() {
 
     async function confirmarAlteracaoStatus(): Promise<void> {
         if (!podeGerenciar || !confirmacaoStatus || alterandoStatusId !== null) return;
-        const { funcionario } = confirmacaoStatus;
+        const { funcionario, acao } = confirmacaoStatus;
         setAlterandoStatusId(funcionario.id);
         setErro(null);
         setMensagem(null);
 
         let textoSucesso: string;
         try {
-            const resultado = await funcionarioService.inativar(funcionario.id);
+            const resultado = acao === "inativar"
+                ? await funcionarioService.inativar(funcionario.id)
+                : await funcionarioService.reativar(funcionario.id);
             aplicarFuncionarioLocal(resultado.funcionario);
             textoSucesso = resultado.mensagem;
         } catch (error) {
-            setErro(mensagemErro(error, "Não foi possível inativar o funcionário."));
+            setErro(mensagemErro(error, acao === "inativar" ? "Não foi possível inativar o funcionário." : "Não foi possível reativar o funcionário."));
             setAlterandoStatusId(null);
             return;
         }
@@ -316,9 +303,7 @@ export function useFuncionarios() {
         setPerfil,
         formularioAberto,
         funcionarioEmEdicao,
-        modoDuplicacao,
         abrirCadastro,
-        duplicarFuncionario,
         iniciarEdicao,
         fecharFormulario,
         salvarFuncionario,

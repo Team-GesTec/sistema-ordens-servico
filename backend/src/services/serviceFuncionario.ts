@@ -11,8 +11,8 @@
  *   - `tipo` (perfil): gestor | tecnico. No cadastro, o padrão é `tecnico`.
  *     No PUT é obrigatório — assim um PUT sem `tipo` não rebaixa um gestor sem querer.
  *   - `departamento_id` precisa existir.
- *   - Ninguém pode excluir o próprio usuário, e o sistema nunca fica sem nenhum gestor
- *     (não é possível excluir nem rebaixar o último gestor).
+ *   - A inativação é lógica, não pode ser feita pelo próprio Gestor e nunca pode deixar o sistema
+ *     sem pelo menos um Gestor ativo. O repository aplica a proteção concorrente no banco.
  */
 import { AppError } from '../errors/AppError';
 import { repositoryDepartamento, type RepositoryDepartamento } from '../repositories/repositoryDepartamento';
@@ -23,7 +23,6 @@ import {
     type DadosAtualizacaoFuncionario,
     type DadosCriacaoFuncionario,
     type Funcionario,
-    type PerfilFuncionario,
 } from '../models/modelFuncionario';
 import { gerarHashSenha, validarSenha } from '../utils/senha';
 import {
@@ -35,9 +34,6 @@ import {
     lerCorpo,
     type CorpoRequisicao,
 } from '../utils/validacao';
-
-/** Perfil com permissão de administração. */
-const PERFIL_GESTOR: PerfilFuncionario = 'gestor';
 
 /** Caracteres aceitos no nome de usuário (após converter para minúsculas). */
 const FORMATO_USUARIO = /^[a-z0-9._@-]+$/;
@@ -76,9 +72,23 @@ export class ServiceFuncionario {
         this.departamentos = departamentos;
     }
 
-    /** Lista todos os funcionários (sem senha). */
+    /** Lista funcionários ativos, disponíveis para seleções e consulta comum. */
     listar(): Promise<Funcionario[]> {
         return this.funcionarios.listar();
+    }
+
+    /** Consulta administrativa de funcionários inativos; a rota é exclusiva de Gestores. */
+    listarInativos(): Promise<Funcionario[]> {
+        return this.funcionarios.listarInativos();
+    }
+
+    /** Consulta de detalhe que não revela registros inativos a perfis comuns. */
+    async buscarPorIdVisivel(id: number, podeConsultarInativo: boolean): Promise<Funcionario> {
+        const funcionario = await this.buscarPorId(id);
+        if (!funcionario.ativo && !podeConsultarInativo) {
+            throw AppError.naoEncontrado('Funcionário não encontrado');
+        }
+        return funcionario;
     }
 
     /**
@@ -114,6 +124,7 @@ export class ServiceFuncionario {
             senha_hash: await gerarHashSenha(senha),
             nome,
             tipo,
+            ativo: true,
         };
         return this.funcionarios.criar(novo);
     }
@@ -127,34 +138,36 @@ export class ServiceFuncionario {
      */
     async atualizar(id: number, corpo: unknown, parcial: boolean): Promise<Funcionario> {
         const dados = lerCorpo(corpo);
-        const atual = await this.buscarPorId(id);
+        if (campoPresente(dados, 'ativo')) {
+            throw AppError.requisicaoInvalida('O estado ativo deve ser alterado pelas operações específicas de inativação ou reativação.');
+        }
+        await this.buscarPorId(id);
         const alteracoes = await this.montarAlteracoes(dados, parcial);
         exigirAlteracoes(alteracoes);
 
-        const deixaDeSerGestor =
-            atual.tipo === PERFIL_GESTOR && alteracoes.tipo !== undefined && alteracoes.tipo !== PERFIL_GESTOR;
-        if (deixaDeSerGestor) {
-            await this.garantirQueSobraOutroGestor();
-        }
-
+        // A invariável do último Gestor é conferida de forma autoritativa no repository,
+        // sob lock transacional e com contagem do estado persistido (não via cache).
         return this.funcionarios.atualizar(id, alteracoes);
     }
 
     /**
-     * Remove um funcionário.
-     * @param id Id do funcionário a remover.
-     * @param idSolicitante Id de quem está pedindo a remoção (vem do token).
-     * @throws AppError 409 ao tentar remover a si mesmo ou o último gestor.
+     * Inativa logicamente um funcionário, preservando O.S., auditoria e vínculos históricos.
+     * @throws AppError 409 se o solicitante tentar auto-inativação ou remover o último Gestor ativo.
      */
-    async remover(id: number, idSolicitante: number): Promise<void> {
+    async inativar(id: number, idSolicitante: number): Promise<Funcionario> {
         if (id === idSolicitante) {
-            throw AppError.conflito('Você não pode excluir o seu próprio usuário');
+            throw AppError.conflito('Você não pode inativar o seu próprio usuário');
         }
-        const alvo = await this.buscarPorId(id);
-        if (alvo.tipo === PERFIL_GESTOR) {
-            await this.garantirQueSobraOutroGestor();
-        }
-        await this.funcionarios.remover(id);
+
+        await this.buscarPorId(id);
+        // A contagem e a alteração ficam juntas no repository, sob lock transacional.
+        return this.funcionarios.inativar(id);
+    }
+
+    /** Reativa um registro existente sem reconstruir nem apagar relações. */
+    async reativar(id: number): Promise<Funcionario> {
+        await this.buscarPorId(id);
+        return this.funcionarios.reativar(id);
     }
 
     /** Monta o objeto de alterações conforme o modo (PUT ou PATCH). */
@@ -175,7 +188,8 @@ export class ServiceFuncionario {
             alteracoes.tipo = exigirEnum(dados.tipo, PERFIS_FUNCIONARIO, 'tipo');
         }
         // Senha é opcional nos dois modos: ausente = mantém a atual.
-        if (campoPresente(dados, 'senha')) {
+        // Um campo de senha vazio equivale a não alterá-la (inclusive em chamadas diretas à API).
+        if (campoPresente(dados, 'senha') && dados.senha !== '') {
             alteracoes.senha_hash = await gerarHashSenha(validarSenha(dados.senha));
         }
         return alteracoes;
@@ -191,16 +205,6 @@ export class ServiceFuncionario {
         }
     }
 
-    /**
-     * Impede que o sistema fique sem gestor: só permite a operação se existir mais de um.
-     * @throws AppError 409 se houver apenas um gestor.
-     */
-    private async garantirQueSobraOutroGestor(): Promise<void> {
-        const gestores = (await this.funcionarios.listar()).filter((f) => f.tipo === PERFIL_GESTOR);
-        if (gestores.length <= 1) {
-            throw AppError.conflito('Operação bloqueada: o sistema precisa ter pelo menos um gestor');
-        }
-    }
 }
 
 /** Instância única usada pelo controller. */

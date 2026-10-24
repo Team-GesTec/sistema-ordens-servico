@@ -2,7 +2,7 @@ import type { Funcionario } from "../../types/api";
 
 interface FuncionarioStatusModalProps {
     funcionario: Funcionario | null;
-    acao: "inativar" | null;
+    acao: "inativar" | "reativar" | null;
     processando: boolean;
     erro: string | null;
     onClose: () => void;
@@ -24,7 +24,7 @@ export default function FuncionarioStatusModal({ funcionario, acao, processando,
                 </header>
                 <div className="funcionario-detail-body">
                     <p>Confirma a ação para <strong>{funcionario.nome}</strong> (usuário <strong>{funcionario.usuario}</strong>)?</p>
-                    <p>O funcionário perderá acesso ao sistema nas próximas requisições. Ordens de serviço, atribuições, auditoria e histórico serão preservados. A inativação é permanente e não poderá ser desfeita.</p>
+                    <p>O funcionário perderá acesso ao sistema nas próximas requisições. Ordens de serviço, atribuições, auditoria e histórico serão preservados. A inativação es permanente e não poderá ser desfeita.</p>
                     {erro && <div className="projetos-feedback projetos-feedback--error" role="alert">{erro}</div>}
                 </div>
                 <footer className="projeto-modal-actions">

@@ -1,10 +1,9 @@
-
 import type { Cliente } from "../types/api";
 import { ApiError } from "../services/api";
 
 export type FiltroSituacao = "ativos" | "inativos" | "todos";
 
-export type AcaoStatus = "inativar";
+export type AcaoStatus = "inativar" | "reativar";
 
 export interface DadosFormularioCliente {
     nome: string;

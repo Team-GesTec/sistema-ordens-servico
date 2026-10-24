@@ -6,6 +6,7 @@ import { departamentoService } from "../services/departamento";
 import { funcionarioService } from "../services/funcionario";
 import DepartamentoDetalhesModal from "../components/departamentos/DepartamentoDetalhesModal";
 import type { Departamento, Funcionario, VisaoEquipe } from "../types/api";
+
 import "../styles/variaveis.css";
 import "../styles/global.css";
 import "../styles/layout.css";

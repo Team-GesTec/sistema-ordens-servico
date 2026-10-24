@@ -43,18 +43,37 @@ export class ControllerCliente {
     }
 
     /**
-     * DELETE /cliente/:id — exclui o cliente.
-     * Responde 409 se o registro ainda estiver vinculado a outros dados.
+     * DELETE /cliente/:id — inativa logicamente o cliente.
+     * Responde 409 se houver projetos ou O.S. não concluídos.
      */
     public async deleteCliente(req: Request, resp: Response): Promise<Response> {
         const id = lerId(req.params.id);
-        await serviceCliente.remover(id);
-        return resp.status(200).json({ mensagem: 'Cliente excluído com sucesso' });
+        const cliente = await serviceCliente.inativar(id);
+
+        return resp.status(200).json({
+            mensagem: 'Cliente inativado com sucesso',
+            cliente,
+        });
     }
 
     public async getInativos(_req: Request, resp: Response): Promise<Response> {
         return resp.status(200).json(await serviceCliente.listarInativos());
     }
+    
+    /** PATCH /cliente/:id/ativar — reativa um cliente. */
+    public async ativarCliente(
+        req: Request,
+        resp: Response
+    ): Promise<Response> {
+        const id = lerId(req.params.id);
+        const cliente = await serviceCliente.ativar(id);
+
+        return resp.status(200).json({
+            mensagem: "Cliente reativado com sucesso",
+            cliente,
+        });
+    }
+
 }
 
 /** Instância única usada pelas rotas. */

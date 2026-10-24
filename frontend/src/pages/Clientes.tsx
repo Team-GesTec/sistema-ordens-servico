@@ -124,7 +124,6 @@ function Clientes() {
                                     podeGerenciar={podeGerenciarTela}
                                     bloqueado={clientes.salvando || clientes.inativandoId !== null}
                                     onEditar={clientes.iniciarEdicao}
-                                    onDuplicar={clientes.duplicarCliente}
                                     onAlterarStatus={clientes.solicitarAlteracaoStatus}
                                 />
                             ))}
@@ -136,7 +135,6 @@ function Clientes() {
             <ClienteFormModal
                 aberto={clientes.modalAberto}
                 cliente={clientes.clienteEmEdicao}
-                modoDuplicacao={clientes.modoDuplicacao}
                 salvando={clientes.salvando}
                 erro={clientes.erro}
                 onClose={clientes.fecharModal}

@@ -1,26 +1,26 @@
+
 {
-  // Visit https://aka.ms/tsconfig to read more about this file
   "compilerOptions": {
-    // File Layout
     "rootDir": "./src",
     "outDir": "./dist",
-
-    // Environment Settings
     "module": "nodenext",
     "target": "esnext",
     "types": ["node", "express"],
-
-    // Stricter Typechecking Options
     "noUncheckedIndexedAccess": true,
     "exactOptionalPropertyTypes": true,
-
-    // Recommended Options
     "strict": true,
     "jsx": "react-jsx",
     "isolatedModules": true,
     "noUncheckedSideEffectImports": true,
     "moduleDetection": "force",
-    "skipLibCheck": true,
+    "skipLibCheck": true
   },
-  "exclude": ["prisma.config.ts", "features", "prisma/generated"]
+  "include": ["src/**/*.ts"],
+  "exclude": [
+    "node_modules",
+    "prisma/generated",
+    "prisma.config.ts",
+    "dist",
+    "features"
+  ]
 }

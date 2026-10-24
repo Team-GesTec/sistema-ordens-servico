@@ -36,7 +36,7 @@ export default function FuncionarioDetalhesModal({
                         <h2 id="funcionario-detail-title">{funcionario?.nome ?? "Detalhes do funcionário"}</h2>
                         {funcionario && <p>Funcionário #{funcionario.id}</p>}
                     </div>
-                    <button type="button" className="projeto-modal-close" onClick={onClose} aria-label="Fechar detalhes">×</button>
+                    <button type="button" className="projeto-modal-close" onClick={onClose} aria-label="Fechar detalles">×</button>
                 </header>
                 <div className="funcionario-detail-body">
                     {carregando && <p className="projetos-loading" role="status">Carregando dados atualizados...</p>}

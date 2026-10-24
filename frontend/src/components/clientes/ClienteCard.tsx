@@ -6,7 +6,6 @@ interface ClienteCardProps {
     podeGerenciar: boolean;
     bloqueado: boolean;
     onEditar: (cliente: Cliente) => void;
-    onDuplicar: (cliente: Cliente) => void;
     onAlterarStatus: (cliente: Cliente, acao: AcaoStatus) => void;
 }
 
@@ -15,7 +14,6 @@ function ClienteCard({
     podeGerenciar,
     bloqueado,
     onEditar,
-    onDuplicar,
     onAlterarStatus,
 }: ClienteCardProps) {
     const nomeAvatar = cliente.nome.trim() || cliente.razao_social.trim();
@@ -50,11 +48,16 @@ function ClienteCard({
 
             {podeGerenciar && (
                 <div className="projeto-card-actions cliente-actions">
-                    {cliente.ativo && <>
-                        <button type="button" className="projeto-btn-secondary" onClick={() => onEditar(cliente)} disabled={bloqueado}>Editar</button>
-                        <button type="button" className="projeto-btn-danger" onClick={() => onAlterarStatus(cliente, "inativar")} disabled={bloqueado}>Inativar</button>
-                    </>}
-                    <button type="button" className="projeto-btn-secondary" onClick={() => onDuplicar(cliente)} disabled={bloqueado}>Duplicar</button>
+                    {cliente.ativo ? (
+                        <>
+                            <button type="button" className="projeto-btn-secondary" onClick={() => onEditar(cliente)} disabled={bloqueado}>Editar</button>
+                            <button type="button" className="projeto-btn-danger" onClick={() => onAlterarStatus(cliente, "inativar")} disabled={bloqueado}>Inativar</button>
+                        </>
+                    ) : (
+                        <button type="button" className="projeto-btn-primary" onClick={() => onAlterarStatus(cliente, "reativar")} disabled={bloqueado}>
+                            Reativar
+                        </button>
+                    )}
                 </div>
             )}
         </article>

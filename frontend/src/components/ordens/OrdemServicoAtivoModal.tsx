@@ -1,6 +1,6 @@
 import type { OrdemServico } from "../../types/api";
 
-export type AcaoAtivoOrdem = "inativar";
+export type AcaoAtivoOrdem = "inativar" | "reativar";
 
 interface OrdemServicoAtivoModalProps {
     ordem: OrdemServico | null;
@@ -19,19 +19,15 @@ function OrdemServicoAtivoModal({
     onFechar,
     onConfirmar,
 }: OrdemServicoAtivoModalProps) {
-    if (!ordem || !acao) {
-        return null;
-    }
+    if (!ordem || !acao) return null;
 
+    const inativar = acao === "inativar";
 
     return (
         <div
             className="ordem-modal-overlay"
             onMouseDown={(event) => {
-                if (
-                    event.target === event.currentTarget &&
-                    !processando
-                ) {
+                if (event.target === event.currentTarget && !processando) {
                     onFechar();
                 }
             }}
@@ -44,15 +40,13 @@ function OrdemServicoAtivoModal({
             >
                 <header className="ordem-modal-header">
                     <div>
-                        <span className="ordem-card-id">
-                            OS #{ordem.id}
-                        </span>
-
+                        <span className="ordem-card-id">OS #{ordem.id}</span>
                         <h2 id="ordem-ativo-titulo">
-                            Inativar ordem de serviço?
+                            {inativar
+                                ? "Inativar ordem de serviço?"
+                                : "Reativar ordem de serviço?"}
                         </h2>
                     </div>
-
                     <button
                         type="button"
                         className="ordem-modal-close"
@@ -66,13 +60,14 @@ function OrdemServicoAtivoModal({
 
                 <div className="ordem-modal-body">
                     <p>
-                        Confirma a inativação da OS <strong>#{ordem.id} — {ordem.titulo}</strong>?
+                        Confirma a {inativar ? "inativação" : "reativação"} da OS{" "}
+                        <strong>#{ordem.id} — {ordem.titulo}</strong>?
                     </p>
-
                     <p>
-                        A ordem será inativada permanentemente e retirada da listagem ativa. O registro e o histórico serão preservados; a inativação não poderá ser desfeita.
+                        {inativar
+                            ? "A ordem será retirada da listagem ativa, mas seu registro e histórico serão preservados. Um usuário autorizado poderá reativá-la posteriormente."
+                            : "A ordem voltará a aparecer na listagem de ordens ativas. O registro e o histórico serão preservados."}
                     </p>
-
                     {erro && (
                         <p
                             className="ordens-feedback ordens-feedback--error"
@@ -92,14 +87,17 @@ function OrdemServicoAtivoModal({
                     >
                         Cancelar
                     </button>
-
                     <button
                         type="button"
                         className="ordens-btn-primary"
                         onClick={() => void onConfirmar()}
                         disabled={processando}
                     >
-                        {processando ? "Processando..." : "Confirmar inativação"}
+                        {processando
+                            ? "Processando..."
+                            : inativar
+                              ? "Confirmar inativação"
+                              : "Confirmar reativação"}
                     </button>
                 </footer>
             </section>

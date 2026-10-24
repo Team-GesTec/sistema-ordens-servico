@@ -7,7 +7,7 @@ import { projetoService } from "../services/projeto";
 import type { Cliente, Departamento, Projeto, ProjetoDetalhe, ProjetoInput, StatusProjeto } from "../types/api";
 
 type FiltroStatus = "todos" | StatusProjeto;
-type AcaoAtivo = "inativar";
+type AcaoAtivo = "inativar" | "reativar";
 
 function mensagemErro(error: unknown, fallback: string): string {
     if (error instanceof ApiError) {
@@ -31,13 +31,11 @@ export function useProjetos() {
     const [mostrarInativos, setMostrarInativos] = useState(false);
     const [podeGerenciar, setPodeGerenciar] = useState(false);
     const [formularioAberto, setFormularioAberto] = useState(false);
-    const [modoDuplicacao, setModoDuplicacao] = useState(false);
     const [projetoEmEdicao, setProjetoEmEdicao] = useState<Projeto | null>(null);
     const [projetoSelecionado, setProjetoSelecionado] = useState<ProjetoDetalhe | null>(null);
     const [confirmacaoAtivo, setConfirmacaoAtivo] = useState<{ projeto: Projeto; acao: AcaoAtivo } | null>(null);
     const [mensagem, setMensagem] = useState<string | null>(null);
     const [erro, setErro] = useState<string | null>(null);
-
 
     useEffect(() => {
         let montado = true;
@@ -57,12 +55,14 @@ export function useProjetos() {
                 setDepartamentos(departamentosApi);
                 setCarregandoOpcoes(false);
                 setProjetosAtivos(projetosApi);
-                try {
-                    const inativos = await projetoService.listarInativos();
-                    if (montado) setProjetosInativos(inativos);
-                } catch (errorInativos) {
-                    // A consulta histórica é escopada pelo backend por perfil.
-                    if (montado) setErro(mensagemErro(errorInativos, "Não foi possível consultar projetos inativos."));
+                
+                if (gestor) {
+                    try {
+                        const inativos = await projetoService.listarInativos();
+                        if (montado) setProjetosInativos(inativos);
+                    } catch (errorInativos) {
+                        if (montado) setErro(mensagemErro(errorInativos, "Não foi possível consultar projetos inativos."));
+                    }
                 }
             } catch (error) {
                 if (montado) setErro(mensagemErro(error, "Não foi possível carregar os projetos."));
@@ -113,7 +113,6 @@ export function useProjetos() {
     function abrirCadastro() {
         if (!podeGerenciar || salvando) return;
         setProjetoEmEdicao(null);
-        setModoDuplicacao(false);
         limparFeedback();
         setFormularioAberto(true);
     }
@@ -121,19 +120,6 @@ export function useProjetos() {
     function iniciarEdicao(projeto: Projeto) {
         if (!podeGerenciar || salvando) return;
         setProjetoEmEdicao(projeto);
-        setModoDuplicacao(false);
-        setProjetoSelecionado(null);
-        limparFeedback();
-        setFormularioAberto(true);
-    }
-
-    function duplicarProjeto(projeto: Projeto) {
-        if (!podeGerenciar || salvando) {
-            setErro("Apenas gestores podem duplicar projetos.");
-            return;
-        }
-        setProjetoEmEdicao(projeto);
-        setModoDuplicacao(true);
         setProjetoSelecionado(null);
         limparFeedback();
         setFormularioAberto(true);
@@ -143,7 +129,6 @@ export function useProjetos() {
         if (salvando) return;
         setFormularioAberto(false);
         setProjetoEmEdicao(null);
-        setModoDuplicacao(false);
         setErro(null);
     }
 
@@ -157,7 +142,7 @@ export function useProjetos() {
         try {
             let salvo: Projeto;
             try {
-                salvo = projetoEmEdicao && !modoDuplicacao
+                salvo = projetoEmEdicao
                     ? await projetoService.atualizar(projetoEmEdicao.id, dados)
                     : await projetoService.criar(dados);
             } catch (error) {
@@ -166,16 +151,12 @@ export function useProjetos() {
             }
 
             // A API confirmou a gravação; falhas posteriores são apenas de atualização da tela.
-            const estavaEditando = projetoEmEdicao !== null && !modoDuplicacao;
-            const estavaDuplicando = modoDuplicacao;
+            const estavaEditando = projetoEmEdicao !== null;
             setFormularioAberto(false);
             setProjetoEmEdicao(null);
-            setModoDuplicacao(false);
             setMensagem(estavaEditando
                 ? `Projeto "${salvo.nome}" atualizado com sucesso.`
-                : estavaDuplicando
-                    ? `Projeto "${salvo.nome}" duplicado com sucesso.`
-                    : `Projeto "${salvo.nome}" cadastrado com sucesso.`);
+                : `Projeto "${salvo.nome}" cadastrado com sucesso.`);
 
             try {
                 await recarregarListas();
@@ -213,12 +194,13 @@ export function useProjetos() {
 
     async function confirmarAlteracaoAtivo(): Promise<void> {
         if (!podeGerenciar || !confirmacaoAtivo || alterandoAtivoId !== null) return;
-        const { projeto } = confirmacaoAtivo;
+        const { projeto, acao } = confirmacaoAtivo;
+        const ativo = acao === "reativar";
         setAlterandoAtivoId(projeto.id);
         limparFeedback();
         try {
             try {
-                await projetoService.inativar(projeto.id);
+                await projetoService.alterarAtivo(projeto.id, ativo);
             } catch (error) {
                 setErro(mensagemErro(error, "Não foi possível alterar o estado do projeto."));
                 return;
@@ -226,14 +208,16 @@ export function useProjetos() {
 
             // A mutação foi confirmada; não repetir a operação se algum GET falhar.
             setConfirmacaoAtivo(null);
-            setMensagem(`Projeto "${projeto.nome}" inativado com sucesso.`);
+            setMensagem(ativo
+                ? `Projeto "${projeto.nome}" reativado com sucesso.`
+                : `Projeto "${projeto.nome}" inativado com sucesso.`);
             try {
                 await recarregarListas();
                 if (projetoSelecionado?.id === projeto.id) {
                     setProjetoSelecionado(await projetoService.buscarPorId(projeto.id));
                 }
             } catch (error) {
-                setErro(`O projeto foi inativado com sucesso, mas não foi possível atualizar os dados exibidos. ${mensagemErro(error, "Falha ao recarregar a listagem ou os detalhes.")}`);
+                setErro(`O projeto foi ${ativo ? "reativado" : "inativado"} com sucesso, mas não foi possível atualizar os dados exibidos. ${mensagemErro(error, "Falha ao recarregar a listagem ou os detalhes.")}`);
             }
         } finally {
             setAlterandoAtivoId(null);
@@ -241,6 +225,7 @@ export function useProjetos() {
     }
 
     async function alternarInativos(): Promise<void> {
+        if (!podeGerenciar) return;
         limparFeedback();
         const exibir = !mostrarInativos;
         setMostrarInativos(exibir);
@@ -273,7 +258,6 @@ export function useProjetos() {
         podeGerenciar,
         formularioAberto,
         projetoEmEdicao,
-        modoDuplicacao,
         projetoSelecionado,
         setProjetoSelecionado,
         confirmacaoAtivo,
@@ -281,7 +265,6 @@ export function useProjetos() {
         erro,
         abrirCadastro,
         iniciarEdicao,
-        duplicarProjeto,
         fecharFormulario,
         salvarProjeto,
         abrirDetalhes,

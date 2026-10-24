@@ -1,6 +1,13 @@
 import { useRef, useState } from "react";
-import type { Cliente, Departamento, Funcionario, OrdemServico, StatusOrdemServico } from "../../types/api";
 import { Link } from "react-router-dom";
+import type {
+    Cliente,
+    Departamento,
+    Funcionario,
+    OrdemServico,
+    StatusOrdemServico,
+} from "../../types/api";
+import type { AcaoAtivoOrdem } from "./OrdemServicoAtivoModal";
 import {
     CRITICIDADE_LABELS,
     STATUS_LABELS,
@@ -18,12 +25,15 @@ interface OrdemServicoCardProps {
     funcionarios?: Funcionario[];
     modoKanban?: boolean;
     opcoesStatusMovimentacao?: StatusOrdemServico[];
-    onMoverStatus?: (ordem: OrdemServico, status: StatusOrdemServico) => void | Promise<void>;
+    onMoverStatus?: (
+        ordem: OrdemServico,
+        status: StatusOrdemServico,
+    ) => void | Promise<void>;
     onInicioArrasto?: (ordem: OrdemServico) => void;
     onFimArrasto?: () => void;
     onAbrir: (ordem: OrdemServico) => void;
     onEditar: (ordem: OrdemServico) => void;
-    onAlterarAtivo: (ordem: OrdemServico, acao: "inativar") => void;
+    onAlterarAtivo: (ordem: OrdemServico, acao: AcaoAtivoOrdem) => void;
 }
 
 function OrdemServicoCard({
@@ -44,8 +54,9 @@ function OrdemServicoCard({
 }: OrdemServicoCardProps) {
     const [statusDestino, setStatusDestino] = useState<StatusOrdemServico | "">("");
     const seletorDestinoRef = useRef<HTMLSelectElement>(null);
+
     const podeEditarEstaOrdem =
-        podeEditar && ordem.status !== "concluido" && ordem.status !== "bloqueado";
+        podeEditar && ordem.ativo && ordem.status !== "concluido" && ordem.status !== "bloqueado";
     const criticidade = ordem.criticidade ?? "indefinida";
     const criticidadeLabel = ordem.criticidade
         ? CRITICIDADE_LABELS[ordem.criticidade]
@@ -54,7 +65,8 @@ function OrdemServicoCard({
     const departamento = departamentos.find((item) => item.id === ordem.departamento_id);
     const responsavel = funcionarios.find((item) => item.id === ordem.responsavel_id);
     const atrasada = ordemEstaAtrasada(ordem);
-    const podeMoverNesteQuadro = modoKanban && opcoesStatusMovimentacao.length > 0 && Boolean(onMoverStatus);
+    const podeMoverNesteQuadro =
+        modoKanban && ordem.ativo && opcoesStatusMovimentacao.length > 0 && Boolean(onMoverStatus);
 
     return (
         <article className={`projeto-card ordem-card ordem-card--${criticidade}`}>
@@ -72,6 +84,7 @@ function OrdemServicoCard({
                         <span className={`ordem-status-badge ordem-status-badge--${ordem.status}`}>
                             {STATUS_LABELS[ordem.status]}
                         </span>
+                        {!ordem.ativo && <span className="ordem-responsavel-inativo">Inativa</span>}
                         <span
                             className={`ordem-card-priority-dot ordem-card-priority-dot--${criticidade}`}
                             role="img"
@@ -109,7 +122,7 @@ function OrdemServicoCard({
 
             <div className="ordem-card-footer">
                 <span>
-                    Cliente: {" "}
+                    Cliente:{" "}
                     {cliente ? (
                         <Link to={`/clientes?visualizar=${cliente.id}`} className="ordem-relacionamento-link">
                             {cliente.nome}
@@ -121,7 +134,7 @@ function OrdemServicoCard({
                     )}
                 </span>
                 <span>
-                    Departamento: {" "}
+                    Departamento:{" "}
                     {departamento ? (
                         <Link to={`/departamentos?visualizar=${departamento.id}`} className="ordem-relacionamento-link">
                             {departamento.nome}
@@ -134,8 +147,8 @@ function OrdemServicoCard({
                     Responsável: {responsavel
                         ? `${responsavel.nome || `Funcionário #${responsavel.id}`}${!responsavel.ativo ? " (inativo)" : ""}`
                         : ordem.responsavel_id !== null
-                            ? `Funcionário #${ordem.responsavel_id}`
-                            : "Não atribuído"}
+                          ? `Funcionário #${ordem.responsavel_id}`
+                          : "Não atribuído"}
                 </span>
             </div>
 
@@ -148,13 +161,18 @@ function OrdemServicoCard({
                                     Editar
                                 </button>
                             )}
-                            {ordem.ativo && (
+                            {ordem.ativo ? (
                                 <button type="button" className="projeto-btn-secondary" onClick={() => onAlterarAtivo(ordem, "inativar")} disabled={bloqueado}>
                                     Inativar
+                                </button>
+                            ) : (
+                                <button type="button" className="projeto-btn-primary" onClick={() => onAlterarAtivo(ordem, "reativar")} disabled={bloqueado}>
+                                    Reativar
                                 </button>
                             )}
                         </>
                     )}
+
                     {podeMoverNesteQuadro && (
                         <div className="ordem-kanban-mover">
                             <button
@@ -174,7 +192,9 @@ function OrdemServicoCard({
                             >
                                 ⠿ Arrastar
                             </button>
-                            <label className="ordem-kanban-sr-only" htmlFor={`ordem-kanban-destino-${ordem.id}`}>Mover O.S. #{ordem.id} para status</label>
+                            <label className="ordem-kanban-sr-only" htmlFor={`ordem-kanban-destino-${ordem.id}`}>
+                                Mover O.S. #{ordem.id} para status
+                            </label>
                             <select
                                 ref={seletorDestinoRef}
                                 id={`ordem-kanban-destino-${ordem.id}`}

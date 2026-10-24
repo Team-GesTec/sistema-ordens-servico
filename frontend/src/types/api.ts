@@ -1,4 +1,10 @@
-export type PerfilFuncionario = "gestor" | "tecnico" | "analista";
+/**
+ * Define os tipos e contratos de dados utilizados na comunicação
+ * entre o frontend e a API, seguindo o formato snake_case do backend.
+ * AJ-06: OrdemServicoInput aceita os campos opcionais do cadastro de O.S. antiga.
+ */
+
+export type PerfilFuncionario = "gestor" | "analista" | "tecnico";
 
 export type StatusProjeto =
     | "em_planejamento"
@@ -142,10 +148,13 @@ export interface OrdemServico {
     status: StatusOrdemServico;
     ativo: boolean;
     data_criacao: string;
-    data_inicio: string | null;
+    /** US#3.2: Disponibiliza as datas usadas no cálculo dos alertas de SLA. */
+    data_inicio?: string | null;
     data_fim: string | null;
-    data_limite_sla: string | null;
+    /** Prazo final (SLA) devolvido pela API; ISO ou null quando não definido. */
+    data_limite_sla?: string | null;
     prazo_dias_uteis?: number | null;
+    sla_manual?: boolean;
     /** Preenchido somente no endpoint de detalhes, a partir da auditoria existente. */
     data_ultima_atualizacao?: string | null;
 }
@@ -159,9 +168,12 @@ export interface OrdemServicoInput {
     projeto_id: number | null;
     anterior_id: number | null;
     criticidade: string | null;
-    /** Data/hora de abertura informada no cadastro; ausente mantém o padrão atual da API. */
+    responsavel_id?: number;
+    /** AJ-06 — cadastro de O.S. antiga (somente gestor): data de abertura no passado, em ISO. */
     data_criacao?: string;
-    /** Prazo de conclusão opcional; null/vazio remove um prazo existente. */
+    /** US#3.2: Define as datas necessárias para calcular os alertas de SLA. */
+    data_inicio?: string | null;
+    /** Prazo de conclusão opcional / Prazo final (SLA); null/vazio remove um prazo existente. */
     data_limite_sla?: string | null;
     /** AJ-06 — status atual da O.S. antiga. */
     status?: StatusOrdemServico;
@@ -170,7 +182,6 @@ export interface OrdemServicoInput {
     /** AJ-06 — data de conclusão (ISO), obrigatória quando a O.S. antiga já está concluída. */
     data_fim?: string;
 }
-
 
 /** Registro real e imutável da auditoria de uma O.S. (nunca inclui credenciais). */
 export interface HistoricoOrdemServico {

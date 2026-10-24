@@ -13,7 +13,6 @@ export interface DadosFormularioFuncionario {
 interface FuncionarioFormModalProps {
     aberto: boolean;
     funcionario: Funcionario | null;
-    modoDuplicacao?: boolean;
     departamentos: Departamento[];
     salvando: boolean;
     carregandoOpcoes: boolean;
@@ -33,7 +32,6 @@ const FORM_INICIAL: DadosFormularioFuncionario = {
 export default function FuncionarioFormModal({
     aberto,
     funcionario,
-    modoDuplicacao = false,
     departamentos,
     salvando,
     carregandoOpcoes,
@@ -46,13 +44,7 @@ export default function FuncionarioFormModal({
 
     useEffect(() => {
         if (!aberto) return;
-        setForm(funcionario ? modoDuplicacao ? {
-            nome: funcionario.nome,
-            usuario: "",
-            departamento_id: null,
-            tipo: "tecnico",
-            senha: "",
-        } : {
+        setForm(funcionario ? {
             nome: funcionario.nome,
             usuario: funcionario.usuario,
             departamento_id: funcionario.departamento_id,
@@ -60,13 +52,14 @@ export default function FuncionarioFormModal({
             senha: "",
         } : FORM_INICIAL);
         setErroLocal(null);
-    }, [aberto, funcionario, modoDuplicacao]);
+    }, [aberto, funcionario]);
 
     if (!aberto) return null;
 
     const departamentosElegiveis = form.tipo === 'tecnico'
         ? departamentos.filter((departamento) => departamento.responsavel_id !== null)
         : departamentos;
+        
     const departamentoOptions: AutocompleteOption[] = departamentosElegiveis.map((departamento) => ({
         value: departamento.id,
         label: departamento.nome,
@@ -77,10 +70,10 @@ export default function FuncionarioFormModal({
         event.preventDefault();
         setErroLocal(null);
         if (!form.nome.trim() || !form.usuario.trim() || form.departamento_id === null) {
-            setErroLocal("Preencha nome, usuário e departamento.");
+            setErroLocal("Preencha nome, usuario y departamento.");
             return;
         }
-        if ((!funcionario || modoDuplicacao) && form.senha.length < 8) {
+        if (!funcionario && form.senha.length < 8) {
             setErroLocal("A senha deve ter pelo menos 8 caracteres.");
             return;
         }
@@ -97,7 +90,7 @@ export default function FuncionarioFormModal({
                 <header className="projeto-modal-header">
                     <div>
                         <span className="projetos-eyebrow">GESTÃO DE ACESSOS</span>
-                        <h2 id="funcionario-form-title">{modoDuplicacao ? "Duplicar funcionário — revisar dados" : funcionario ? "Editar funcionário" : "Novo funcionário"}</h2>
+                        <h2 id="funcionario-form-title">{funcionario ? "Editar funcionário" : "Novo funcionário"}</h2>
                         <p>Dados de acesso, perfil e departamento do colaborador.</p>
                     </div>
                     <button type="button" className="projeto-modal-close" onClick={onClose} disabled={salvando} aria-label="Fechar formulário">×</button>
@@ -127,14 +120,14 @@ export default function FuncionarioFormModal({
                             </select>
                         </div>
                         <div className="projeto-field projeto-field--wide">
-                            <label htmlFor="funcionario-senha">{funcionario && !modoDuplicacao ? "Nova senha (opcional)" : "Senha *"}</label>
-                            <input id="funcionario-senha" type="password" value={form.senha} onChange={(event) => setForm((atual) => ({ ...atual, senha: event.target.value }))} minLength={8} required={!funcionario || modoDuplicacao} disabled={salvando} autoComplete="new-password" placeholder={funcionario && !modoDuplicacao ? "Deixe vazio para manter a senha atual" : "Mínimo de 8 caracteres"} />
-                            {funcionario && !modoDuplicacao && <small>Por segurança, a senha atual nunca é exibida. Deixe vazio para mantê-la.</small>}
+                            <label htmlFor="funcionario-senha">{funcionario ? "Nova senha (opcional)" : "Senha *"}</label>
+                            <input id="funcionario-senha" type="password" value={form.senha} onChange={(event) => setForm((atual) => ({ ...atual, senha: event.target.value }))} minLength={8} required={!funcionario} disabled={salvando} autoComplete="new-password" placeholder={funcionario ? "Deixe vazio para manter a senha atual" : "Mínimo de 8 caracteres"} />
+                            {funcionario && <small>Por segurança, a senha atual nunca é exibida. Deixe vazio para mantê-la.</small>}
                         </div>
                     </div>
                     <footer className="projeto-modal-actions">
                         <button type="button" className="projeto-btn-secondary" onClick={onClose} disabled={salvando}>Cancelar</button>
-                        <button type="submit" className="projeto-btn-primary" disabled={salvando || carregandoOpcoes}>{salvando ? "Salvando..." : modoDuplicacao ? "Criar novo funcionário" : funcionario ? "Salvar alterações" : "Cadastrar funcionário"}</button>
+                        <button type="submit" className="projeto-btn-primary" disabled={salvando || carregandoOpcoes}>{salvando ? "Salvando..." : funcionario ? "Salvar alterações" : "Cadastrar funcionário"}</button>
                     </footer>
                 </form>
             </section>

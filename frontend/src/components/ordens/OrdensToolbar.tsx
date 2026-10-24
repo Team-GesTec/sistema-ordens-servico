@@ -14,19 +14,16 @@ interface OrdensToolbarProps {
     filtroStatus: FiltroStatusOrdem;
     onFiltroStatusChange: (valor: FiltroStatusOrdem) => void;
     ordens: OrdemServico[];
-    funcionarios: Funcionario[];
-    filtroResponsavelId: FiltroResponsavelOrdem;
-    onFiltroResponsavelChange: (valor: FiltroResponsavelOrdem) => void;
-    onLimparFiltros: () => void;
-    temFiltrosAplicados: boolean;
+    funcionarios?: Funcionario[];
+    filtroResponsavelId?: FiltroResponsavelOrdem;
+    onFiltroResponsavelChange?: (valor: FiltroResponsavelOrdem) => void;
+    onLimparFiltros?: () => void;
+    temFiltrosAplicados?: boolean;
+    visualizacoesSalvas?: ReactNode;
+    podeGerenciar?: boolean;
     mostrarInativas: boolean;
     carregandoInativas: boolean;
     onAlternarInativas: () => void;
-    onExportarCSV: () => void;
-    exportandoCSV: boolean;
-    onExportarXLSX: () => void;
-    exportandoXLSX: boolean;
-    visualizacoesSalvas: ReactNode;
 }
 
 function OrdensToolbar({
@@ -35,48 +32,65 @@ function OrdensToolbar({
     filtroStatus,
     onFiltroStatusChange,
     ordens,
-    funcionarios,
-    filtroResponsavelId,
+    funcionarios = [],
+    filtroResponsavelId = "todos",
     onFiltroResponsavelChange,
     onLimparFiltros,
-    temFiltrosAplicados,
+    temFiltrosAplicados = false,
+    visualizacoesSalvas,
+    podeGerenciar = true,
     mostrarInativas,
     carregandoInativas,
     onAlternarInativas,
-    visualizacoesSalvas,
 }: OrdensToolbarProps) {
     const [sugestoesAbertas, setSugestoesAbertas] = useState(false);
     const termoBusca = busca.trim();
 
+    const textoResponsavel = (ordem: OrdemServico): string => {
+        const responsavel = funcionarios.find(
+            (item) => item.id === ordem.responsavel_id,
+        );
+        return responsavel ? `${responsavel.nome} ${responsavel.usuario}` : "";
+    };
+
     const sugestoes = useMemo(() => {
         if (!termoBusca || /^#\d+$/.test(termoBusca)) return [];
-        return ordens.filter((ordem) => {
-            const responsavel = funcionarios.find((item) => item.id === ordem.responsavel_id);
-            const textoResponsavel = responsavel ? `${responsavel.nome} ${responsavel.usuario}` : "";
-            return correspondeBuscaOrdem(ordem, termoBusca, textoResponsavel);
-        }).slice(0, 6);
+        return ordens
+            .filter((ordem) =>
+                correspondeBuscaOrdem(ordem, termoBusca, textoResponsavel(ordem)),
+            )
+            .slice(0, 6);
+    // A lista depende também do conjunto de funcionários usados na pesquisa.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [ordens, funcionarios, termoBusca]);
 
     const filtros: { value: FiltroStatusOrdem; label: string }[] = [
         { value: "todos", label: "Todas" },
         ...Object.entries(STATUS_LABELS).map(([value, label]) => ({
-            value: value as keyof typeof STATUS_LABELS,
+            value: value as FiltroStatusOrdem,
             label,
         })),
     ];
 
+    function correspondeResponsavel(ordem: OrdemServico): boolean {
+        if (filtroResponsavelId === "todos") return true;
+        if (filtroResponsavelId === "sem_responsavel") {
+            return ordem.responsavel_id === null;
+        }
+        return ordem.responsavel_id === filtroResponsavelId;
+    }
+
+    function correspondeBuscaEResponsavel(ordem: OrdemServico): boolean {
+        return (
+            correspondeResponsavel(ordem) &&
+            correspondeBuscaOrdem(ordem, busca, textoResponsavel(ordem))
+        );
+    }
+
     function contar(status: FiltroStatusOrdem): number {
         return ordens.filter((ordem) => {
-            const correspondeStatus = status === "todos" || ordem.status === status;
-            const correspondeResponsavel = filtroResponsavelId === "todos"
-                || (filtroResponsavelId === "sem_responsavel"
-                    ? ordem.responsavel_id === null
-                    : ordem.responsavel_id === filtroResponsavelId);
-            const responsavel = funcionarios.find((item) => item.id === ordem.responsavel_id);
-            const textoResponsavel = responsavel ? `${responsavel.nome} ${responsavel.usuario}` : "";
-            return correspondeStatus && correspondeResponsavel
-                && correspondeBuscaOrdem(ordem, busca, textoResponsavel)
-;
+            const statusCorresponde = status === "todos" || ordem.status === status;
+            return statusCorresponde && correspondeBuscaEResponsavel(ordem);
         }).length;
     }
 
@@ -91,9 +105,14 @@ function OrdensToolbar({
     ];
 
     function alterarFiltroResponsavel(valor: number | string | null) {
+        if (!onFiltroResponsavelChange) return;
         if (valor === "sem_responsavel") {
             onFiltroResponsavelChange("sem_responsavel");
-        } else if (typeof valor === "number" && Number.isSafeInteger(valor) && valor > 0) {
+        } else if (
+            typeof valor === "number" &&
+            Number.isSafeInteger(valor) &&
+            valor > 0
+        ) {
             onFiltroResponsavelChange(valor);
         } else {
             onFiltroResponsavelChange("todos");
@@ -101,7 +120,10 @@ function OrdensToolbar({
     }
 
     return (
-        <section className="projetos-toolbar ordens-toolbar-modern" aria-label="Busca e filtros de ordens de serviço">
+        <section
+            className="projetos-toolbar ordens-toolbar-modern"
+            aria-label="Busca e filtros de ordens de serviço"
+        >
             <div className="ordens-toolbar-top">
                 <div className="ordens-search-wrapper projetos-search-wrap ordens-search-field">
                     <label htmlFor="ordens-busca">Pesquisar ordens de serviço</label>
@@ -128,7 +150,12 @@ function OrdensToolbar({
                     />
 
                     {sugestoesAbertas && termoBusca && sugestoes.length > 0 && (
-                        <div id="ordens-sugestoes" className="ordens-sugestoes" role="listbox" aria-label="Sugestões de ordens de serviço">
+                        <div
+                            id="ordens-sugestoes"
+                            className="ordens-sugestoes"
+                            role="listbox"
+                            aria-label="Sugestões de ordens de serviço"
+                        >
                             {sugestoes.map((ordem) => (
                                 <button
                                     key={ordem.id}
@@ -154,45 +181,29 @@ function OrdensToolbar({
                     )}
                 </div>
 
-                <button
-                    type="button"
-                    className="projeto-btn-secondary ordens-inativos-toggle"
-                    onClick={onAlternarInativas}
-                    disabled={carregandoInativas}
-                    aria-pressed={mostrarInativas}
-                >
-                    {carregandoInativas
-                        ? "Carregando..."
-                        : mostrarInativas
-                          ? "Ver OS ativas"
-                          : "Ver OS inativas"}
-                </button>
-                {/* Exportação CSV/XLSX temporariamente desativada no frontend.
-                <button
-                    type="button"
-                    className="projeto-btn-secondary ordens-export-csv"
-                    onClick={onExportarCSV}
-                    disabled={exportandoCSV || !prazoValido}
-                    aria-busy={exportandoCSV}
-                    aria-describedby={!prazoValido ? "ordens-prazo-validation" : undefined}
-                >
-                    {exportandoCSV ? "Gerando CSV..." : "Exportar CSV"}
-                </button>
-                <button
-                    type="button"
-                    className="projeto-btn-secondary ordens-export-xlsx"
-                    onClick={onExportarXLSX}
-                    disabled={exportandoXLSX || !prazoValido}
-                    aria-busy={exportandoXLSX}
-                    aria-describedby={!prazoValido ? "ordens-prazo-validation" : undefined}
-                >
-                    {exportandoXLSX ? "Gerando XLSX..." : "Exportar Excel (.xlsx)"}
-                </button>
-                */}
+                {podeGerenciar && (
+                    <button
+                        type="button"
+                        className="projeto-btn-secondary ordens-inativos-toggle"
+                        onClick={onAlternarInativas}
+                        disabled={carregandoInativas}
+                        aria-pressed={mostrarInativas}
+                    >
+                        {carregandoInativas
+                            ? "Carregando..."
+                            : mostrarInativas
+                              ? "Ver OS ativas"
+                              : "Ver OS inativas"}
+                    </button>
+                )}
             </div>
 
             <div className="ordens-toolbar-filters">
-                <div className="ordens-status-filters" role="group" aria-label="Filtrar ordens por status">
+                <div
+                    className="ordens-status-filters"
+                    role="group"
+                    aria-label="Filtrar ordens por status"
+                >
                     {filtros.map((filtro) => (
                         <button
                             key={filtro.value}
@@ -206,25 +217,32 @@ function OrdensToolbar({
                         </button>
                     ))}
                 </div>
-                <div className="ordens-responsavel-filter">
-                    <label htmlFor="ordens-responsavel-filter">Responsável</label>
-                    <Autocomplete
-                        id="ordens-responsavel-filter"
-                        options={opcoesResponsavel}
-                        value={filtroResponsavelId}
-                        onChange={alterarFiltroResponsavel}
-                        placeholder="Todos os responsáveis"
-                        emptyMessage="Nenhum funcionário encontrado."
-                    />
-                </div>
-                {temFiltrosAplicados && (
-                    <button type="button" className="projeto-btn-secondary ordens-clear-filters" onClick={onLimparFiltros}>
+
+                {onFiltroResponsavelChange && (
+                    <div className="ordens-responsavel-filter">
+                        <label htmlFor="ordens-responsavel-filter">Responsável</label>
+                        <Autocomplete
+                            id="ordens-responsavel-filter"
+                            options={opcoesResponsavel}
+                            value={filtroResponsavelId}
+                            onChange={alterarFiltroResponsavel}
+                            placeholder="Todos os responsáveis"
+                            emptyMessage="Nenhum funcionário encontrado."
+                        />
+                    </div>
+                )}
+
+                {temFiltrosAplicados && onLimparFiltros && (
+                    <button
+                        type="button"
+                        className="projeto-btn-secondary ordens-clear-filters"
+                        onClick={onLimparFiltros}
+                    >
                         Limpar filtros
                     </button>
                 )}
                 {visualizacoesSalvas}
             </div>
-
         </section>
     );
 }

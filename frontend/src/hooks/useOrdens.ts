@@ -1,3 +1,11 @@
+/**
+ * Hook da tela de O.S.: carrega ordens, clientes, departamentos e projetos, controla filtros, modais
+ * e permissões por perfil, e integra com a API para cadastrar, editar, alterar status e ativar/inativar.
+ *
+ * AJ-06: o cadastro de O.S. antiga (com data de abertura) é aceito só para o gestor; após o sucesso,
+ * abre o detalhe da O.S. com os dados reais devolvidos pela API (abertura e SLA calculados no backend).
+ */
+
 import { useEffect, useMemo, useState } from "react";
 import { authService, getStoredUser } from "../services/auth";
 import { ApiError } from "../services/api";
@@ -28,6 +36,7 @@ function mensagemErro(error: unknown, fallback: string): string {
 export function useOrdens() {
     const [ordens, setOrdens] = useState<OrdemServico[]>([]);
     const [alterandoStatusId, setAlterandoStatusId] = useState<number | null>(null);
+    const [alterandoPrazo, setAlterandoPrazo] = useState(false);
     const [ordensInativas, setOrdensInativas] = useState<OrdemServico[]>([]);
     const [carregandoInativas, setCarregandoInativas] = useState(false);
     const [mostrarInativas, setMostrarInativas] = useState(false);
@@ -58,8 +67,6 @@ export function useOrdens() {
     const [formularioAberto, setFormularioAberto] = useState(false);
     const [ordemEmEdicao, setOrdemEmEdicao] =
         useState<OrdemServico | null>(null);
-    const [ordemParaDuplicar, setOrdemParaDuplicar] =
-        useState<OrdemServico | null>(null);
 
     const [detalhesAbertos, setDetalhesAbertos] = useState(false);
     const [ordemSelecionada, setOrdemSelecionada] =
@@ -70,10 +77,6 @@ export function useOrdens() {
     const [perfilGestor, setPerfilGestor] = useState(
         () => getStoredUser()?.tipo === "gestor",
     );
-    const [perfilTecnico, setPerfilTecnico] = useState(
-        () => getStoredUser()?.tipo === "tecnico",
-    );
-    const [salvandoParecerTecnicoId, setSalvandoParecerTecnicoId] = useState<number | null>(null);
 
     const [usuarioAtualId, setUsuarioAtualId] = useState<number | null>(
         () => getStoredUser()?.id ?? null,
@@ -86,13 +89,9 @@ export function useOrdens() {
 
     const [mensagem, setMensagem] = useState<string | null>(null);
     const [erro, setErro] = useState<string | null>(null);
-    const [exportandoCsv, setExportandoCsv] = useState(false);
-    const [exportandoXlsx, setExportandoXlsx] = useState(false);
-    const [baixandoRelatorioId, setBaixandoRelatorioId] = useState<number | null>(null);
 
     const podeGerenciar = perfilGestor;
     const podeOperarDepartamento = podeGerenciar;
-    const podeDuplicarOrdem = podeGerenciar;
     const funcionarioAtualAtivo = funcionariosAtivos.find(
         (funcionario) => funcionario.id === usuarioAtualId && funcionario.ativo,
     );
@@ -123,15 +122,12 @@ export function useOrdens() {
                         setUsuarioAtualId(usuario.id);
 
                         gestor = usuario.tipo === "gestor";
-                        setPerfilTecnico(usuario.tipo === "tecnico");
                         podeCriarOS =
                             usuario.tipo === "gestor" ||
                             usuario.tipo === "tecnico";
-
                     } catch {
                         setUsuarioAtualId(null);
                         gestor = false;
-                        setPerfilTecnico(false);
                         podeCriarOS = false;
                     }
                 }
@@ -151,14 +147,16 @@ export function useOrdens() {
                 // Dados auxiliares para mostrar vínculos históricos e permitir reatribuição. Falhas
                 // nesses endpoints não devem impedir a listagem principal das O.S.
                 let projetosConhecidos = projetosApi;
-                try {
-                    const projetosInativosApi = await projetoService.listarInativos();
-                    projetosConhecidos = [...projetosApi, ...projetosInativosApi];
-                } catch (error) {
-                    if (ativo) setErro(mensagemErro(
-                        error,
-                        "Não foi possível carregar os projetos inativos associados a ordens existentes.",
-                    ));
+                if (gestor) {
+                    try {
+                        const projetosInativosApi = await projetoService.listarInativos();
+                        projetosConhecidos = [...projetosApi, ...projetosInativosApi];
+                    } catch (error) {
+                        if (ativo) setErro(mensagemErro(
+                            error,
+                            "Não foi possível carregar os projetos inativos associados a ordens existentes.",
+                        ));
+                    }
                 }
 
                 let funcionariosAtivosApi: Funcionario[] = [];
@@ -166,14 +164,16 @@ export function useOrdens() {
                 try {
                     funcionariosAtivosApi = await funcionarioService.listar();
                     funcionariosHistoricos = funcionariosAtivosApi;
-                    try {
-                        const funcionariosInativosApi = await funcionarioService.listarInativos();
-                        funcionariosHistoricos = [...funcionariosAtivosApi, ...funcionariosInativosApi];
-                    } catch (error) {
-                        if (ativo) setErro(mensagemErro(
-                            error,
-                            "Não foi possível carregar os responsáveis inativos para consulta histórica.",
-                        ));
+                    if (gestor) {
+                        try {
+                            const funcionariosInativosApi = await funcionarioService.listarInativos();
+                            funcionariosHistoricos = [...funcionariosAtivosApi, ...funcionariosInativosApi];
+                        } catch (error) {
+                            if (ativo) setErro(mensagemErro(
+                                error,
+                                "Não foi possível carregar os responsáveis inativos para consulta histórica.",
+                            ));
+                        }
                     }
                 } catch (error) {
                     if (ativo) setErro(mensagemErro(
@@ -260,35 +260,14 @@ export function useOrdens() {
         }
 
         setOrdemEmEdicao(null);
-        setOrdemParaDuplicar(null);
         setErro(null);
         setMensagem(null);
-        setFormularioAberto(true);
-    }
-
-    function duplicarOrdem(origem: OrdemServico) {
-        if (!podeDuplicarOrdem || !podeCriar) {
-            setErro("Somente Gestor/Admin pode duplicar O.S.; Técnicos não podem duplicá-las.");
-            return;
-        }
-        if (!ordemSelecionada || ordemSelecionada.id !== origem.id) {
-            setErro("Abra os detalhes autorizados da O.S. antes de iniciar a duplicação.");
-            return;
-        }
-
-        setOrdemEmEdicao(null);
-        setOrdemParaDuplicar(origem);
-        setErro(null);
-        setMensagem(null);
-        setDetalhesAbertos(false);
-        setOrdemSelecionada(null);
-        setStatusSolicitadoDetalhes(null);
         setFormularioAberto(true);
     }
 
     function iniciarEdicao(ordem: OrdemServico) {
-        if (!podeOperarDepartamento) {
-            setErro("Apenas Gestor/Admin pode editar ordens de serviço.");
+        if (!podeGerenciar) {
+            setErro("Apenas gestores podem editar ordens de serviço.");
             return;
         }
 
@@ -301,7 +280,6 @@ export function useOrdens() {
         }
 
         setOrdemEmEdicao(ordem);
-        setOrdemParaDuplicar(null);
         setErro(null);
         setMensagem(null);
         setFormularioAberto(true);
@@ -312,7 +290,6 @@ export function useOrdens() {
 
         setFormularioAberto(false);
         setOrdemEmEdicao(null);
-        setOrdemParaDuplicar(null);
         setErro(null);
     }
 
@@ -322,6 +299,11 @@ export function useOrdens() {
     }
 
     async function carregarOrdensInativas(): Promise<void> {
+        if (!podeGerenciar) {
+            setErro("Apenas gestores podem consultar ordens inativas.");
+            return;
+        }
+
         setCarregandoInativas(true);
         setErro(null);
 
@@ -344,8 +326,8 @@ export function useOrdens() {
         ordem: OrdemServico,
         acao: "inativar",
     ): void {
-        if (!podeOperarDepartamento) {
-            setErro("Apenas Gestor/Admin pode inativar ordens.");
+        if (!podeGerenciar) {
+            setErro("Apenas gestores podem inativar ordens.");
             return;
         }
 
@@ -367,7 +349,7 @@ export function useOrdens() {
     }
 
     async function confirmarAlteracaoAtivo(): Promise<void> {
-        if (!podeOperarDepartamento || !confirmacaoAtivo || inativandoId !== null) {
+        if (!podeGerenciar || !confirmacaoAtivo || inativandoId !== null) {
             return;
         }
 
@@ -378,7 +360,7 @@ export function useOrdens() {
         setMensagem(null);
 
         try {
-            await ordemServicoService.inativar(ordem.id);
+            await ordemServicoService.alterarAtivo(ordem.id, false);
 
             setMensagem(`OS #${ordem.id} inativada com sucesso.`);
 
@@ -440,7 +422,7 @@ export function useOrdens() {
 
             // Se a navegação veio do histórico de um projeto para uma O.S. inativa,
             // mantenha a lista de O.S. inativas selecionada e atualize-a em segundo plano.
-            if (!detalhe.ativo) {
+            if (!detalhe.ativo && podeGerenciar) {
                 setMostrarInativas(true);
                 void carregarOrdensInativas();
             }
@@ -591,40 +573,6 @@ export function useOrdens() {
         await executarAlteracaoStatus(ordemSelecionada, novoStatus, parecerTecnico);
     }
 
-    async function salvarParecerTecnicoOrdem(parecerTecnico: string): Promise<void> {
-        const ordem = ordemSelecionada;
-        if (!ordem) return;
-        if (!perfilTecnico || !usuarioAtualId || ordem.responsavel_id !== usuarioAtualId) {
-            setErro("Somente o Técnico responsável pode salvar o parecer técnico de forma independente.");
-            return;
-        }
-        if (!ordem.ativo || ordem.status === "bloqueado" || ordem.status === "concluido") {
-            setErro("O parecer não pode ser alterado em uma O.S. inativa, bloqueada ou concluída.");
-            return;
-        }
-        if (parecerTecnico.length > 1000) {
-            setErro("O parecer técnico deve ter no máximo 1.000 caracteres.");
-            return;
-        }
-
-        setSalvandoParecerTecnicoId(ordem.id);
-        setErro(null);
-        setMensagem(null);
-        try {
-            const atualizada = await ordemServicoService.salvarParecerTecnico(ordem.id, parecerTecnico);
-            const fallbackDetalhe = { ...ordem, ...atualizada };
-            setOrdens((atuais) => atuais.map((item) => item.id === atualizada.id ? atualizada : item));
-            setOrdensInativas((atuais) => atuais.map((item) => item.id === atualizada.id ? atualizada : item));
-            setOrdemSelecionada(fallbackDetalhe);
-            setMensagem(`Parecer técnico da O.S. #${atualizada.id} salvo. O status e os demais campos foram preservados.`);
-            await recarregarDetalheAposMutacao(atualizada, fallbackDetalhe);
-        } catch (error) {
-            setErro(mensagemErro(error, "Não foi possível salvar o parecer técnico."));
-        } finally {
-            setSalvandoParecerTecnicoId(null);
-        }
-    }
-
     function podeMoverOrdemParaStatus(ordem: OrdemServico, destino: StatusOrdemServico): boolean {
         if (
             !ordem.ativo ||
@@ -676,52 +624,67 @@ export function useOrdens() {
         await executarAlteracaoStatus(ordem, destino);
     }
 
-    async function exportarCSV(): Promise<void> {
-        setExportandoCsv(true);
-        setErro(null);
-        try {
-            await ordemServicoService.exportarCSV({
-                busca,
-                status: filtroStatus,
-                responsavel_id: filtroResponsavelId === "todos" ? undefined : filtroResponsavelId,
-                inativas: mostrarInativas,
-            });
-            setMensagem("Arquivo CSV gerado com os filtros atuais e o escopo de acesso autorizado.");
-        } catch (error) {
-            setErro(mensagemErro(error, "Não foi possível gerar a exportação CSV."));
-        } finally {
-            setExportandoCsv(false);
-        }
-    }
+    async function alterarPrazoOrdem(
+        novoPrazo: string,
+        justificativa: string,
+    ): Promise<void> {
+        const ordem = ordemSelecionada;
 
-    async function exportarXLSX(): Promise<void> {
-        setExportandoXlsx(true);
-        setErro(null);
-        try {
-            await ordemServicoService.exportarXLSX({
-                busca,
-                status: filtroStatus,
-                responsavel_id: filtroResponsavelId === "todos" ? undefined : filtroResponsavelId,
-                inativas: mostrarInativas,
-            });
-            setMensagem("Arquivo XLSX gerado com os filtros atuais e o escopo de acesso autorizado.");
-        } catch (error) {
-            setErro(mensagemErro(error, "Não foi possível gerar a exportação XLSX."));
-        } finally {
-            setExportandoXlsx(false);
-        }
-    }
+        if (!ordem || alterandoPrazo) return;
 
-    async function baixarRelatorioPDF(osId: number): Promise<void> {
-        setBaixandoRelatorioId(osId);
+        if (!podeGerenciar) {
+            setErro("Apenas gestores podem alterar o prazo final.");
+            return;
+        }
+
+        if (!ordem.ativo) {
+            setErro("Não é possível alterar o prazo de uma OS inativa.");
+            return;
+        }
+
+        if (ordem.status === "bloqueado" || ordem.status === "concluido") {
+            setErro("Esta OS não permite alteração de prazo no estado atual.");
+            return;
+        }
+
+        if (!novoPrazo) return;
+
+        if (!justificativa.trim()) {
+            setErro("Informe o motivo da alteração do prazo.");
+            return;
+        }
+
+        setAlterandoPrazo(true);
         setErro(null);
+        setMensagem(null);
+
         try {
-            await ordemServicoService.baixarRelatorioPDF(osId);
-            setMensagem(`Relatório da O.S. #${osId} gerado.`);
+            // Fim do dia no fuso do usuário, enviado como ISO completo
+            const dataLimiteSla = new Date(`${novoPrazo}T23:59:59`).toISOString();
+
+            const atualizada = await ordemServicoService.alterarPrazo(
+                ordem.id,
+                dataLimiteSla,
+                justificativa.trim(),
+            );
+
+            setOrdemSelecionada(atualizada);
+            setOrdens((atuais) =>
+                atuais.map((item) =>
+                    item.id === atualizada.id ? atualizada : item,
+                ),
+            );
+
+            setMensagem(`Prazo da OS #${atualizada.id} alterado com sucesso.`);
         } catch (error) {
-            setErro(mensagemErro(error, "Não foi possível gerar o PDF da O.S."));
+            setErro(
+                mensagemErro(
+                    error,
+                    "Não foi possível alterar o prazo da ordem de serviço.",
+                ),
+            );
         } finally {
-            setBaixandoRelatorioId(null);
+            setAlterandoPrazo(false);
         }
     }
 
@@ -836,7 +799,6 @@ export function useOrdens() {
 
         setFormularioAberto(false);
         setOrdemEmEdicao(null);
-        setOrdemParaDuplicar(null);
         setSalvando(false);
 
         // AJ-06: abre detalhes com os dados reais da API (abertura e SLA calculado).
@@ -860,12 +822,6 @@ export function useOrdens() {
         carregando,
         carregandoDetalhes,
         salvando,
-        exportandoCsv,
-        exportandoXlsx,
-        baixandoRelatorioId,
-        exportarCSV,
-        exportarXLSX,
-        baixarRelatorioPDF,
 
         busca,
         setBusca,
@@ -876,8 +832,6 @@ export function useOrdens() {
 
         podeGerenciar,
         podeOperarDepartamento,
-        podeDuplicarOrdem,
-        perfilTecnico,
         usuarioAtualId,
         podeCriar,
         mensagem,
@@ -886,9 +840,7 @@ export function useOrdens() {
 
         formularioAberto,
         ordemEmEdicao,
-        ordemParaDuplicar,
         abrirCadastro,
-        duplicarOrdem,
         iniciarEdicao,
         fecharFormulario,
         salvarOrdem,
@@ -896,20 +848,11 @@ export function useOrdens() {
         detalhesAbertos,
         statusSolicitadoDetalhes,
         alterarStatusOrdem,
+        alterarPrazoOrdem,
+        alterandoPrazo,
         moverOrdemKanban,
         podeMoverOrdemParaStatus,
         alterandoStatusId,
-        salvarParecerTecnicoOrdem,
-        salvandoParecerTecnicoId,
-        podeSalvarParecerTecnico: Boolean(
-            perfilTecnico &&
-            ordemSelecionada &&
-            ordemSelecionada.ativo &&
-            usuarioAtualId !== null &&
-            ordemSelecionada.responsavel_id === usuarioAtualId &&
-            ordemSelecionada.status !== "bloqueado" &&
-            ordemSelecionada.status !== "concluido",
-        ),
         podeAlterarStatus: Boolean(
             ordemSelecionada &&
             ordemSelecionada.ativo &&

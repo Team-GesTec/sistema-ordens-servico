@@ -7,6 +7,7 @@ import type {
     Departamento,
     OrdemServico,
     Funcionario,
+    Projeto,
     StatusOrdemServico,
 } from "../../types/api";
 import {
@@ -22,29 +23,34 @@ interface OrdemServicoDetalhesModalProps {
     ordem: OrdemServico | null;
     clientes: Cliente[];
     departamentos: Departamento[];
+    projetos?: Projeto[];
     funcionarios: Funcionario[];
     funcionariosElegiveis: Funcionario[];
     atribuindoResponsavel: boolean;
     carregando: boolean;
     erro: string | null;
     podeEditar: boolean;
-    podeDuplicar: boolean;
     podeAlterarStatus: boolean;
+    podeAlterarPrazo?: boolean;
     alterandoStatusId: number | null;
+    alterandoPrazo?: boolean;
     podeReatribuirResponsavel: boolean;
     onAtribuirResponsavel: (funcionarioId: number) => void;
     onFechar: () => void;
     onEditar: (ordem: OrdemServico) => void;
-    onDuplicar: (ordem: OrdemServico) => void;
+    podeDuplicar?: boolean;
+    onDuplicar?: (ordem: OrdemServico) => void;
+    podeSalvarParecerTecnico?: boolean;
+    salvandoParecerTecnicoId?: number | null;
+    onSalvarParecerTecnico?: (parecerTecnico: string) => void;
+    onBaixarPDF?: (ordemId: number) => void;
+    baixandoRelatorioId?: number | null;
     onAlterarStatus: (
         status: StatusOrdemServico,
         parecerTecnico?: string,
     ) => void;
-    podeSalvarParecerTecnico: boolean;
-    salvandoParecerTecnicoId: number | null;
-    onSalvarParecerTecnico: (parecerTecnico: string) => void;
-    onBaixarPDF: (ordemId: number) => void;
-    baixandoRelatorioId: number | null;
+    // Recebe a data (AAAA-MM-DD) e o motivo da alteração
+    onAlterarPrazo?: (dataLimite: string, justificativa: string) => void;
     statusSugerido?: StatusOrdemServico | null;
 }
 
@@ -55,17 +61,26 @@ const STATUS_EDITAVEIS: StatusOrdemServico[] = [
     "concluido",
 ];
 
+// Converte o valor do backend para o formato aceito pelo <input type="date">.
+function paraInputData(data: string | null | undefined): string {
+    if (!data) return "";
+
+    return data.slice(0, 10);
+}
+
 function OrdemServicoDetalhesModal({
     aberto,
     ordem,
     carregando,
     erro,
     podeEditar,
-    podeDuplicar,
     podeAlterarStatus,
+    podeAlterarPrazo = false,
     alterandoStatusId,
+    alterandoPrazo = false,
     clientes,
     departamentos,
+    projetos = [],
     funcionarios,
     funcionariosElegiveis,
     atribuindoResponsavel,
@@ -73,11 +88,15 @@ function OrdemServicoDetalhesModal({
     onAtribuirResponsavel,
     onFechar,
     onEditar,
+    podeDuplicar = false,
     onDuplicar,
-    onAlterarStatus,
-    podeSalvarParecerTecnico,
-    salvandoParecerTecnicoId,
+    podeSalvarParecerTecnico = false,
+    salvandoParecerTecnicoId = null,
     onSalvarParecerTecnico,
+    onBaixarPDF,
+    baixandoRelatorioId = null,
+    onAlterarStatus,
+    onAlterarPrazo,
     statusSugerido = null,
 }: OrdemServicoDetalhesModalProps) {
     const [parecerTemporario, setParecerTemporario] = useState("");
@@ -86,6 +105,11 @@ function OrdemServicoDetalhesModal({
     );
     const [statusSelecionado, setStatusSelecionado] =
         useState<StatusOrdemServico>("em_andamento");
+    const [prazoSelecionado, setPrazoSelecionado] = useState("");
+    const [justificativaAberta, setJustificativaAberta] = useState(false);
+    const [justificativaPrazo, setJustificativaPrazo] = useState("");
+
+    const prazoAtual = paraInputData(ordem?.data_limite_sla);
 
     useEffect(() => {
         setParecerTemporario(ordem?.parecer_tecnico ?? "");
@@ -106,11 +130,30 @@ function OrdemServicoDetalhesModal({
         setResponsavelNovoId(null);
     }, [aberto, ordem?.id, ordem?.responsavel_id]);
 
+    // Descarta o rascunho do motivo ao fechar o modal ou trocar de OS.
+    useEffect(() => {
+        setJustificativaAberta(false);
+        setJustificativaPrazo("");
+    }, [aberto, ordem?.id]);
+
+    // Sincroniza o seletor de data com o prazo atual da ordem.
+    useEffect(() => {
+        setPrazoSelecionado(prazoAtual);
+    }, [aberto, ordem?.id, prazoAtual]);
+
+    // Permite fechar o modal com a tecla Escape.
     useEffect(() => {
         if (!aberto) return;
 
         function handleKeyDown(event: KeyboardEvent) {
             if (event.key === "Escape") {
+                // Com o modal de motivo aberto, o Escape fecha só ele.
+                if (justificativaAberta) {
+                    setJustificativaAberta(false);
+                    setJustificativaPrazo("");
+                    return;
+                }
+
                 onFechar();
             }
         }
@@ -120,9 +163,23 @@ function OrdemServicoDetalhesModal({
         return () => {
             document.removeEventListener("keydown", handleKeyDown);
         };
-    }, [aberto, onFechar]);
+    }, [aberto, onFechar, justificativaAberta]);
 
     if (!aberto) return null;
+
+    function cancelarJustificativa() {
+        setJustificativaAberta(false);
+        setJustificativaPrazo("");
+    }
+
+    function confirmarJustificativa() {
+        const motivo = justificativaPrazo.trim();
+
+        if (!motivo) return;
+
+        onAlterarPrazo?.(prazoSelecionado, motivo);
+        cancelarJustificativa();
+    }
 
     const podeEditarOrdem =
         podeEditar &&
@@ -137,6 +194,9 @@ function OrdemServicoDetalhesModal({
 
     const departamento = ordem
         ? departamentos.find((item) => item.id === ordem.departamento_id)
+        : undefined;
+    const projeto = ordem?.projeto_id
+        ? projetos.find((item) => item.id === ordem.projeto_id)
         : undefined;
 
     const responsavelAtual = ordem?.responsavel_id
@@ -286,9 +346,11 @@ function OrdemServicoDetalhesModal({
                                 <div className="ordem-detalhe">
                                     <span>Projeto</span>
                                     <strong>
-                                        {ordem.projeto_id
-                                            ? `Projeto #${ordem.projeto_id}`
-                                            : "Sem projeto associado"}
+                                        {projeto
+                                            ? projeto.nome
+                                            : ordem.projeto_id
+                                              ? `Projeto #${ordem.projeto_id}`
+                                              : "Sem projeto associado"}
                                     </strong>
                                 </div>
 
@@ -454,9 +516,7 @@ function OrdemServicoDetalhesModal({
                                                     }
                                                     disabled={
                                                         alterandoStatusId !==
-                                                            null ||
-                                                        salvandoParecerTecnicoId !==
-                                                            null
+                                                        null
                                                     }
                                                 >
                                                     {STATUS_EDITAVEIS.map(
@@ -522,6 +582,39 @@ function OrdemServicoDetalhesModal({
                                     </section>
                                 ))}
 
+                            {podeAlterarPrazo && (
+                                <section className="ordem-detalhes-descricao ordem-status-edicao">
+                                    <h3>Alterar prazo final</h3>
+
+                                    <input
+                                        id="ordem-prazo-input"
+                                        type="date"
+                                        className="ordem-status-select"
+                                        aria-label="Selecionar novo prazo final"
+                                        value={prazoSelecionado}
+                                        onChange={(event) =>
+                                            setPrazoSelecionado(event.target.value)
+                                        }
+                                        disabled={alterandoPrazo}
+                                    />
+
+                                    <button
+                                        type="button"
+                                        className="ordens-btn-primary ordem-status-atualizar"
+                                        onClick={() => setJustificativaAberta(true)}
+                                        disabled={
+                                            alterandoPrazo ||
+                                            !prazoSelecionado ||
+                                            prazoSelecionado === prazoAtual
+                                        }
+                                    >
+                                        {alterandoPrazo
+                                            ? "Atualizando..."
+                                            : "Confirmar alteração"}
+                                    </button>
+                                </section>
+                            )}
+
                             <section className="ordem-detalhes-descricao">
                                 <h3>Descrição da solicitação</h3>
                                 <p>
@@ -555,20 +648,16 @@ function OrdemServicoDetalhesModal({
 
                             <section className="ordem-detalhes-descricao ordem-parecer-rascunho">
                                 <h3>
-                                    {podeSalvarParecerTecnico
-                                        ? "Parecer técnico"
-                                        : statusSelecionado === "concluido"
-                                          ? "Parecer técnico obrigatório para conclusão"
+                                    {statusSelecionado === "concluido"
+                                        ? "Parecer técnico obrigatório para conclusão"
                                           : ordem.parecer_tecnico
                                             ? "Texto de parecer para eventual conclusão"
                                             : "Parecer técnico — rascunho temporário"}
                                 </h3>
 
                                 <label htmlFor="parecer-tecnico-temporario">
-                                    {podeSalvarParecerTecnico
-                                        ? "Editar parecer salvo (até 1.000 caracteres)"
-                                        : statusSelecionado === "concluido"
-                                          ? "Parecer que será registrado"
+                                    {statusSelecionado === "concluido"
+                                        ? "Parecer que será registrado"
                                           : ordem.parecer_tecnico
                                             ? "Texto local (não altera o parecer registrado)"
                                             : "Seu rascunho"}
@@ -585,11 +674,9 @@ function OrdemServicoDetalhesModal({
                                         )
                                     }
                                     placeholder={
-                                        podeSalvarParecerTecnico
-                                            ? "Registre ou atualize o parecer técnico..."
-                                            : statusSelecionado === "concluido"
-                                              ? "Informe o parecer técnico para concluir a O.S."
-                                              : "Escreva aqui seu rascunho..."
+                                        statusSelecionado === "concluido"
+                                            ? "Informe o parecer técnico para concluir a O.S."
+                                            : "Escreva aqui seu rascunho..."
                                     }
                                     maxLength={1000}
                                     aria-required={
@@ -599,58 +686,36 @@ function OrdemServicoDetalhesModal({
                                         statusSelecionado === "concluido" &&
                                         !parecerTemporario.trim()
                                     }
-                                    disabled={
-                                        alterandoStatusId !== null ||
-                                        salvandoParecerTecnicoId !== null
-                                    }
+                                    disabled={alterandoStatusId !== null}
                                 />
 
-                                {podeSalvarParecerTecnico ? (
-                                    <>
-                                        <div className="ordem-parecer-acoes">
-                                            <span className="ordem-form-note">
-                                                Salvar o parecer não altera o
-                                                status, prazo, responsável nem
-                                                outros campos da O.S.
-                                            </span>
-
-                                            <button
-                                                type="button"
-                                                className="ordens-btn-primary"
-                                                onClick={() =>
-                                                    onSalvarParecerTecnico(
-                                                        parecerTemporario,
-                                                    )
-                                                }
-                                                disabled={
-                                                    salvandoParecerTecnicoId !==
-                                                        null ||
-                                                    alterandoStatusId !== null ||
-                                                    parecerTemporario.length >
-                                                        1000
-                                                }
-                                                aria-busy={
-                                                    salvandoParecerTecnicoId ===
-                                                    ordem.id
-                                                }
-                                            >
-                                                {salvandoParecerTecnicoId ===
-                                                ordem.id
-                                                    ? "Salvando parecer..."
-                                                    : "Salvar parecer técnico"}
-                                            </button>
-                                        </div>
-
-                                        <p
-                                            className="ordem-form-note"
-                                            aria-live="polite"
+                                {podeSalvarParecerTecnico && onSalvarParecerTecnico && (
+                                    <div className="ordem-parecer-acoes">
+                                        <span className="ordem-form-note">
+                                            Salvar o parecer não altera o status, prazo nem responsável da O.S.
+                                        </span>
+                                        <button
+                                            type="button"
+                                            className="ordens-btn-primary"
+                                            onClick={() => onSalvarParecerTecnico(parecerTemporario)}
+                                            disabled={
+                                                salvandoParecerTecnicoId !== null ||
+                                                alterandoStatusId !== null ||
+                                                parecerTemporario.length > 1000
+                                            }
+                                            aria-busy={salvandoParecerTecnicoId === ordem.id}
                                         >
-                                            {parecerTemporario.length}/1.000
-                                            caracteres. Deixar o campo vazio
-                                            limpa o parecer salvo.
-                                        </p>
-                                    </>
-                                ) : statusSelecionado === "concluido" ? (
+                                            {salvandoParecerTecnicoId === ordem.id
+                                                ? "Salvando parecer..."
+                                                : "Salvar parecer técnico"}
+                                        </button>
+                                    </div>
+                                )}
+                                <p className="ordem-form-note" aria-live="polite">
+                                    {parecerTemporario.length}/1.000 caracteres.
+                                </p>
+
+                                {statusSelecionado === "concluido" ? (
                                     <>
                                         <p
                                             className="ordem-form-note"
@@ -695,13 +760,27 @@ function OrdemServicoDetalhesModal({
                         Fechar
                     </button>
 
-                    {podeDuplicar && ordem && (
+                    {ordem && podeDuplicar && onDuplicar && (
                         <button
                             type="button"
                             className="ordens-btn-secondary"
                             onClick={() => onDuplicar(ordem)}
                         >
                             Duplicar como nova O.S.
+                        </button>
+                    )}
+
+                    {ordem && onBaixarPDF && (
+                        <button
+                            type="button"
+                            className="ordens-btn-secondary"
+                            onClick={() => onBaixarPDF(ordem.id)}
+                            disabled={baixandoRelatorioId !== null}
+                            aria-busy={baixandoRelatorioId === ordem.id}
+                        >
+                            {baixandoRelatorioId === ordem.id
+                                ? "Gerando PDF..."
+                                : "Baixar PDF"}
                         </button>
                     )}
 
@@ -716,6 +795,83 @@ function OrdemServicoDetalhesModal({
                     )}
                 </footer>
             </section>
+
+            {justificativaAberta && (
+                <div
+                    className="ordem-modal-overlay ordem-modal-overlay--sobreposto"
+                    onMouseDown={(event) => {
+                        if (event.target === event.currentTarget) {
+                            cancelarJustificativa();
+                        }
+                    }}
+                >
+                    <section
+                        className="ordem-modal ordem-modal--justificativa"
+                        role="dialog"
+                        aria-modal="true"
+                        aria-labelledby="ordem-justificativa-titulo"
+                    >
+                        <header className="ordem-modal-header">
+                            <div>
+                                <span className="ordem-card-id">
+                                    MOTIVO DA ALTERAÇÃO
+                                </span>
+
+                                <h2 id="ordem-justificativa-titulo">
+                                    Alterar prazo da OS #{ordem?.id}
+                                </h2>
+                            </div>
+
+                            <button
+                                type="button"
+                                className="ordem-modal-close"
+                                onClick={cancelarJustificativa}
+                                aria-label="Fechar motivo da alteração"
+                            >
+                                ×
+                            </button>
+                        </header>
+
+                        <div className="ordem-modal-body ordem-parecer-rascunho">
+                            <label htmlFor="ordem-justificativa-prazo">
+                                Explique o motivo da alteração
+                            </label>
+
+                            <textarea
+                                id="ordem-justificativa-prazo"
+                                className="ordem-parecer-textarea"
+                                rows={5}
+                                maxLength={1000}
+                                autoFocus
+                                value={justificativaPrazo}
+                                onChange={(event) =>
+                                    setJustificativaPrazo(event.target.value)
+                                }
+                                placeholder="Descreva o motivo da alteração do prazo..."
+                            />
+                        </div>
+
+                        <footer className="ordem-modal-actions">
+                            <button
+                                type="button"
+                                className="ordens-btn-secondary"
+                                onClick={cancelarJustificativa}
+                            >
+                                Cancelar
+                            </button>
+
+                            <button
+                                type="button"
+                                className="ordens-btn-primary"
+                                disabled={!justificativaPrazo.trim()}
+                                onClick={confirmarJustificativa}
+                            >
+                                Confirmar alteração
+                            </button>
+                        </footer>
+                    </section>
+                </div>
+            )}
         </div>
     );
 }

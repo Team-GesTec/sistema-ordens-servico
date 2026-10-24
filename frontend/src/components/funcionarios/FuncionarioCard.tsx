@@ -8,7 +8,6 @@ interface FuncionarioCardProps {
     bloqueado: boolean;
     onAbrir: (funcionario: Funcionario) => void;
     onEditar: (funcionario: Funcionario) => void;
-    onDuplicar: (funcionario: Funcionario) => void;
     onAlterarStatus: (funcionario: Funcionario, acao: "inativar") => void;
 }
 
@@ -27,7 +26,6 @@ export default function FuncionarioCard({
     bloqueado,
     onAbrir,
     onEditar,
-    onDuplicar,
     onAlterarStatus,
 }: FuncionarioCardProps) {
     return (
@@ -53,7 +51,6 @@ export default function FuncionarioCard({
                         <button type="button" className="projeto-btn-secondary" onClick={() => onEditar(funcionario)} disabled={bloqueado}>Editar</button>
                         <button type="button" className="projeto-btn-danger" onClick={() => onAlterarStatus(funcionario, "inativar")} disabled={bloqueado}>Inativar</button>
                     </>}
-                    <button type="button" className="projeto-btn-secondary" onClick={() => onDuplicar(funcionario)} disabled={bloqueado}>Duplicar</button>
                 </div>
             )}
         </article>

@@ -34,4 +34,13 @@ export const clienteService = {
         });
     },
 
+    ativar(
+        id: number
+    ): Promise<{ mensagem: string; cliente: Cliente }> {
+        return apiRequest<{ mensagem: string; cliente: Cliente }>(
+            `/cliente/${id}/ativar`,
+            { method: "PATCH" }
+        );
+    },
+
 };

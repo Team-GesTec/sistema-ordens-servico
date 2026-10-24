@@ -21,7 +21,6 @@ interface OrdemServicoKanbanProps {
     podeMoverParaStatus: (ordem: OrdemServico, status: StatusOrdemServico) => boolean;
     onAbrir: (ordem: OrdemServico) => void;
     onEditar: (ordem: OrdemServico) => void;
-    onAlterarAtivo: (ordem: OrdemServico, acao: "inativar") => void;
     onMoverStatus: (ordem: OrdemServico, status: StatusOrdemServico) => void | Promise<void>;
 }
 

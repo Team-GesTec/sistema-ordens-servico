@@ -20,6 +20,7 @@ function ClienteStatusModal({
 }: ClienteStatusModalProps) {
     if (!cliente || !acao) return null;
 
+    const inativar = acao === "inativar";
 
     return (
         <div
@@ -39,7 +40,7 @@ function ClienteStatusModal({
                     <div>
                         <span className="projetos-eyebrow">GESTÃO DE CLIENTES</span>
                         <h2 id="confirmacao-cliente-titulo">
-                            Inativar cliente?
+                            {inativar ? "Inativar cliente?" : "Reativar cliente?"}
                         </h2>
                     </div>
                     <button
@@ -58,7 +59,9 @@ function ClienteStatusModal({
                         Confirma a ação para o cliente <strong>{cliente.nome}</strong>?
                     </p>
                     <p>
-                        O registro será inativado permanentemente. O histórico e os vínculos existentes serão preservados; o cliente não poderá ser reativado.
+                        {inativar
+                            ? "O registro será inativado. Projetos ou ordens de serviço não concluídos impedem a inativação."
+                            : "O cliente voltará a aparecer na listagem de ativos e poderá ser vinculado a novos projetos."}
                     </p>
                 </div>
 
@@ -70,11 +73,11 @@ function ClienteStatusModal({
                     </button>
                     <button
                         type="button"
-                        className="projeto-btn-danger"
+                        className={inativar ? "projeto-btn-danger" : "projeto-btn-primary"}
                         onClick={() => void onConfirm()}
                         disabled={processando}
                     >
-                        {processando ? "Processando..." : "Confirmar inativação"}
+                        {processando ? "Processando..." : inativar ? "Confirmar inativação" : "Confirmar reativação"}
                     </button>
                 </footer>
             </section>
