@@ -1,304 +1,560 @@
 # Guia de Contribuição — GesTec
 
+Este guia explica como organizar o código, nomear branches, criar commits e Pull Requests e integrar as alterações ao projeto GesTec.
+
+O objetivo é manter o trabalho da equipe organizado, facilitar a revisão do código e garantir que cada alteração possa ser rastreada até sua respectiva issue no Jira.
+
 ## Sumário
 
-- [Regras de ouro](#regras-de-ouro)
-- [Modelo de rastreabilidade](#modelo-de-rastreabilidade)
-- [GitHub Flow](#github-flow)
-- [Estratégia de branches](#estratégia-de-branches)
-- [Padrão de commits](#padrão-de-commits)
-- [Pull Requests](#pull-requests)
-- [Merge](#merge)
-- [Fluxo completo](#fluxo-completo)
-- [Bugs](#bugs)
-- [Mudanças sem User Story (docs, CI, configuração)](#mudanças-sem-user-story-docs-ci-configuração)
-- [Exemplos oficiais](#exemplos-oficiais)
-- [Checklist rápido](#checklist-rápido)
+- [1. Regras gerais](#1-regras-gerais)
+- [2. Rastreabilidade com Jira](#2-rastreabilidade-com-jira)
+- [3. Fluxo de branches](#3-fluxo-de-branches)
+- [4. Padrão de commits](#4-padrão-de-commits)
+- [5. Pull Requests](#5-pull-requests)
+- [6. Integração e resolução de conflitos](#6-integração-e-resolução-de-conflitos)
+- [7. Fluxo completo de trabalho](#7-fluxo-completo-de-trabalho)
+- [8. Bugs e outras alterações](#8-bugs-e-outras-alterações)
+- [9. Comentários nos arquivos de código](#9-comentários-nos-arquivos-de-código)
+- [10. Segurança e uso do Supabase](#10-segurança-e-uso-do-supabase)
+- [11. Exemplos oficiais](#11-exemplos-oficiais)
+- [12. Checklist rápido](#12-checklist-rápido)
 
 ---
 
-## Regras de ouro
+## 1. Regras gerais
 
-| Regra | Definição |
-| --- | --- |
-| Jira Key | **Identificador oficial** de integração entre Jira e GitHub (ex.: `JH-123`). |
-| `US2.1` | **Identificador visual**, para facilitar a leitura pela equipe. Não substitui a Jira Key. |
-| Branch | = User Story |
-| Pull Request | = User Story |
-| Commit | = Subtask |
-| Merge | **Squash and Merge** é a estratégia padrão. |
-| `main` | Branch estável. Nenhum commit direto nela. |
-| Trabalho transversal | Alterações que não possuem relação com uma issue do Jira usam `TRANSVERSAL` como identificador. |
-| Commit sem Jira Key | **Proibido para alterações vinculadas ao Jira**; trabalhos transversais usam `TRANSVERSAL`. |
-| PR sem Jira Key | **Proibido para alterações vinculadas ao Jira**; trabalhos transversais usam `[TRANSVERSAL]`. |
+| Regra | Como funciona |
+|---|---|
+| `main` | Branch principal e estável do projeto. Não recebe commits diretos. |
+| `feature/Transversal` | Branch de integração que reúne as alterações das User Stories. |
+| Branch da US | Cada User Story possui sua própria branch, criada a partir da `main`. |
+| Jira Key | Identificador oficial da issue, como `JH-123`. |
+| `US2.2` | Identificador visual da User Story, usado para facilitar a leitura. |
+| Commit | Registra uma alteração específica e utiliza a Jira Key da Subtask correspondente. |
+| Pull Request | Permite revisar e integrar as alterações de uma branch em outra. |
+| Code Review | Deve ser realizado por outro integrante da equipe. |
+| Merge de integração | Reúne as alterações das User Stories na `feature/Transversal`. |
+| Merge final | Integra a versão revisada da `feature/Transversal` à `main`. |
 
-Exemplo da diferença entre os dois identificadores:
+### Regras que todos devem seguir
+
+- Toda branch de trabalho deve ser criada a partir da `main` atualizada.
+- As branches das User Stories devem ser integradas à `feature/Transversal`.
+- A `main` só deve receber a versão integrada e revisada.
+- Nenhum integrante pode aprovar o próprio Pull Request.
+- Toda alteração relacionada ao Jira deve utilizar a Jira Key correspondente.
+- Conflitos devem ser resolvidos e testados antes da conclusão da integração.
+- Não devem existir branches separadas para backend e frontend. Uma única branch representa a User Story completa, independentemente das partes do sistema que ela modifica.
+
+---
+
+## 2. Rastreabilidade com Jira
+
+O Jira é a referência oficial para identificar e acompanhar as tarefas do projeto.
+
+Cada elemento possui uma função:
+
+- **User Story:** representa uma funcionalidade ou necessidade do usuário.
+- **Jira Key:** identifica oficialmente uma issue, como `JH-123`.
+- **Identificador visual:** facilita a leitura da User Story, como `US2.2`.
+- **Subtask:** representa uma tarefa menor dentro de uma User Story.
+
+Exemplo:
 
 ```text
-US2.1  = identificador visual
-JH-123 = identificador oficial
+User Story: US2.2 — Cadastro de cliente
+Jira Key: JH-123
+
+Subtasks:
+JH-124 — Criar validação dos campos
+JH-125 — Implementar endpoint de cadastro
+JH-126 — Criar formulário de cadastro
 ```
 
-Durante a transição, `US2.1` continua sendo usado como identificador visual em nomes de branches, títulos de Pull Requests e documentação visual. **Nunca** o use sozinho como identificador de commit.
-
----
-
-## Modelo de rastreabilidade
-
-Toda alteração no projeto deve estar ligada a uma issue do Jira. A estrutura abaixo mostra como cada elemento do Jira se conecta ao GitHub:
+A relação entre os elementos é:
 
 ```text
-EPIC
- ├── USER STORY
- │
- ├── Backend Branch
- │
- ├── Frontend Branch
- │
- ├── Pull Request
- │
- └── Commits
-       │
-       ├── Subtask A
-       ├── Subtask B
-       └── Subtask C
+User Story
+    │
+    ├── Branch da US
+    │
+    ├── Pull Request para feature/Transversal
+    │
+    └── Subtasks
+          └── Commits identificados pelas Jira Keys
 ```
 
-Em resumo:
+O identificador `US2.2` não substitui a Jira Key. Ambos podem aparecer nos nomes de branches e títulos de Pull Requests, mas os commits relacionados a subtasks devem utilizar a chave oficial da respectiva subtask.
+
+---
+
+## 3. Fluxo de branches
+
+O projeto utiliza três níveis de organização:
+
+1. `main`: versão principal e estável.
+2. Branches das User Stories: desenvolvimento de cada funcionalidade.
+3. `feature/Transversal`: integração das User Stories antes da atualização da `main`.
+
+### 3.1. Branch principal — `main`
+
+A `main` é a base para iniciar o desenvolvimento e a referência para a versão estável do projeto.
+
+Regras:
+
+- Não realizar commits diretamente na `main`.
+- Criar todas as branches de trabalho a partir de uma `main` atualizada.
+- Não integrar uma User Story diretamente à `main`.
+- Atualizar a `main` somente após a integração e revisão do conjunto de alterações.
+
+### 3.2. Branches das User Stories
+
+Cada User Story deve possuir uma única branch, independentemente de envolver backend, frontend, banco de dados ou outras partes do sistema.
+
+**Padrão de nome:**
 
 ```text
-Branch = User Story
-PR     = User Story
-Commit = Subtask
+US<numero>-<JIRA-KEY>-<descricao-curta>
 ```
-
-Uma User Story pode ter:
-
-- somente branch de backend;
-- somente branch de frontend;
-- ambas (cada uma com o seu próprio Pull Request).
-
----
-
-## GitHub Flow
-
-O fluxo abaixo deve ser **usado no dia a dia**, não apenas documentado:
-
-- `main` é a branch estável — nunca fazer commit direto nela.
-- Toda mudança entra por **Pull Request**, aberto a partir da branch da User Story diretamente para a `main`.
-- Não existem branches de integração: toda branch nasce da `main` atualizada e volta para a `main`.
-- Revisão obrigatória por **outro membro** do time.
-- Ninguém aprova o próprio PR.
-- O merge é sempre feito com **Squash and Merge** (veja [Merge](#merge)).
-- Depois do merge, a branch da User Story/correção é deletada, quando apropriado.
-
----
-
-## Estratégia de branches
-
-Toda branch nasce de uma `main` atualizada e é integrada de volta à `main` por Pull Request.
-
-| Tipo de branch | Convenção de nome | Uso |
-| --- | --- | --- |
-| Estável | `main` | Branch de produção/entrega. Nunca recebe commit direto. |
-| Backend | `feature/backend/<JIRA-KEY>-US<id>-descricao-curta` | Branch da User Story na camada de backend. |
-| Frontend | `feature/frontend/<JIRA-KEY>-US<id>-descricao-curta` | Branch da User Story na camada de frontend. |
-| Correção | `fix/<camada>/<JIRA-KEY>-descricao-curta` | Correção de bug, que também possui uma Jira Key própria. Veja [Bugs](#bugs). |
-| Sem US (docs, CI, config) | `feature/docs/<JIRA-KEY>-descricao-curta` | Mudanças de documentação, CI, configuração ou manutenção que estejam vinculadas a uma issue do Jira. |
-| Transversal | `feature/transversal/<descricao-curta>` | Mudanças sem relação com uma issue do Jira. Veja [Mudanças sem User Story](#mudanças-sem-user-story-docs-ci-configuração). |
-
-`<camada>` indica em qual parte do monorepo a mudança acontece: `backend`, `frontend` ou `docs`.
-
-`<JIRA-KEY>` é a chave oficial da issue no Jira (ex.: `JH-123`).
-
-`<id>` é o número da User Story do backlog (ex.: `US#2.1` no backlog vira `US2.1` na branch — sem o `#`).
-
-**Exemplos:**
-
-```bash
-feature/backend/JH-123-US2.1-cadastro
-feature/frontend/JH-123-US2.1-cadastro
-```
-
-Uma User Story que envolve as duas camadas gera duas branches (uma de backend e uma de frontend), ambas com a mesma Jira Key e o mesmo `US<id>`.
-
----
-
-## Padrão de commits
-
-Todo commit deve seguir um dos formatos abaixo:
-
-```text
-<tipo>(JH-123): descrição real da alteração
-<tipo>(TRANSVERSAL): descrição real da alteração
-```
-
-- Em alterações vinculadas ao Jira, a Jira Key é obrigatória e fica entre parênteses, logo após o tipo, **sem espaço** antes do parêntese.
-- Como **Commit = Subtask**, a Jira Key do commit é a da Subtask que está sendo implementada (ex.: `JH-101`), que pertence à User Story da branch (ex.: `JH-123`).
-- Em alterações sem relação com o Jira, use `TRANSVERSAL` no lugar da Jira Key.
-- A descrição após o `:` deve explicar **o que foi feito e, quando necessário, em que parte ou comportamento do sistema a alteração atua**. Evite descrições genéricas como `ajustes`, `alterações`, `update` ou `implementar cadastro` sem contexto suficiente.
-- O identificador visual `US2.1` **não precisa** aparecer no commit. A Jira Key da Subtask já é o identificador oficial do commit para a rastreabilidade do Moonfoxes. O `US<id>` permanece na branch e no título da PR para facilitar a leitura visual.
 
 **Exemplo:**
 
 ```text
-feat(JH-101): validar campos obrigatórios do cadastro de cliente e retornar mensagens de erro para entradas inválidas
+US2.2-JH-123-cadastro-de-cliente
 ```
 
-**Não utilizar:**
+Nesse exemplo:
+
+- `US2.2`: identificador visual da User Story.
+- `JH-123`: Jira Key da User Story.
+- `cadastro-de-cliente`: descrição curta da funcionalidade.
+
+Outros exemplos:
 
 ```text
-feat(US2.1): cadastro de cliente      ← US2.1 não é identificador de commit
-feat: cadastro de cliente             ← sem identificador; use Jira Key ou TRANSVERSAL
-feat(JH-101): ajustes                 ← descrição vaga
-feat(JH-101): alterações              ← descrição vaga
-feat(JH-101): update                  ← descrição vaga
+US2.1-JH-101-autenticacao
+US2.3-JH-130-listagem-de-clientes
+US3.1-JH-150-relatorio-de-vendas
 ```
 
-### Comentário de cabeçalho nos arquivos
+A descrição deve ser curta, clara e escrita sem espaços ou caracteres especiais incompatíveis com nomes de branches.
 
-Antes de criar o commit, revise os arquivos de código criados ou modificados. Cada arquivo de código deve ter, no topo, um comentário curto explicando a responsabilidade do arquivo: **o que ele faz por inteiro quando é novo ou o que ele faz agora quando sua responsabilidade foi alterada**.
+**Importante:** não criar branches como `feature/backend/...` ou `feature/frontend/...`. A User Story deve ser desenvolvida em uma única branch.
+
+### 3.3. Branch de integração — `feature/Transversal`
+
+A branch `feature/Transversal` reúne as alterações das User Stories para que a equipe possa verificar a compatibilidade entre elas antes da integração final.
+
+Fluxo:
+
+```text
+main
+ ├── US2.1-JH-101-autenticacao
+ ├── US2.2-JH-123-cadastro-de-cliente
+ └── US2.3-JH-130-listagem-de-clientes
+                  │
+                  ▼
+        feature/Transversal
+                  │
+                  ▼
+                main
+```
 
 Regras:
 
-- O comentário deve explicar a finalidade do arquivo, não descrever linha por linha.
-- Se o arquivo já tiver esse comentário, atualize-o quando a responsabilidade do arquivo mudar.
-- Mantenha o comentário objetivo e coerente com o estado final do código.
-- Em arquivos que não suportam comentários (por exemplo, `package.json`, arquivos JSON ou lockfiles), não force comentários inválidos; essa regra se aplica aos arquivos em que comentários são suportados.
+- As branches das User Stories devem ser integradas à `feature/Transversal` por Pull Request.
+- A integração deve respeitar a ordem e as dependências entre as User Stories.
+- Quando houver conflitos, eles devem ser resolvidos antes de concluir o merge.
+- A equipe deve verificar se as funcionalidades continuam funcionando em conjunto.
+- A `feature/Transversal` deve ser revisada e validada antes de ser integrada à `main`.
 
-### Tipos de commit
-
-| Tipo | Quando usar |
-| --- | --- |
-| `feat` | Uma funcionalidade nova |
-| `fix` | Correção de um erro/bug |
-| `docs` | Mudança só em documentação (README, guias etc.) |
-| `style` | Ajuste de formatação/estilo que não muda o comportamento do código |
-| `refactor` | Reorganização do código sem mudar o comportamento |
-| `test` | Criação/ajuste de testes |
-| `chore` | Tarefas de manutenção (ex.: atualizar dependências, workflows de CI) |
-
-**Exemplos:**
-
-```text
-feat(JH-101): implementar validação de cliente
-fix(JH-456): corrigir validação do campo de CPF
-docs(JH-210): atualizar guia de padrão de commits
-refactor(JH-130): reorganizar camada de repositories
-chore(JH-200): atualizar workflow do GitHub Actions
-docs(TRANSVERSAL): atualizar documentação geral
-```
+A `feature/Transversal` é uma branch de integração, não uma substituta da `main`. Ela não deve ser usada como base para iniciar novas branches de User Stories.
 
 ---
 
-## Pull Requests
+## 4. Padrão de commits
 
-Formato do título para alteração vinculada ao Jira:
-
-```text
-[JH-123] US2.1 — Cadastro de cliente
-```
-
-Para alteração transversal:
+Todos os commits devem seguir o formato:
 
 ```text
-[TRANSVERSAL] Atualizar documentação geral
+<tipo>(<JIRA-KEY>): <descricao-da-alteracao>
 ```
 
-Todo PR deve conter:
+Para alterações sem relação com uma issue do Jira:
 
-- **Jira Key** no título quando a alteração estiver vinculada ao Jira;
-- use `[TRANSVERSAL]` no título quando a alteração não tiver relação com uma issue do Jira;
-- identificação da **User Story** quando aplicável;
-- descrição clara do que foi implementado;
-- instruções de como testar a mudança;
-- eventuais limitações ou pontos pendentes.
+```text
+<tipo>(TRANSVERSAL): <descricao-da-alteracao>
+```
+
+A mensagem deve explicar o que foi alterado de maneira objetiva. Evite descrições vagas como `ajustes`, `alterações`, `update` ou `correções` sem contexto.
+
+### 4.1. Tipos de commit
+
+| Tipo | Quando utilizar |
+|---|---|
+| `feat` | Implementação de uma funcionalidade nova. |
+| `fix` | Correção de um erro ou comportamento incorreto. |
+| `docs` | Alterações exclusivamente na documentação. |
+| `style` | Formatação ou estilo sem mudança de comportamento. |
+| `refactor` | Reorganização do código sem mudar seu comportamento. |
+| `test` | Criação ou alteração de testes. |
+| `chore` | Manutenção, dependências e configurações. |
+| `merge` | Commit de merge utilizado para registrar a resolução de conflitos durante a integração. |
+
+### 4.2. Qual Jira Key utilizar?
+
+Quando o commit estiver relacionado a uma subtask, utilize a Jira Key dessa subtask, e não a chave da User Story por padrão.
+
+Exemplo:
+
+```text
+User Story: JH-123
+Subtask: JH-124
+```
+
+Commit:
+
+```text
+feat(JH-124): validar campos obrigatorios do cadastro de cliente
+```
+
+Outros exemplos:
+
+```text
+feat(JH-125): implementar endpoint de cadastro de cliente
+test(JH-124): adicionar testes para campos obrigatorios
+fix(JH-126): corrigir exibicao de mensagens de validacao
+docs(JH-127): documentar parametros da API de clientes
+chore(JH-128): atualizar configuracao do ambiente de desenvolvimento
+```
+
+Se uma alteração estiver vinculada diretamente à User Story e não a uma subtask específica, utilize a Jira Key da própria User Story.
+
+### 4.3. Commits de integração e resolução de conflitos
+
+Quando houver conflitos entre branches de User Stories durante a integração na `feature/Transversal`, o commit que registrar a resolução deve seguir este formato:
+
+```text
+merge(<JIRA-KEY-DA-US>): resolve conflitos entre <branches envolvidas>
+```
+
+Exemplo:
+
+```text
+merge(JH-123): resolve conflitos entre US2.2 e US2.3
+```
+
+Outro exemplo:
+
+```text
+merge(JH-130): resolve conflitos entre cadastro e listagem de clientes
+```
 
 Regras:
 
-- Revisão obrigatória por **outro membro** do time.
-- Ninguém aprova o próprio PR.
-- Um PR representa uma User Story (**PR = User Story**) e tem como destino a `main`.
-- Só é mesclado depois de aprovado, com os testes passando, usando **Squash and Merge**.
+- Utilize a Jira Key da User Story relacionada à resolução, escolhendo a que melhor representa o contexto do conflito.
+- Descreva quais branches ou funcionalidades tiveram conflitos.
+- Revise as alterações antes de registrar o commit.
+- Execute os testes necessários para confirmar que a resolução não quebrou funcionalidades existentes.
+- Não utilize o tipo `merge` para commits comuns de desenvolvimento.
 
----
+Esse padrão se aplica ao commit de resolução de conflitos. Ele não substitui os commits `feat`, `fix`, `test` e outros realizados durante o desenvolvimento.
 
-## Merge
+**Atenção:** quando o Git criar automaticamente um commit de merge, a equipe deve revisar sua mensagem e adequá-la ao padrão quando necessário. Não crie um commit de resolução artificial se não houve conflitos a resolver.
 
-O padrão oficial de merge do projeto é **Squash and Merge**.
-
-Os commits de um PR representam o trabalho feito durante a implementação das Subtasks. Ao integrar a User Story, o PR é consolidado em **um único commit** na `main` usando Squash and Merge.
-
-- Título do commit de squash: o título do PR (ex.: `[JH-123] US2.1 — Cadastro de cliente`).
-- Recomendado: manter no corpo da mensagem de squash a lista dos commits das Subtasks, para preservar a rastreabilidade de quais Subtasks compuseram a User Story.
-- A `main` continua sendo a branch estável.
-- **Nenhum commit direto na `main`.**
-
----
-
-## Fluxo completo
-
-1. Definir se a alteração é vinculada ao Jira ou transversal.
-2. Se for vinculada ao Jira, criar ou identificar a issue e obter a Jira Key oficial.
-3. Identificar a User Story e a camada (`backend`, `frontend` ou `docs`), quando aplicável.
-4. Atualizar a `main`.
-5. Criar a branch da User Story (`feature/<camada>/<JIRA-KEY>-US<id>-descricao-curta`) ou, se for transversal, `feature/transversal/<descricao-curta>`.
-6. Implementar a Subtask ou a alteração transversal.
-7. Criar commits usando a Jira Key (`<tipo>(JH-123): descrição`) ou `TRANSVERSAL` (`<tipo>(TRANSVERSAL): descrição`).
-8. Fazer push da branch.
-9. Abrir Pull Request.
-10. Realizar Code Review.
-11. Corrigir feedbacks.
-12. Aprovar por outro integrante.
-13. Utilizar Squash and Merge.
-14. Remover a branch da User Story após o merge, quando apropriado.
-
----
-
-## Bugs
-
-Bugs também são issues do Jira e **devem possuir uma Jira Key própria**.
-
-Convenção de branch:
+### 4.4. Commits que não devem ser utilizados
 
 ```text
-fix/<camada>/<JIRA-KEY>-descricao-curta
+feat: cadastro de cliente
+feat(US2.2): cadastro de cliente
+feat(JH-124): ajustes
+feat(JH-124): update
+merge: conflitos resolvidos
 ```
 
-**Exemplos:**
-
-```bash
-fix/backend/JH-456-correcao-validacao
-fix/frontend/JH-456-correcao-tela
-```
-
-Os commits seguem o mesmo padrão, usando o tipo `fix`:
+Prefira:
 
 ```text
-fix(JH-456): corrigir validação do campo de CPF
+feat(JH-124): validar campos obrigatorios do cadastro de cliente
+merge(JH-123): resolve conflitos entre US2.2 e US2.3
+docs(TRANSVERSAL): atualizar guia de contribuicao
 ```
-
-O PR segue o mesmo formato de título e as mesmas regras de revisão e de Squash and Merge.
 
 ---
 
-## Mudanças sem User Story (docs, CI, configuração)
+## 5. Pull Requests
 
-Mudanças de documentação, CI, configuração, manutenção ou README podem ocorrer em dois cenários:
+Todo Pull Request deve ter um objetivo claro e permitir que outro integrante entenda o que está sendo alterado.
 
-1. **Relacionadas ao Jira:** quando a alteração tiver uma issue própria, use a Jira Key normalmente, mesmo sem `US<id>`.
-2. **Transversais:** quando a alteração não tiver relação com nenhuma issue do Jira, use `TRANSVERSAL` e não crie uma Jira Key apenas para identificá-la.
+### 5.1. PR de uma User Story
 
-**Exemplo vinculado ao Jira:**
+O título deve seguir este formato:
 
 ```text
-Issue: JH-200 — Atualizar configuração do CI
+[<JIRA-KEY>] <US-ID> — <descricao>
 ```
 
-Branch:
+Exemplo:
 
-```bash
-feature/docs/JH-200-configuracao-ci
+```text
+[JH-123] US2.2 — Cadastro de cliente
+```
+
+O destino desse PR é a `feature/Transversal`, e não a `main`.
+
+Cada PR deve conter:
+
+- Objetivo da alteração.
+- Resumo do que foi implementado.
+- Subtasks relacionadas, quando aplicável.
+- Instruções para testar a funcionalidade.
+- Resultado dos testes executados.
+- Limitações ou pendências conhecidas.
+
+### 5.2. Modelo de descrição
+
+```markdown
+## Objetivo
+
+Implementar a US2.2 — Cadastro de cliente.
+
+## O que foi feito
+
+- Implementada a validação dos campos obrigatórios.
+- Criado o endpoint de cadastro.
+- Implementado o formulário de cadastro.
+- Integrada a interface com a API.
+
+## Subtasks relacionadas
+
+- JH-124 — Validar campos obrigatórios.
+- JH-125 — Implementar endpoint.
+- JH-126 — Criar formulário.
+
+## Como testar
+
+1. Executar o projeto.
+2. Acessar o cadastro de cliente.
+3. Testar o envio de dados inválidos.
+4. Testar o cadastro com dados válidos.
+5. Confirmar que os resultados estão corretos.
+
+## Testes executados
+
+- Testes automatizados: informar o resultado.
+- Testes manuais: informar o resultado.
+
+## Limitações e pendências
+
+Informar eventuais problemas conhecidos ou escrever
+"Nenhuma pendência conhecida".
+```
+
+### 5.3. PR final de integração
+
+Depois de integrar as User Stories e validar o conjunto, deve ser aberto um Pull Request de `feature/Transversal` para `main`.
+
+Exemplo de título:
+
+```text
+[TRANSVERSAL] Integração das User Stories — Sprint 2
+```
+
+A descrição deve resumir:
+
+- Quais User Stories foram integradas.
+- Quais testes foram executados.
+- Quais conflitos foram resolvidos, se houver.
+- Se existem pendências ou limitações.
+- Se a versão integrada está pronta para entrar na `main`.
+
+### 5.4. Revisão obrigatória
+
+Todo PR deve ser revisado por outro integrante.
+
+Antes da aprovação:
+
+- Verifique se o código está coerente com os requisitos.
+- Confirme se os testes necessários passaram.
+- Verifique se as alterações não introduzem regressões conhecidas.
+- Resolva os comentários e pedidos de alteração do revisor.
+
+Ninguém pode aprovar o próprio PR.
+
+---
+
+## 6. Integração e resolução de conflitos
+
+A integração deve ocorrer em duas etapas: primeiro, as User Stories são reunidas na `feature/Transversal`; depois, a branch de integração é enviada para a `main`.
+
+### 6.1. Integração de uma User Story
+
+1. Atualize sua branch com a `main`, conforme necessário.
+2. Finalize a implementação e os testes da User Story.
+3. Envie a branch ao GitHub.
+4. Abra um PR da branch da User Story para `feature/Transversal`.
+5. Aguarde a revisão e resolva os apontamentos.
+6. Se houver conflitos, resolva-os e valide o código.
+7. Conclua a integração conforme as regras de merge do repositório.
+
+Exemplo:
+
+```text
+Origem:
+US2.2-JH-123-cadastro-de-cliente
+
+Destino:
+feature/Transversal
+```
+
+### 6.2. Resolução de conflitos
+
+Conflitos acontecem quando branches diferentes modificam partes incompatíveis de um mesmo arquivo ou quando o Git não consegue combinar as alterações automaticamente.
+
+Ao identificar um conflito:
+
+1. Identifique os arquivos afetados.
+2. Compare as alterações das User Stories envolvidas.
+3. Preserve os requisitos e o comportamento esperado de cada funcionalidade.
+4. Remova os marcadores de conflito do Git.
+5. Execute os testes relevantes.
+6. Registre a resolução utilizando o padrão de commit definido neste guia, quando houver um commit manual de resolução.
+
+Exemplo de mensagem:
+
+```text
+merge(JH-123): resolve conflitos entre US2.2 e US2.3
+```
+
+Não escolha automaticamente uma das versões apenas para eliminar o conflito. A resolução deve considerar o comportamento esperado das funcionalidades.
+
+Se o conflito envolver regras de negócio ou decisões que não possam ser tomadas com segurança, consulte os responsáveis pelas User Stories antes de concluir a integração.
+
+### 6.3. Merge versus Squash and Merge
+
+Essas estratégias têm finalidades diferentes:
+
+- **Merge:** integra os históricos das branches e pode criar um commit de merge.
+- **Squash and Merge:** reúne os commits de um Pull Request em um único commit.
+
+Para os PRs das User Stories destinados à `feature/Transversal`, a equipe deve utilizar a estratégia definida nas configurações do repositório e registrar a resolução de conflitos conforme este guia.
+
+Para o PR final destinado à `main`, a estratégia padrão é **Squash and Merge**, consolidando a entrega integrada em um único commit.
+
+Título sugerido para o commit final:
+
+```text
+[TRANSVERSAL] Integração das User Stories — Sprint 2
+```
+
+O corpo do commit pode listar as User Stories incluídas e os testes realizados.
+
+**Importante:** o padrão `merge(JH-123): ...` identifica um commit que registra a resolução de conflitos. Ele não significa que todo PR precisa terminar com um commit manual desse tipo. A estratégia de merge e a mensagem do commit de resolução são regras distintas.
+
+---
+
+## 7. Fluxo completo de trabalho
+
+O fluxo padrão de uma User Story deve seguir esta ordem:
+
+1. Identificar a User Story no Jira.
+2. Confirmar sua Jira Key e seu identificador visual.
+3. Atualizar a `main` local.
+4. Criar uma branch da User Story a partir da `main`.
+5. Implementar a funcionalidade e suas subtasks.
+6. Criar commits seguindo o padrão estabelecido.
+7. Executar os testes necessários.
+8. Enviar a branch ao GitHub.
+9. Abrir um Pull Request para `feature/Transversal`.
+10. Solicitar revisão de outro integrante.
+11. Corrigir os apontamentos e resolver possíveis conflitos.
+12. Integrar a User Story à `feature/Transversal`.
+13. Repetir o processo para as demais User Stories.
+14. Validar o conjunto integrado e executar os testes de integração.
+15. Abrir um Pull Request de `feature/Transversal` para `main`.
+16. Realizar a revisão final e corrigir eventuais problemas.
+17. Integrar a entrega à `main` utilizando Squash and Merge.
+18. Remover branches temporárias após confirmar que não são mais necessárias.
+
+### Visão resumida
+
+```text
+main
+  │
+  ├── Criar branch da US
+  │       │
+  │       ├── Implementar
+  │       ├── Criar commits
+  │       ├── Testar
+  │       └── Abrir PR
+  │
+  ▼
+feature/Transversal
+  │
+  ├── Integrar as User Stories
+  ├── Resolver conflitos
+  ├── Testar o conjunto
+  └── Revisar a integração
+  │
+  ▼
+Pull Request final
+  │
+  ▼
+main
+```
+
+---
+
+## 8. Bugs e outras alterações
+
+### 8.1. Correção de bugs
+
+Todo bug relacionado ao projeto deve possuir uma issue no Jira e uma Jira Key própria.
+
+Para manter o mesmo fluxo de integração, a branch de correção também deve nascer da `main` e ser integrada à `feature/Transversal`.
+
+Padrão de nome:
+
+```text
+BUG-<JIRA-KEY>-<descricao-curta>
+```
+
+Exemplo:
+
+```text
+BUG-JH-456-validacao-de-cpf
+```
+
+Commit:
+
+```text
+fix(JH-456): corrigir validacao do CPF
+```
+
+Título do PR:
+
+```text
+[JH-456] Corrigir validação do CPF
+```
+
+Destino do PR:
+
+```text
+feature/Transversal
+```
+
+A correção deve incluir uma explicação do problema, o que foi corrigido e como verificar que o comportamento está correto.
+
+### 8.2. Documentação, CI e configuração
+
+Alterações de documentação, configuração, dependências e manutenção também devem respeitar o fluxo de branches.
+
+Quando houver uma issue no Jira, utilize sua Jira Key.
+
+Exemplo de branch:
+
+```text
+DOC-JH-200-configuracao-do-ci
 ```
 
 Commit:
@@ -307,450 +563,207 @@ Commit:
 chore(JH-200): atualizar workflow do GitHub Actions
 ```
 
-Pull Request:
+PR:
 
 ```text
 [JH-200] Atualizar configuração do CI
 ```
 
-**Exemplo transversal:**
+Quando a alteração não estiver relacionada a nenhuma issue do Jira, utilize `TRANSVERSAL` nos commits e títulos de PR, conforme aplicável.
 
-Branch:
+Exemplo:
+
+```text
+docs(TRANSVERSAL): atualizar README geral
+```
+
+Branch para uma alteração sem User Story:
+
+```text
+DOC-TRANSVERSAL-atualizar-readme
+```
+
+PR:
+
+```text
+[TRANSVERSAL] Atualizar README geral
+```
+
+O uso de `TRANSVERSAL` não substitui uma Jira Key quando a alteração faz parte de uma issue existente.
+
+---
+
+## 9. Comentários nos arquivos de código
+
+Antes de realizar o commit, revise os arquivos de código criados ou modificados.
+
+Quando aplicável, cada arquivo deve possuir um comentário inicial curto que explique sua responsabilidade.
+
+Regras:
+
+- Em arquivos novos, explique a finalidade principal do arquivo.
+- Em arquivos existentes, atualize o comentário quando sua responsabilidade mudar.
+- Não descreva linha por linha nem repita o código em texto.
+- Não adicione comentários em formatos que não os suportam, como JSON e arquivos de lock.
+- Mantenha os comentários atualizados com o comportamento real do código.
+
+O objetivo é facilitar a compreensão e a manutenção do projeto, não adicionar comentários desnecessários.
+
+---
+
+## 10. Segurança e uso do Supabase
+
+Como o projeto utiliza um banco Supabase compartilhado, todos os integrantes devem seguir estas regras.
+
+### Credenciais e variáveis de ambiente
+
+- Os arquivos `backend/.env` e `frontend/.env` são locais e não devem ser enviados ao Git.
+- Envie apenas arquivos de exemplo, como `.env.example`, sem credenciais válidas.
+- Nunca coloque `DATABASE_URL`, `DIRECT_URL`, senhas do PostgreSQL, `JWT_SECRET` ou credenciais de seed no frontend, em variáveis `VITE_*`, em issues públicas ou em logs compartilhados.
+- O frontend deve acessar somente a API Express.
+- O backend é responsável pelo acesso ao PostgreSQL do Supabase.
+
+### Migrations e alterações no banco
+
+- A estrutura do banco deve evoluir por meio de migrations versionadas.
+- Não altere manualmente a estrutura do banco pelo painel do Supabase.
+- Não utilize `prisma db push` como substituto do histórico de migrations.
+- Antes de executar migrations, confirme que a conexão aponta para o ambiente correto e combine a execução com a pessoa responsável pelo banco compartilhado.
+
+O comando:
 
 ```bash
-feature/transversal/atualizar-readme
+npx prisma migrate deploy
 ```
+
+aplica migrations já versionadas que ainda estejam pendentes. Antes de executá-lo no banco compartilhado, confirme que as migrations foram revisadas e que a execução foi combinada com a equipe.
+
+**Nunca execute este comando no Supabase compartilhado:**
+
+```bash
+npx prisma migrate reset
+```
+
+Esse comando pode apagar dados.
+
+A criação de migrations com `prisma migrate dev` também exige uma shadow database. Até que o processo de criação de migrations esteja acordado e isolado, não execute esse comando contra o banco compartilhado.
+
+Consulte o [Manual de Instalação](./docs/instalacao.md) para obter as orientações específicas do projeto.
+
+---
+
+## 11. Exemplos oficiais
+
+### Branch de User Story
+
+```text
+US2.2-JH-123-cadastro-de-cliente
+```
+
+### Commit de desenvolvimento
+
+```text
+feat(JH-124): validar campos obrigatorios do cadastro de cliente
+```
+
+### PR de User Story
+
+```text
+[JH-123] US2.2 — Cadastro de cliente
+```
+
+Destino:
+
+```text
+feature/Transversal
+```
+
+### Commit de resolução de conflitos
+
+```text
+merge(JH-123): resolve conflitos entre US2.2 e US2.3
+```
+
+### PR final de integração
+
+```text
+[TRANSVERSAL] Integração das User Stories — Sprint 2
+```
+
+Destino:
+
+```text
+main
+```
+
+### Commit final de Squash and Merge
+
+```text
+[TRANSVERSAL] Integração das User Stories — Sprint 2
+```
+
+### Bug
+
+```text
+Branch:
+BUG-JH-456-validacao-de-cpf
 
 Commit:
+fix(JH-456): corrigir validacao do CPF
 
-```text
-docs(TRANSVERSAL): atualizar README geral
-```
-
-Pull Request:
-
-```text
-[TRANSVERSAL] Atualizar README geral
-```
-
-> `TRANSVERSAL` não substitui uma Jira Key quando a alteração faz parte de uma User Story, Bug ou outra issue existente. Use-o somente quando a alteração realmente não estiver relacionada ao Jira.
-
----
-
-## Exemplos oficiais
-
-**Branch:**
-
-```bash
-feature/backend/JH-123-US2.1-cadastro
-feature/frontend/JH-123-US2.1-cadastro
-```
-
-**Commit:**
-
-```text
-feat(JH-101): validar campos obrigatórios do cadastro de cliente e retornar mensagens de erro para entradas inválidas
-```
-
-**Pull Request:**
-
-```text
-[JH-123] US2.1 — Cadastro de cliente
-```
-
-**Transversal:**
-
-```bash
-feature/transversal/atualizar-readme
-```
-
-```text
-docs(TRANSVERSAL): atualizar README geral
-```
-
-```text
-[TRANSVERSAL] Atualizar README geral
-```
-
-**Correção:**
-
-```bash
-fix/backend/JH-167-correcao-cliente
+PR:
+[JH-456] Corrigir validação do CPF
 ```
 
 ---
 
-## Checklist rápido
-
-**Antes da branch:**
-
-- [ ] Defini se a alteração é vinculada ao Jira ou transversal.
-- [ ] Se vinculada ao Jira, existe issue e Jira Key.
-- [ ] Se transversal, a branch usa `feature/transversal/<descricao-curta>`.
-- [ ] A camada está definida (`backend`, `frontend` ou `docs`), quando aplicável.
-
-**Antes do commit:**
-
-- [ ] Se vinculada ao Jira, a Jira Key está presente: `<tipo>(JH-123): <descrição>`.
-- [ ] Se transversal, o identificador usado é `TRANSVERSAL`: `<tipo>(TRANSVERSAL): <descrição>`.
-- [ ] O tipo está correto (`feat`, `fix`, `docs`, `style`, `refactor`, `test` ou `chore`).
-- [ ] A descrição representa a mudança real e explica o que foi alterado (nada de "ajustes", "alterações" ou "update").
-- [ ] Os arquivos de código criados/modificados possuem comentário de cabeçalho atualizado, quando aplicável.
-- [ ] O código e os testes foram verificados.
-
-**Antes da PR:**
-
-- [ ] A branch segue a convenção Jira (`feature/<camada>/<JIRA-KEY>-US<id>-...` ou `fix/<camada>/<JIRA-KEY>-...`) ou transversal (`feature/transversal/<descricao-curta>`).
-- [ ] Se vinculada ao Jira, o título contém a Jira Key: `[JH-123] US2.1 — Descrição`.
-- [ ] Se transversal, o título usa `[TRANSVERSAL] Descrição`.
-- [ ] A User Story está identificada (quando aplicável).
-- [ ] A descrição é clara e explica o que foi implementado.
-- [ ] As instruções de teste estão presentes (e as limitações/pendências, se houver).
-
-**Antes do merge:**
-
-- [ ] A revisão foi feita por outro integrante.
-- [ ] Os feedbacks foram tratados.
-- [ ] Os testes estão passando.
-- [ ] A branch de destino é a correta (`main`).
-- [ ] O merge será feito com **Squash and Merge**.
-- [ ] Nenhum commit foi feito diretamente na `main`.
-
----
-
-## Complemento — Exemplos práticos de Pull Request e Merge
-
-Esta seção complementa as regras anteriores com exemplos completos de **título**, **descrição do Pull Request** e **Squash and Merge**, sem alterar as convenções já definidas neste documento.
-
-### Exemplo completo de Pull Request de uma User Story
-
-Considere a User Story:
-
-```text
-Jira Key: JH-123
-User Story: US2.1 — Cadastro de cliente
-```
-
-Branch de backend:
-
-```text
-feature/backend/JH-123-US2.1-cadastro
-```
-
-Branch de frontend:
-
-```text
-feature/frontend/JH-123-US2.1-cadastro
-```
-
-O **título do Pull Request** deve seguir exatamente a base já definida neste documento:
-
-```text
-[JH-123] US2.1 — Cadastro de cliente
-```
-
-A descrição do PR deve explicar de forma objetiva o que foi implementado, como testar e se existe alguma limitação ou pendência.
-
-**Exemplo de descrição do PR:**
-
-```markdown
-## Objetivo
-
-Implementar a US2.1 — Cadastro de cliente, permitindo cadastrar novos clientes com validação dos campos obrigatórios.
-
-## O que foi feito
-
-- Implementada a validação dos campos obrigatórios do cadastro.
-- Criado o endpoint de cadastro de cliente.
-- Retornadas mensagens de erro para dados inválidos.
-- Implementado o formulário de cadastro no frontend.
-- Integrada a tela do frontend com a API de cadastro.
-
-## Subtasks relacionadas
-
-- JH-101 — Validar campos obrigatórios do cadastro de cliente
-- JH-102 — Implementar endpoint de cadastro de cliente
-- JH-103 — Criar formulário de cadastro no frontend
-
-## Como testar
-
-1. Executar o projeto.
-2. Acessar a tela de cadastro de cliente.
-3. Tentar cadastrar um cliente sem preencher os campos obrigatórios.
-4. Confirmar que as mensagens de validação são apresentadas.
-5. Preencher os dados válidos.
-6. Confirmar que o cadastro é realizado com sucesso.
-
-## Testes executados
-
-- Testes automatizados: passando.
-- Teste manual do cadastro: passando.
-
-## Limitações / pendências
-
-Nenhuma pendência conhecida para esta User Story.
-```
-
-### Quando a User Story possuir Backend e Frontend
-
-Quando a mesma User Story possuir as duas branches previstas neste documento, o título continua usando a mesma base oficial da User Story:
-
-```text
-[JH-123] US2.1 — Cadastro de cliente
-```
-
-A diferença de camada deve ficar clara na **descrição do PR**, por exemplo:
-
-```markdown
-## Camada
-
-Backend
-```
-
-ou:
-
-```markdown
-## Camada
-
-Frontend
-```
-
-Assim, o título continua seguindo a convenção oficial e a descrição informa exatamente qual parte da User Story aquele PR implementa.
-
-### O que NÃO fazer no título do Pull Request
-
-Não criar uma nova convenção diferente da definida neste documento:
-
-```text
-❌ JH-123 - Cadastro de cliente
-❌ US2.1 — Cadastro de cliente
-❌ cadastro de cliente
-❌ [US2.1] Cadastro de cliente
-❌ [JH-123] Cadastro
-```
-
-Para uma alteração vinculada ao Jira, use:
-
-```text
-✅ [JH-123] US2.1 — Cadastro de cliente
-```
-
-### Exemplo de Pull Request de Bug
-
-Para o exemplo de bug já definido neste documento:
-
-```text
-Jira Key: JH-456
-```
-
-Branch:
-
-```text
-fix/backend/JH-456-correcao-validacao
-```
-
-Título do PR:
-
-```text
-[JH-456] Corrigir validação do campo de CPF
-```
-
-Exemplo de descrição:
-
-```markdown
-## Objetivo
-
-Corrigir a validação do campo de CPF, que estava aceitando valores inválidos.
-
-## Problema identificado
-
-A validação atual permitia o envio de CPF inválido em determinadas situações.
-
-## Correção realizada
-
-- Corrigida a regra de validação do CPF.
-- Adicionados testes para CPF válido e inválido.
-
-## Como testar
-
-1. Acessar a tela de cadastro.
-2. Informar um CPF inválido.
-3. Confirmar que o sistema bloqueia o envio.
-4. Informar um CPF válido.
-5. Confirmar que o cadastro pode continuar normalmente.
-
-## Testes executados
-
-- Testes automatizados: passando.
-- Teste manual: passando.
-```
-
-### Squash and Merge — como preencher
-
-O projeto utiliza **Squash and Merge**. Portanto, depois que o Pull Request for aprovado, todos os commits da branch são consolidados em um único commit na `main`.
-
-O **título do commit de squash deve ser o mesmo título do Pull Request**, conforme definido anteriormente:
-
-```text
-[JH-123] US2.1 — Cadastro de cliente
-```
-
-Não criar outro título no momento do merge, como:
-
-```text
-❌ cadastro finalizado
-❌ merge cadastro
-❌ ajustes finais
-❌ US2.1 concluída
-```
-
-O título oficial continua sendo:
-
-```text
-✅ [JH-123] US2.1 — Cadastro de cliente
-```
-
-### Exemplo de corpo do Squash and Merge
-
-Quando a plataforma permitir preencher ou revisar o corpo da mensagem do squash, recomenda-se preservar a rastreabilidade das Subtasks:
-
-```text
-Implementação consolidada da US2.1 — Cadastro de cliente.
-
-Subtasks incluídas:
-- JH-101 — Validar campos obrigatórios do cadastro de cliente
-- JH-102 — Implementar endpoint de cadastro de cliente
-- JH-103 — Criar formulário de cadastro no frontend
-
-Testes:
-- Testes automatizados: passando.
-- Teste manual do cadastro: passando.
-```
-
-Resultado esperado na `main`:
-
-```text
-[JH-123] US2.1 — Cadastro de cliente
-```
-
-Ou seja:
-
-```text
-PR
-[JH-123] US2.1 — Cadastro de cliente
-        │
-        │ Squash and Merge
-        ▼
-main
-[JH-123] US2.1 — Cadastro de cliente
-```
-
-### Exemplo completo: Branch → Commits → PR → Merge
-
-```text
-1. Branch
-   feature/backend/JH-123-US2.1-cadastro
-
-2. Commits
-   feat(JH-101): validar campos obrigatórios do cadastro de cliente e retornar mensagens de erro para entradas inválidas
-   feat(JH-102): implementar endpoint de cadastro de cliente
-
-3. Pull Request
-   Título:
-   [JH-123] US2.1 — Cadastro de cliente
-
-   Descrição:
-   Objetivo + o que foi feito + Subtasks + como testar + testes + limitações/pendências
-
-4. Code Review
-   Outro integrante revisa e aprova.
-
-5. Squash and Merge
-   Título do commit final:
-   [JH-123] US2.1 — Cadastro de cliente
-
-6. main
-   Um único commit consolidando o trabalho da User Story.
-```
-
-### Exemplo completo para alteração transversal
-
-Branch:
-
-```text
-feature/transversal/atualizar-readme
-```
-
-Título do PR:
-
-```text
-[TRANSVERSAL] Atualizar README geral
-```
-
-Descrição:
-
-```markdown
-## Objetivo
-
-Atualizar a documentação geral do projeto.
-
-## O que foi feito
-
-- Atualizada a descrição do projeto.
-- Corrigadas instruções de execução.
-- Atualizados exemplos de configuração.
-
-## Como testar
-
-Verificar o conteúdo do README e confirmar que os comandos e instruções estão corretos.
-
-## Testes executados
-
-Não se aplica a testes automatizados.
-```
-
-Squash and Merge:
-
-```text
-Título:
-[TRANSVERSAL] Atualizar README geral
-```
-
-### Regra prática para não esquecer
-
-Antes de abrir ou mesclar um PR, mantenha esta relação:
-
-```text
-Jira Key / identificação oficial
-        │
-        ├── Branch → JH-123 + US2.1
-        │
-        ├── PR → [JH-123] US2.1 — Cadastro de cliente
-        │
-        └── Squash and Merge → [JH-123] US2.1 — Cadastro de cliente
-```
-
-O **commit continua usando a Jira Key da Subtask**, conforme a regra de rastreabilidade deste documento:
-
-```text
-feat(JH-101): descrição real da alteração
-```
-
-Dessa forma:
-
-```text
-Branch = User Story
-PR = User Story
-Commit = Subtask
-Merge/Squash = consolidação da User Story na main
-```
+## 12. Checklist rápido
+
+### Antes de criar a branch
+
+- [ ] Identifiquei a User Story e sua Jira Key.
+- [ ] Atualizei a `main`.
+- [ ] Criei a branch a partir da `main`.
+- [ ] Utilizei o identificador visual, a Jira Key e uma descrição curta.
+- [ ] Não criei branches separadas para backend e frontend.
+
+### Antes de cada commit
+
+- [ ] Escolhi o tipo correto de commit.
+- [ ] Utilizei a Jira Key da subtask correspondente ou `TRANSVERSAL`, quando aplicável.
+- [ ] Escrevi uma descrição clara e específica.
+- [ ] Revisei os arquivos modificados.
+- [ ] Executei os testes necessários.
+- [ ] Não incluí credenciais ou arquivos `.env`.
+
+### Antes de abrir um PR de User Story
+
+- [ ] Enviei a branch ao GitHub.
+- [ ] Defini `feature/Transversal` como destino.
+- [ ] Incluí a Jira Key e o identificador da User Story no título.
+- [ ] Expliquei o que foi implementado.
+- [ ] Listei as subtasks relacionadas, quando aplicável.
+- [ ] Incluí as instruções e os resultados dos testes.
+- [ ] Solicitei a revisão de outro integrante.
+
+### Antes de concluir a integração
+
+- [ ] Resolvi os conflitos, quando existirem.
+- [ ] Registrei as resoluções conforme o padrão de commit definido.
+- [ ] Executei os testes relevantes após a resolução.
+- [ ] Confirmei que as User Stories funcionam em conjunto.
+- [ ] Verifiquei a `feature/Transversal` antes de abrir o PR final.
+
+### Antes do merge para a `main`
 
 ## Segurança e uso do banco Supabase compartilhado
+- [ ] O PR final tem como destino a `main`.
+- [ ] A revisão foi feita por outro integrante.
+- [ ] Os testes necessários passaram.
+- [ ] As pendências conhecidas foram tratadas ou documentadas.
+- [ ] O merge final será feito com Squash and Merge.
+- [ ] Nenhum commit foi realizado diretamente na `main`.
 
-- Arquivos `backend/.env` e `frontend/.env` são locais e nunca devem ser commitados. Committe apenas os modelos `.env.example`, sem credenciais válidas.
-- Nunca coloque `DATABASE_URL`, `DIRECT_URL`, senha do PostgreSQL, `JWT_SECRET` ou credenciais do seed em código frontend, variáveis `VITE_*`, issues públicas ou logs enviados ao time.
-- O frontend acessa somente a API Express; o backend acessa o PostgreSQL do Supabase.
-- O schema deve evoluir por migrations versionadas. Não faça alterações manuais de estrutura pelo painel do banco, nem use `prisma db push` como substituto do histórico de migrations.
-- `npx prisma migrate deploy` aplica migrations já versionadas e pendentes; ele não apaga tabelas e não exige shadow database. Antes de executá-lo, confirme que a URL de conexão aponta para o ambiente correto e combine a execução com a pessoa responsável pelo banco compartilhado.
-- **Nunca rode `npx prisma migrate reset` no Supabase compartilhado.** O comando pode apagar dados.
-- A criação de migrations com `prisma migrate dev` ainda exige shadow database, mesmo que `SHADOW_DATABASE_URL` não esteja definida na configuração. Até que o fluxo de autoria de migrations esteja acordado e isolado, não execute esse comando contra o banco compartilhado. Consulte o [Manual de Instalação](./docs/instalacao.md).
+---
+
+**Regra principal do GesTec:** cada User Story tem sua própria branch criada a partir da `main`. As User Stories são integradas na `feature/Transversal`, onde os conflitos e a compatibilidade entre funcionalidades são tratados. Somente depois da revisão e validação da integração o resultado é enviado à `main`.
