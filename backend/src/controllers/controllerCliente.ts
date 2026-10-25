@@ -56,6 +56,10 @@ export class ControllerCliente {
         });
     }
 
+    public async getInativos(_req: Request, resp: Response): Promise<Response> {
+        return resp.status(200).json(await serviceCliente.listarInativos());
+    }
+    
     /** PATCH /cliente/:id/ativar — reativa um cliente. */
     public async ativarCliente(
         req: Request,

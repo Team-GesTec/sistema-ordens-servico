@@ -1,15 +1,18 @@
 import { apiRequest } from "./api";
-import type { OrdemServico, OrdemServicoInput } from "../types/api";
+import type { HistoricoOrdemServico, OrdemServico, OrdemServicoInput } from "../types/api";
 
 export const ordemServicoService = {
+    /** GET /ordens-servico — o backend não lê filtros de prazo; eles são aplicados no cliente. */
     listar(): Promise<OrdemServico[]> {
         return apiRequest<OrdemServico[]>("/ordens-servico");
     },
 
+    /** GET /ordens-servico/inativas — somente gestor. */
     listarInativas(): Promise<OrdemServico[]> {
         return apiRequest<OrdemServico[]>("/ordens-servico/inativas");
     },
 
+    /** PATCH /ordens-servico/:id/ativo — somente gestor. */
     alterarAtivo(id: number, ativo: boolean): Promise<OrdemServico> {
         return apiRequest<OrdemServico>(`/ordens-servico/${id}/ativo`, {
             method: "PATCH",
@@ -17,8 +20,19 @@ export const ordemServicoService = {
         });
     },
 
+    /** O bloqueio possui rota e autorização próprias no backend. */
+    bloquear(id: number): Promise<OrdemServico> {
+        return apiRequest<OrdemServico>(`/ordens-servico/bloquear/${id}`, {
+            method: "PATCH",
+        });
+    },
+
     buscarPorId(id: number): Promise<OrdemServico> {
         return apiRequest<OrdemServico>(`/ordens-servico/${id}`);
+    },
+
+    listarHistorico(id: number): Promise<HistoricoOrdemServico[]> {
+        return apiRequest<HistoricoOrdemServico[]>(`/ordens-servico/${id}/historico`);
     },
 
     criar(payload: OrdemServicoInput): Promise<OrdemServico> {
@@ -28,16 +42,7 @@ export const ordemServicoService = {
         });
     },
 
-    atribuirResponsavel(
-        id: number,
-        funcionarioId: number,
-    ): Promise<OrdemServico> {
-        return apiRequest<OrdemServico>(`/ordens-servico/atribuir/${id}`, {
-            method: "PATCH",
-            body: JSON.stringify({ funcionario_id: funcionarioId }),
-        });
-    },
-
+    /** PATCH /ordens-servico/:id/status — também registra o parecer técnico. */
     alterarStatus(
         id: number,
         status: OrdemServico["status"],

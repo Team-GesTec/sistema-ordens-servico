@@ -73,6 +73,20 @@ Configure também:
 - `CORS_ORIGIN=http://localhost:5173`: origem local do frontend. Se o Vite iniciar em outra porta, atualize esse valor para corresponder à origem exibida no terminal.
 - `SEED_*`: variáveis usadas somente ao cadastrar os usuários iniciais pelo seed.
 
+### Supabase Storage (anexos das O.S. — US#2.6)
+
+Os arquivos anexados às O.S. ficam no Supabase Storage; o banco guarda só os metadados. Para usar as rotas de anexo:
+
+1. No painel do Supabase, abra **Storage → New bucket**, crie o bucket `anexos-os` e deixe **Public bucket desmarcado** (o bucket precisa ser privado: o download sempre passa pela API, que confere a permissão).
+2. Ainda no bucket, se quiser, defina o limite de tamanho do arquivo como `52428800` bytes (50MB). No plano gratuito, o limite global do projeto não passa de 50MB.
+3. Preencha no `backend/.env`:
+   - `SUPABASE_URL`: Project URL (ex.: `https://PROJECT_REF.supabase.co`);
+   - `SUPABASE_SERVICE_ROLE_KEY`: chave secreta (service_role). Ela ignora as políticas de acesso do Supabase — use **somente no backend**, nunca no frontend nem em variáveis `VITE_*`;
+   - `SUPABASE_BUCKET_ANEXOS`: nome do bucket (padrão `anexos-os`).
+4. As regras provisórias do PE-12 também ficam no `.env`: `ANEXO_TIPOS_PERMITIDOS` (MIME types separados por vírgula, sem curingas) e `ANEXO_QUANTIDADE_MAXIMA`.
+
+Sem as variáveis do Storage, a API sobe normalmente e só as rotas de anexo respondem `503`. Se houver um proxy na frente da API (ex.: Nginx), o limite de corpo dele precisa ser maior que 50MB (ex.: `client_max_body_size 51m;`).
+
 **Segurança:** não faça commit de `backend/.env`; ele contém credenciais. O `.gitignore` deve continuar ignorando arquivos `.env`, com exceção dos modelos `.env.example`. Nunca coloque URLs PostgreSQL, senhas, `JWT_SECRET` ou credenciais do seed no frontend ou em variáveis `VITE_*`.
 
 ## 5. Instalar o backend e verificar o banco
@@ -181,6 +195,14 @@ No diretório `backend/`:
 npm run build
 npm test
 ```
+
+Os cenários de anexo marcados com `@supabase-storage` enviam arquivos de verdade para o bucket configurado no `.env`. Sem o Storage configurado, rode os demais com:
+
+```powershell
+npx cucumber-js --tags "not @supabase-storage"
+```
+
+Os cenários `@arquivo-grande` enviam cerca de 50MB e são mais lentos; para pulá-los, use `--tags "not @arquivo-grande"`.
 
 No diretório `frontend/`:
 

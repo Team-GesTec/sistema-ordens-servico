@@ -50,8 +50,8 @@ O SGOS resolve essa dor ao oferecer um agrupador central de projetos, ordens de 
 
 | Período da Sprint | Meta (User Stories) | Link para Documentação da Sprint | Link para Vídeo no Youtube do Incremento Entregue |
 | --- | --- | --- | --- |
-| Sprint 1: 01/09/2026 - 25/09/2026 | US#4.1, US#2.1, US#1.2 | [Documentação da Sprint 1](./docs/Sprint%201/docssprint1.md) | [Demonstração da Sprint 1 - YouTube](#) |
-| Sprint 2: 28/09/2026 - 23/10/2026 | *Em progresso* | [Documentação da Sprint 2](./docs/Sprint%202/docssprint2.md) | [Demonstração da Sprint 2 - YouTube](#) |
+| Sprint 1: 01/09/2026 - 25/09/2026 | US#4.1, US#2.1, US#1.2 | [Documentação da Sprint 1](./docs/Sprint%201/docssprint1.md) | [Demonstração da Sprint 1 - YouTube](https://www.youtube.com/watch?v=vnbYhxT90lo) |
+| Sprint 2: 28/09/2026 - 24/10/2026 | US#1.3 | [Documentação da Sprint 2](./docs/Sprint%202/docssprint2.md) | [Demonstração da Sprint 2 - YouTube](#) |
 | Sprint 3: 26/10/2026 - 20/11/2026 | *Em progresso* | [Documentação da Sprint 3](./docs/Sprint%203/docssprint3.md) | [Demonstração da Sprint 3 - YouTube](#) |
 
 ---
@@ -68,190 +68,276 @@ O SGOS resolve essa dor ao oferecer um agrupador central de projetos, ordens de 
 
 ## Estrutura do Projeto
 
-```bash
-sistema-ordens-servico/
-│   .gitignore
-│   CONTRIBUTING.md
-│   README.md
-│   
-├───backend
-│   │   .env.example
-│   │   cucumber.json
-│   │   package-lock.json
-│   │   package.json
-│   │   prisma.config.ts
-│   │   tsconfig.json
-│   │   
-│   ├───features
-│   │   ├───auth
-│   │   │       login.feature
-│   │   │       
-│   │   ├───step-definitions
-│   │   │       auth.steps.ts
-│   │   │       
-│   │   └───support
-│   │           api.ts
-│   │           world.ts
-│   │           
-│   ├───middlewares
-│   │       authMiddleware.ts
-│   │       errorMiddleware.ts
-│   │       
-│   ├───prisma
-│   │   │   client.ts
-│   │   │   schema.prisma
-│   │   │   seed.ts
-│   │   │   
-│   │   └───migrations
-│   │       └───20260924_fix
-│   │               migration.sql
-│   │               
-│   ├───src
-│   │   │   app.ts
-│   │   │   server.ts
-│   │   │   
-│   │   ├───cache
-│   │   │       EntityCache.ts
-│   │   │       clienteCache.ts
-│   │   │       departamentoCache.ts
-│   │   │       funcionarioCache.ts
-│   │   │       projetoCache.ts
-│   │   │       
-│   │   ├───config
-│   │   │       env.ts
-│   │   │       
-│   │   ├───controllers
-│   │   │       controllerAuth.ts
-│   │   │       controllerCliente.ts
-│   │   │       controllerDepartamento.ts
-│   │   │       controllerFuncionario.ts
-│   │   │       controllerOrdemServico.ts
-│   │   │       controllerProjeto.ts
-│   │   │       
-│   │   ├───errors
-│   │   │       AppError.ts
-│   │   │       tratarErroPrisma.ts
-│   │   │       
-│   │   ├───models
-│   │   │       modelAuth.ts
-│   │   │       modelCliente.ts
-│   │   │       modelDepartamento.ts
-│   │   │       modelFuncionario.ts
-│   │   │       modelOrdemServico.ts
-│   │   │       modelProjeto.ts
-│   │   │       
-│   │   ├───repositories
-│   │   │       repositoryCliente.ts
-│   │   │       repositoryDepartamento.ts
-│   │   │       repositoryFuncionario.ts
-│   │   │       repositoryOrdemServico.ts
-│   │   │       repositoryProjeto.ts
-│   │   │       
-│   │   ├───routes
-│   │   │       routeAuth.ts
-│   │   │       routeCliente.ts
-│   │   │       routeDepartamento.ts
-│   │   │       routeFuncionario.ts
-│   │   │       routeOrdemServico.ts
-│   │   │       routeProjeto.ts
-│   │   │       
-│   │   └───services
-│   │           serviceAuth.ts
-│   │           serviceCliente.ts
-│   │           serviceDepartamento.ts
-│   │           serviceFuncionario.ts
-│   │           serviceOrdemServico.ts
-│   │           serviceProjeto.ts
-│   │           
-│   ├───types
-│   │       express.d.ts
-│   │       
-│   └───utils
-│           senha.ts
-│           validacao.ts
-│           
-├───docs
-│       checklist-dor-dod.md
-│       instalacao.md
-│       Padroes-e-Utilizacao-ReactxTS.md
-│       
-└───frontend
-    │   eslint.config.js
-    │   index.html
-    │   package-lock.json
-    │   package.json
-    │   README.md
-    │   tsconfig.app.json
-    │   tsconfig.json
-    │   tsconfig.node.json
-    │   vite.config.ts
-    │   
-    ├───public
-    │       favicon.svg
-    │       icons.svg
-    │       
-    └───src
-        │   App.css
-        │   App.tsx
-        │   index.css
-        │   main.tsx
-        │   
-        ├───assets
-        │       hero.png
-        │       react.svg
-        │       vite.svg
-        │       
-        ├───components
-        │       CustomSelect.tsx
-        │       PrivateRoutes.tsx
-        │       Sidebar.tsx
-        │       
-        ├───images
-        │       AZUL.CLARO_BRANCO.png
-        │       AZUL.CLARO_BRANCO_SemNome.png
-        │       PRETO_BRANCO.png
-        │       SemNome_Branca.AzulClaro.png
-        │       SemNome_Preta.AzulClaro.png
-        │       logo_darkmode.png
-        │       logo_gestec.png
-        │       
-        ├───layouts
-        │       MainLayout.tsx
-        │       
-        ├───pages
-        │       Clientes.tsx
-        │       Departamentos.tsx
-        │       Funcionarios.tsx
-        │       Home.tsx
-        │       Login.tsx
-        │       Ordens.tsx
-        │       Projetos.tsx
-        │       Relatorios.tsx
-        │       
-        ├───services
-        │       api.ts
-        │       auth.ts
-        │       cliente.ts
-        │       departamento.ts
-        │       funcionario.ts
-        │       ordemServico.ts
-        │       projeto.ts
-        │       
-        ├───styles
-        │       cards.css
-        │       darkmode.css
-        │       details.css
-        │       filters.css
-        │       forms.css
-        │       global.css
-        │       layout.css
-        │       login.css
-        │       sidebar.css
-        │       variaveis.css
-        │       
-        └───types
-                api.ts
-                
+```
+├── backend
+│   ├── features
+│   │   ├── auth
+│   │   │   └── login.feature
+│   │   ├── ordens
+│   │   │   ├── anexos.feature
+│   │   │   ├── atribuicao.feature
+│   │   │   ├── crud.feature
+│   │   │   ├── migracao.feature
+│   │   │   ├── notificacoes.feature
+│   │   │   ├── sla.feature
+│   │   │   └── status.feature
+│   │   ├── step-definitions
+│   │   │   ├── anexos.steps.ts
+│   │   │   ├── atribuicao.steps.ts
+│   │   │   ├── auth.steps.ts
+│   │   │   ├── crud.steps.ts
+│   │   │   ├── migracao.steps.ts
+│   │   │   ├── notificacoes.steps.ts
+│   │   │   ├── sla.steps.ts
+│   │   │   └── status.steps.ts
+│   │   └── support
+│   │       ├── api.ts
+│   │       ├── apiAuth.ts
+│   │       ├── sessao.ts
+│   │       └── world.ts
+│   ├── src
+│   │   ├── config
+│   │   │   └── env.ts
+│   │   ├── controllers
+│   │   │   ├── controllerAnexo.ts
+│   │   │   ├── controllerAuth.ts
+│   │   │   ├── controllerCliente.ts
+│   │   │   ├── controllerDepartamento.ts
+│   │   │   ├── controllerFuncionario.ts
+│   │   │   ├── controllerNotificacao.ts
+│   │   │   ├── controllerOrdemServico.ts
+│   │   │   └── controllerProjeto.ts
+│   │   ├── errors
+│   │   │   ├── AppError.ts
+│   │   │   └── tratarErroPrisma.ts
+│   │   ├── jobs
+│   │   │   └── rotinaNotificacoes.ts
+│   │   ├── middlewares
+│   │   │   ├── authMiddleware.ts
+│   │   │   ├── errorMiddleware.ts
+│   │   │   └── uploadMiddleware.ts
+│   │   ├── models
+│   │   │   ├── modelAnexo.ts
+│   │   │   ├── modelAuditoria.ts
+│   │   │   ├── modelAuditoriaProjeto.ts
+│   │   │   ├── modelAuth.ts
+│   │   │   ├── modelCliente.ts
+│   │   │   ├── modelDepartamento.ts
+│   │   │   ├── modelFuncionario.ts
+│   │   │   ├── modelNotificacao.ts
+│   │   │   ├── modelOrdemServico.ts
+│   │   │   ├── modelProjeto.ts
+│   │   │   └── modelSla.ts
+│   │   ├── prisma
+│   │   │   ├── migrations
+│   │   │   │   ├── 20260924_fix
+│   │   │   │   │   └── migration.sql
+│   │   │   │   ├── 20261009_schema_fix
+│   │   │   │   │   └── migration.sql
+│   │   │   │   ├── 20261015_cliente_fix
+│   │   │   │   │   └── migration.sql
+│   │   │   │   ├── 20261016_cliente_ativo
+│   │   │   │   │   └── migration.sql
+│   │   │   │   ├── 20261016_ordem_servico_ativo
+│   │   │   │   │   └── migration.sql
+│   │   │   │   ├── 20261017_aj02_projetos
+│   │   │   │   │   └── migration.sql
+│   │   │   │   ├── 20261017_aj03_funcionarios_ativo
+│   │   │   │   │   └── migration.sql
+│   │   │   │   ├── 20261019_anexos_autor
+│   │   │   │   │   └── migration.sql
+│   │   │   │   ├── 20261023_anexos_relato
+│   │   │   │   │   └── migration.sql
+│   │   │   │   └── migration_lock.toml
+│   │   │   ├── client.ts
+│   │   │   ├── schema.prisma
+│   │   │   └── seed.ts
+│   │   ├── repositories
+│   │   │   ├── repositoryAnexo.ts
+│   │   │   ├── repositoryAuditoria.ts
+│   │   │   ├── repositoryAuditoriaProjeto.ts
+│   │   │   ├── repositoryCliente.ts
+│   │   │   ├── repositoryDepartamento.ts
+│   │   │   ├── repositoryFuncionario.ts
+│   │   │   ├── repositoryNotificacao.ts
+│   │   │   ├── repositoryOrdemServico.ts
+│   │   │   ├── repositoryProjeto.ts
+│   │   │   ├── repositorySla.ts
+│   │   │   └── repositoryStorageAnexo.ts
+│   │   ├── routes
+│   │   │   ├── routeAnexo.ts
+│   │   │   ├── routeAuth.ts
+│   │   │   ├── routeCliente.ts
+│   │   │   ├── routeDepartamento.ts
+│   │   │   ├── routeFuncionario.ts
+│   │   │   ├── routeNotificacao.ts
+│   │   │   ├── routeOrdemServico.ts
+│   │   │   └── routeProjeto.ts
+│   │   ├── services
+│   │   │   ├── serviceAnexo.ts
+│   │   │   ├── serviceAuditoria.ts
+│   │   │   ├── serviceAuth.ts
+│   │   │   ├── serviceCliente.ts
+│   │   │   ├── serviceDepartamento.ts
+│   │   │   ├── serviceEscopoOrdemServico.ts
+│   │   │   ├── serviceFuncionario.ts
+│   │   │   ├── serviceNotificacao.ts
+│   │   │   ├── serviceOrdemServico.ts
+│   │   │   ├── serviceProjeto.ts
+│   │   │   └── serviceSla.ts
+│   │   ├── types
+│   │   │   └── express.d.ts
+│   │   ├── utils
+│   │   │   ├── arquivo.ts
+│   │   │   ├── diasUteis.ts
+│   │   │   ├── estadoSla.ts
+│   │   │   ├── projetoOsInvariant.ts
+│   │   │   ├── senha.ts
+│   │   │   └── validacao.ts
+│   │   ├── app.ts
+│   │   └── server.ts
+│   ├── cucumber.json
+│   ├── package-lock.json
+│   ├── package.json
+│   ├── prisma.config.ts
+│   └── tsconfig.json
+├── docs
+│   ├── Sprint 1
+│   │   ├── README.md
+│   │   └── docssprint1.md
+│   ├── Sprint 2
+│   │   └── docssprint2.md
+│   ├── Sprint 3
+│   │   └── docssprint3.md
+│   ├── Padroes-e-Utilizacao-ReactxTS.md
+│   ├── checklist-dor-dod.md
+│   └── instalacao.md
+├── frontend
+│   ├── public
+│   │   ├── favicon.svg
+│   │   └── icons.svg
+│   ├── src
+│   │   ├── assets
+│   │   │   ├── hero.png
+│   │   │   ├── react.svg
+│   │   │   └── vite.svg
+│   │   ├── components
+│   │   │   ├── clientes
+│   │   │   │   ├── ClienteCard.tsx
+│   │   │   │   ├── ClienteFormModal.tsx
+│   │   │   │   ├── ClienteStatusModal.tsx
+│   │   │   │   └── ClientesToolbar.tsx
+│   │   │   ├── common
+│   │   │   │   └── Autocomplete.tsx
+│   │   │   ├── departamentos
+│   │   │   │   └── DepartamentoDetalhesModal.tsx
+│   │   │   ├── funcionarios
+│   │   │   │   ├── FuncionarioCard.tsx
+│   │   │   │   ├── FuncionarioDetalhesModal.tsx
+│   │   │   │   ├── FuncionarioFormModal.tsx
+│   │   │   │   ├── FuncionarioStatusModal.tsx
+│   │   │   │   └── FuncionariosToolbar.tsx
+│   │   │   ├── ordens
+│   │   │   │   ├── OrdemServicoAtivoModal.tsx
+│   │   │   │   ├── OrdemServicoCard.tsx
+│   │   │   │   ├── OrdemServicoDetalhesModal.tsx
+│   │   │   │   ├── OrdemServicoFormModal.tsx
+│   │   │   │   ├── OrdemServicoHistorico.tsx
+│   │   │   │   ├── OrdemServicoKanban.tsx
+│   │   │   │   ├── OrdemServicoVisualizacoesSalvas.tsx
+│   │   │   │   └── OrdensToolbar.tsx
+│   │   │   ├── projetos
+│   │   │   │   ├── ProjetoAtivoModal.tsx
+│   │   │   │   ├── ProjetoCard.tsx
+│   │   │   │   ├── ProjetoDetalhesModal.tsx
+│   │   │   │   ├── ProjetoFormModal.tsx
+│   │   │   │   └── ProjetosBuscaAutocomplete.tsx
+│   │   │   ├── CustomSelect.tsx
+│   │   │   ├── NotificacoesSla.tsx
+│   │   │   ├── PrivateRoutes.tsx
+│   │   │   └── Sidebar.tsx
+│   │   ├── hooks
+│   │   │   ├── useAnexosOrdem.ts
+│   │   │   ├── useClientes.ts
+│   │   │   ├── useFuncionarios.ts
+│   │   │   ├── useOrdens.ts
+│   │   │   └── useProjetos.ts
+│   │   ├── images
+│   │   │   ├── AZUL.CLARO_BRANCO.png
+│   │   │   ├── AZUL.CLARO_BRANCO_SemNome.png
+│   │   │   ├── PRETO_BRANCO.png
+│   │   │   ├── SemNome_Branca.AzulClaro.png
+│   │   │   ├── SemNome_Preta.AzulClaro.png
+│   │   │   ├── claro.png
+│   │   │   ├── dark.png
+│   │   │   ├── logo_darkmode.png
+│   │   │   └── logo_gestec.png
+│   │   ├── layouts
+│   │   │   └── MainLayout.tsx
+│   │   ├── pages
+│   │   │   ├── Clientes.tsx
+│   │   │   ├── Departamentos.tsx
+│   │   │   ├── Equipes.tsx
+│   │   │   ├── Funcionarios.tsx
+│   │   │   ├── Home.tsx
+│   │   │   ├── Login.tsx
+│   │   │   ├── Ordens.tsx
+│   │   │   ├── Projetos.tsx
+│   │   │   └── Relatorios.tsx
+│   │   ├── services
+│   │   │   ├── administracao.ts
+│   │   │   ├── anexo.ts
+│   │   │   ├── api.ts
+│   │   │   ├── auth.ts
+│   │   │   ├── cliente.ts
+│   │   │   ├── departamento.ts
+│   │   │   ├── funcionario.ts
+│   │   │   ├── ordemServico.ts
+│   │   │   └── projeto.ts
+│   │   ├── styles
+│   │   │   ├── autocomplete.css
+│   │   │   ├── cards.css
+│   │   │   ├── clientes.css
+│   │   │   ├── darkmode.css
+│   │   │   ├── dashboard.css
+│   │   │   ├── details.css
+│   │   │   ├── equipes.css
+│   │   │   ├── filters.css
+│   │   │   ├── forms.css
+│   │   │   ├── funcionarios.css
+│   │   │   ├── global.css
+│   │   │   ├── importacaoCsv.css
+│   │   │   ├── layout.css
+│   │   │   ├── login.css
+│   │   │   ├── modal-os.css
+│   │   │   ├── ordens.css
+│   │   │   ├── projetos.css
+│   │   │   ├── sidebar.css
+│   │   │   └── variaveis.css
+│   │   ├── types
+│   │   │   ├── api.ts
+│   │   │   └── notificacao.ts
+│   │   ├── utils
+│   │   │   ├── clienteUtils.ts
+│   │   │   ├── filtroPrazo.ts
+│   │   │   ├── ordemServicoUtils.ts
+│   │   │   └── prazoOrdem.ts
+│   │   ├── App.css
+│   │   ├── App.tsx
+│   │   ├── index.css
+│   │   └── main.tsx
+│   ├── README.md
+│   ├── eslint.config.js
+│   ├── index.html
+│   ├── package-lock.json
+│   ├── package.json
+│   ├── tsconfig.app.json
+│   ├── tsconfig.json
+│   ├── tsconfig.node.json
+│   └── vite.config.ts
+├── .gitignore
+├── CONTRIBUTING.md
+└── README.md              
 ```
 
 ---
@@ -303,12 +389,12 @@ npx prisma migrate deploy
 npm run db:status
 ```
 
-Preencha as variáveis de ambiente no `.env` com as informações do banco PostgreSQL.
+Se o banco compartilhado tiver migrations pendentes, confirme primeiro que `DIRECT_URL` aponta para o ambiente de desenvolvimento correto e, com autorização, aplique as migrations versionadas:
 
-> [!NOTE]
-> Caso esteja utilizando um banco PostgreSQL local, informe no `.env` os dados correspondentes à sua conexão.
->
-> As variáves necessárias estão disponíveis no arquivo `.env.example`.
+```bash
+npx prisma migrate deploy
+npm run db:status
+```
 
 Com o banco configurado, gere o client do Prisma:
 
@@ -390,7 +476,6 @@ O fluxo de trabalho no GitHub, a estratégia de branches e o padrão de commits 
 ## Links para Pasta de Documentação
 
 - [Checklist de DoR e DoD](./docs/checklist-dor-dod.md)
-- DoR e DoD por Sprint — *Em progresso*
 - [Estratégia de Branch e Padrão de Commits](./CONTRIBUTING.md)
 - Manual do Usuário — *Em progresso*
 - [Manual de Instalação](./docs/instalacao.md)

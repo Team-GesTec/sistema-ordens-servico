@@ -1,38 +1,48 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+    ResponsiveContainer,
+    PieChart,
+    Pie,
+    Cell,
+    Tooltip,
+    Legend,
+    BarChart,
+    Bar,
+    XAxis,
+    YAxis,
+    CartesianGrid,
+} from "recharts";
 
-import "../styles/variaveis.css";
-import "../styles/global.css";
-import "../styles/layout.css";
-import "../styles/sidebar.css";
-import "../styles/filters.css";
-import "../styles/cards.css";
-import "../styles/darkmode.css";
-import "../styles/forms.css";
-import "../styles/modal-os.css";
+import "../styles/dashboard.css";
 
-import CustomSelect from "../components/CustomSelect";
-import type { SelectOption } from "../components/CustomSelect";
-import { ApiError } from "../services/api";
-import { getStoredUser } from "../services/auth"; // confirmar o nome real do arquivo do authService
-import { funcionarioService } from "../services/funcionario";
+import { ApiError, apiRequest } from "../services/api";
+import { getStoredUser } from "../services/auth";
 import { ordemServicoService } from "../services/ordemServico";
+import { departamentoService } from "../services/departamento";
+import { funcionarioService } from "../services/funcionario";
+import { projetoService } from "../services/projeto";
 
 import type {
+    Departamento,
     Funcionario,
     NivelCriticidade,
     OrdemServico,
+    Projeto,
     StatusOrdemServico,
-    TipoOrdemServico,
 } from "../types/api";
 
-const setorOptions: SelectOption[] = [
-    {
-        value: 0,
-        label: "Todos os setores",
-    },
-];
+import NotificacoesSla from "../components/NotificacoesSla";
+import type { NotificacaoSla } from "../types/notificacao";
 
-const STATUS_LABELS: Record<StatusOrdemServico, string> = {
+const CORES_STATUS: Record<StatusOrdemServico, string> = {
+    em_andamento: "#1689ca",
+    aguardando: "#f59e0b",
+    validacao_testes: "#8b5cf6",
+    bloqueado: "#ef4444",
+    concluido: "#22c55e",
+};
+
+const ROTULOS_STATUS: Record<StatusOrdemServico, string> = {
     em_andamento: "Em andamento",
     aguardando: "Aguardando",
     validacao_testes: "Validação de testes",
@@ -40,621 +50,651 @@ const STATUS_LABELS: Record<StatusOrdemServico, string> = {
     concluido: "Concluído",
 };
 
-const TIPO_LABELS: Record<TipoOrdemServico, string> = {
-    instalacao: "Instalação",
-    manutencao: "Manutenção",
+const CORES_CRITICIDADE: Record<NivelCriticidade, string> = {
+    baixo: "#22c55e",
+    medio: "#eab308",
+    alto: "#f97316",
+    muito_alto: "#ef4444",
+    urgente: "#991b1b",
 };
 
-const CRITICIDADE_LABELS: Record<NivelCriticidade, string> = {
-    baixo: "Baixo",
-    medio: "Médio",
-    alto: "Alto",
-    muito_alto: "Muito alto",
+const ROTULOS_CRITICIDADE: Record<NivelCriticidade, string> = {
+    baixo: "Baixa",
+    medio: "Média",
+    alto: "Alta",
+    muito_alto: "Muito alta",
     urgente: "Urgente",
 };
 
-// Peso de cada nível: quanto maior, mais prioritária a O.S. (sem criticidade fica por último).
-const PESO_CRITICIDADE: Record<NivelCriticidade, number> = {
-    baixo: 1,
-    medio: 2,
-    alto: 3,
-    muito_alto: 4,
-    urgente: 5,
+type DadosDashboard = {
+    ordens: OrdemServico[];
+    departamentos: Departamento[];
+    funcionarios: Funcionario[];
+    projetos: Projeto[];
 };
 
-function pesoCriticidade(criticidade: NivelCriticidade | null | undefined): number {
-    return criticidade ? PESO_CRITICIDADE[criticidade] : 0;
+function contar<T extends string>(
+    valores: T[],
+    ordem: T[],
+    rotulos: Record<T, string>,
+    cores: Record<T, string>,
+) {
+    return ordem.map((valor) => ({
+        chave: valor,
+        nome: rotulos[valor],
+        quantidade: valores.filter((item) => item === valor).length,
+        cor: cores[valor],
+    }));
 }
 
-const statusOptions: SelectOption[] = Object.entries(
-    STATUS_LABELS,
-).map(([value, label]) => ({
-    value,
-    label,
-}));
+function Dashboard() {
+    const usuario = getStoredUser();
 
-function Home() {
-    const [search, setSearch] = useState("");
-    const [selectedSetor, setSelectedSetor] = useState(0);
-
-    // Filtro de status: começa mostrando todas as ordens.
-    const [selectedStatus, setSelectedStatus] = useState<StatusOrdemServico | "todos">("todos");
-
-    const [ordens, setOrdens] = useState<OrdemServico[]>([]);
+    const [dados, setDados] = useState<DadosDashboard>({
+        ordens: [],
+        departamentos: [],
+        funcionarios: [],
+        projetos: [],
+    });
 
     const [carregando, setCarregando] = useState(true);
     const [erro, setErro] = useState<string | null>(null);
-    const [osSelecionada, setOsSelecionada] =
-        useState<OrdemServico | null>(null);
+    const [notificacoes, setNotificacoes] = useState<NotificacaoSla[]>([]);
 
-    const [modalParecerAberto, setModalParecerAberto] =
-        useState(false);
-
-    const [parecerTecnico, setParecerTecnico] =
-        useState("");
-
-    const [usuarioLogado] = useState<Funcionario | null>(() => getStoredUser());
-    const isGestor = usuarioLogado?.tipo === "gestor";
-    const isTecnico = usuarioLogado?.tipo === "tecnico";
-    const [funcionarios, setFuncionarios] = useState<Funcionario[]>([]);
-    const [tecnicoResponsavel, setTecnicoResponsavel] = useState<number | null>(null);
-    const [salvandoResponsavel, setSalvandoResponsavel] = useState(false);
-
+    // Carrega as notificações de SLA.
     useEffect(() => {
-        ordemServicoService
-            .listar()
-            .then(setOrdens)
-            .catch((error: unknown) =>
-                setErro(
-                    error instanceof ApiError
-                        ? error.message
-                        : "Não foi possível carregar as ordens de serviço.",
-                ),
-            )
-            .finally(() => setCarregando(false));
+        apiRequest<NotificacaoSla[]>("/notificacoes")
+            .then(setNotificacoes)
+            .catch((error: unknown) => {
+                console.error("Erro ao carregar notificações de SLA:", error);
+            });
     }, []);
 
-    // Todos os perfis precisam da lista para mostrar o nome do técnico responsável
-    useEffect(() => {
-        funcionarioService
-            .listar()
-            .then(setFuncionarios)
-            .catch((error: unknown) =>
-                setErro(
-                    error instanceof ApiError
-                        ? error.message
-                        : "Não foi possível carregar os funcionários.",
-                ),
-            );
-    }, []);
-
-    const funcionarioOptions: SelectOption[] = funcionarios.map((item) => ({
-        value: item.id,
-        label: `#${item.id} — ${item.nome}`,
-    }));
-
-    const tecnicoDaOS = funcionarios.find(
-        (item) => item.id === osSelecionada?.responsavel_id,
-    );
-
-    // Combina pesquisa por texto, setor e status e ordena por prioridade:
-    // da criticidade mais alta para a mais baixa; em empate, a O.S. mais antiga (menor id) vem primeiro.
-    const ordensFiltradas = useMemo(() => {
-        const termo = search.trim().toLowerCase();
-
-        return ordens
-            .filter((os) => {
-                const bateSetor =
-                    selectedSetor === 0 || os.departamento_id === selectedSetor;
-                const bateStatus =
-                    selectedStatus === "todos" || os.status === selectedStatus;
-
-                if (!bateSetor || !bateStatus) {
-                    return false;
-                }
-
-                if (!termo) {
-                    return true;
-                }
-
-                return (
-                    String(os.id).includes(termo) ||
-                    (os.titulo ?? "").toLowerCase().includes(termo) ||
-                    os.descricao.toLowerCase().includes(termo) ||
-                    TIPO_LABELS[os.tipo].toLowerCase().includes(termo) ||
-                    STATUS_LABELS[os.status].toLowerCase().includes(termo)
-                );
-            })
-            .sort(
-                (a, b) =>
-                    pesoCriticidade(b.criticidade) - pesoCriticidade(a.criticidade) ||
-                    a.id - b.id,
-            );
-    }, [ordens, search, selectedSetor, selectedStatus]);
-
-    function abrirModal(os: OrdemServico) {
-        setOsSelecionada(os);
-        setTecnicoResponsavel(os.responsavel_id ?? null);
-    }
-
-    function fecharModal() {
-        setOsSelecionada(null);
-        setTecnicoResponsavel(null);
-    }
-
-    // Recarrega a lista do servidor e atualiza a OS aberta no modal.
-    // Devolve false se a OS não vier mais na listagem.
-    async function sincronizarOrdens(idSelecionado: number): Promise<boolean> {
-        const lista = await ordemServicoService.listar();
-        setOrdens(lista);
-
-        const osAtual = lista.find((os) => os.id === idSelecionado);
-
-        if (!osAtual) {
-            setOsSelecionada(null);
-            setTecnicoResponsavel(null);
-            return false;
+    const carregarDados = useCallback(async (inicial = false) => {
+        if (inicial) {
+            setCarregando(true);
         }
-
-        setOsSelecionada(osAtual);
-        setTecnicoResponsavel(osAtual.responsavel_id ?? null);
-        return true;
-    }
-
-    // Grava o responsável (PATCH /ordens-servico/atribuir/:id) e SEMPRE relista
-    // em seguida, dando certo ou não, para a tela refletir o que está no servidor
-    async function salvarResponsavel(funcionarioId: number) {
-        if (!osSelecionada || salvandoResponsavel) {
-            return;
-        }
-
-        const osId = osSelecionada.id;
-        let idAtual = osId;
-
-        setSalvandoResponsavel(true);
         setErro(null);
 
         try {
-            const atualizada = await ordemServicoService.atribuirResponsavel(
-                osId,
-                funcionarioId,
-            );
+            const [ordens, departamentos, funcionarios, projetos] =
+                await Promise.all([
+                    ordemServicoService.listar(),
+                    departamentoService.listar(),
+                    funcionarioService.listar(),
+                    projetoService.listar(),
+                ]);
 
-            // Se o backend devolver a OS com outro id, acompanha o id novo
-            idAtual = atualizada?.id ?? osId;
-        } catch (error) {
+            setDados({
+                ordens,
+                departamentos,
+                funcionarios,
+                projetos,
+            });
+        } catch (error: unknown) {
             setErro(
                 error instanceof ApiError
                     ? error.message
-                    : "Não foi possível atribuir o responsável.",
-            );
-        }
-
-        try {
-            const encontrada = await sincronizarOrdens(idAtual);
-
-            if (!encontrada) {
-                setErro(
-                    (anterior) =>
-                        anterior ??
-                        `A O.S. #${idAtual} não veio na listagem do servidor.`,
-                );
-            }
-        } catch (error) {
-            setErro(
-                error instanceof ApiError
-                    ? error.message
-                    : "Não foi possível recarregar as ordens de serviço.",
+                    : "Não foi possível carregar os dados do dashboard.",
             );
         } finally {
-            setSalvandoResponsavel(false);
+            setCarregando(false);
         }
-    }
+    }, []);
 
-    function atribuirTecnico(value: string | number) {
-        void salvarResponsavel(Number(value));
-    }
+    useEffect(() => {
+        void carregarDados(true);
+    }, [carregarDados]);
 
-    function assumirOS() {
-        if (!usuarioLogado) {
-            return;
-        }
+    const departamentoId = usuario?.departamento_id;
 
-        void salvarResponsavel(usuarioLogado.id);
-    }
+    const ordensDepartamento = useMemo(
+        () =>
+            dados.ordens.filter(
+                (ordem) => ordem.departamento_id === departamentoId,
+            ),
+        [dados.ordens, departamentoId],
+    );
 
-    function alterarStatus(value: string | number) {
-        if (!osSelecionada) {
-            return;
-        }
+    const ordensVisiveis =
+        usuario?.tipo === "gestor"
+            ? dados.ordens
+            : ordensDepartamento;
 
-        const novoStatus = value as StatusOrdemServico;
+    const ordensDoTecnico = useMemo(
+        () =>
+            ordensDepartamento.filter(
+                (ordem) => ordem.responsavel_id === usuario?.id,
+            ),
+        [ordensDepartamento, usuario?.id],
+    );
 
-        if (novoStatus === "concluido") {
-            setParecerTecnico("");
-            setModalParecerAberto(true);
-            return;
-        }
+    const funcionariosDepartamento = useMemo(
+        () =>
+            dados.funcionarios.filter(
+                (funcionario) =>
+                    funcionario.departamento_id === departamentoId &&
+                    funcionario.ativo,
+            ),
+        [dados.funcionarios, departamentoId],
+    );
 
-        setOsSelecionada({
-            ...osSelecionada,
-            status: novoStatus,
-        });
-    }
+    const statusData = useMemo(
+        () =>
+            contar(
+                ordensVisiveis.map((ordem) => ordem.status),
+                Object.keys(ROTULOS_STATUS) as StatusOrdemServico[],
+                ROTULOS_STATUS,
+                CORES_STATUS,
+            ),
+        [ordensVisiveis],
+    );
 
-    function cancelarParecer() {
-        setModalParecerAberto(false);
-        setParecerTecnico("");
-    }
+    // Usa as mesmas ordens visíveis ao usuário para calcular a criticidade.
+    const criticidadeData = useMemo(
+        () =>
+            contar(
+                ordensVisiveis
+                    .map((ordem) => ordem.criticidade)
+                    .filter(
+                        (valor): valor is NivelCriticidade =>
+                            valor !== null,
+                    ),
+                Object.keys(ROTULOS_CRITICIDADE) as NivelCriticidade[],
+                ROTULOS_CRITICIDADE,
+                CORES_CRITICIDADE,
+            ),
+        [ordensVisiveis],
+    );
 
-    function confirmarConclusao() {
-        const parecer = parecerTecnico.trim();
+    const statusTecnicoData = useMemo(
+        () =>
+            contar(
+                ordensDoTecnico.map((ordem) => ordem.status),
+                Object.keys(ROTULOS_STATUS) as StatusOrdemServico[],
+                ROTULOS_STATUS,
+                CORES_STATUS,
+            ),
+        [ordensDoTecnico],
+    );
 
-        if (!parecer || !osSelecionada) {
-            return;
-        }
+    const osPorPessoaData = useMemo(
+        () =>
+            funcionariosDepartamento
+                .map((funcionario) => ({
+                    nome: funcionario.nome,
+                    quantidade: ordensDepartamento.filter(
+                        (ordem) => ordem.responsavel_id === funcionario.id,
+                    ).length,
+                }))
+                .sort((a, b) => b.quantidade - a.quantidade),
+        [funcionariosDepartamento, ordensDepartamento],
+    );
 
-        setOsSelecionada({
-            ...osSelecionada,
-            status: "concluido",
-        });
+    const totalHoras = null as number | null;
 
-        setModalParecerAberto(false);
-        setParecerTecnico("");
-    }
-
-    return (
-        <div className="layout">
-            <main className="main">
-                <div className="container">
-                    <div className="filter">
-                        <input
-                            type="text"
-                            placeholder="Pesquisar ordem de serviço"
-                            value={search}
-                            onChange={(event) =>
-                                setSearch(event.target.value)
-                            }
-                            aria-label="Pesquisar ordem de serviço"
-                        />
-
-                        <CustomSelect
-                            options={setorOptions}
-                            value={selectedSetor}
-                            onChange={(value) =>
-                                setSelectedSetor(Number(value))
-                            }
-                            placeholder="Todos os setores"
-                        />
-
-                        {/* Filtros por status */}
-                        <div className="filter-button">
-                            <button
-                                type="button"
-                                className={selectedStatus === "todos" ? "active" : ""}
-                                aria-pressed={selectedStatus === "todos"}
-                                onClick={() => setSelectedStatus("todos")}
-                            >
-                                Todos
-                            </button>
-
-                            {statusOptions.map((status) => {
-                                const valor = status.value as StatusOrdemServico;
-
-                                return (
-                                    <button
-                                        key={valor}
-                                        type="button"
-                                        className={selectedStatus === valor ? "active" : ""}
-                                        aria-pressed={selectedStatus === valor}
-                                        onClick={() => setSelectedStatus(valor)}
-                                    >
-                                        {status.label}
-                                    </button>
-                                );
-                            })}
-                        </div>
-                    </div>
-
-                    {erro && (
-                        <p className="form-hint">
-                            {erro}
-                        </p>
-                    )}
-
-                    {carregando ? (
-                        <p className="form-hint">
-                            Carregando ordens de serviço...
-                        </p>
-                    ) : ordensFiltradas.length === 0 ? (
-                        <p className="form-hint">
-                            {ordens.length === 0
-                                ? "Nenhuma ordem de serviço cadastrada ainda."
-                                : "Nenhuma ordem de serviço encontrada para esse filtro."}
-                        </p>
-                    ) : (
-                        <div className="cards">
-                            {ordensFiltradas.map((os) => (
-                                <div
-                                    key={os.id}
-                                    className={`card ${os.criticidade ?? ""
-                                        }`}
-                                    onClick={() => abrirModal(os)}
-                                >
-                                    <span className="card-title">
-                                        #{os.id} — {os.titulo || TIPO_LABELS[os.tipo]}
-
-                                        <br />
-
-                                        {os.descricao.length > 80
-                                            ? `${os.descricao.slice(
-                                                0,
-                                                80,
-                                            )}...`
-                                            : os.descricao}
-                                    </span>
-
-                                    <span className="card-status">
-                                        {STATUS_LABELS[os.status]}
-
-                                        {os.criticidade
-                                            ? ` · ${CRITICIDADE_LABELS[os.criticidade]}`
-                                            : ""}
-                                    </span>
-                                </div>
-                            ))}
-                        </div>
-                    )}
+    if (carregando) {
+        return (
+            <main className="dashboard">
+                <div className="dashboard-mensagem">
+                    Carregando indicadores...
                 </div>
             </main>
+        );
+    }
 
-            {osSelecionada && (
-                <div
-                    className="modal-overlay"
-                    onClick={fecharModal}
-                >
-                    <div
-                        className="modal-os"
-                        onClick={(event) =>
-                            event.stopPropagation()
-                        }
+    if (erro) {
+        return (
+            <main className="dashboard">
+                <div className="dashboard-erro">
+                    <p>{erro}</p>
+                    <button
+                        type="button"
+                        onClick={() => void carregarDados()}
                     >
-                        <button
-                            className="modal-close"
-                            type="button"
-                            onClick={fecharModal}
-                            aria-label="Fechar detalhes da ordem de serviço"
-                        >
-                            ×
-                        </button>
+                        Tentar novamente
+                    </button>
+                </div>
+            </main>
+        );
+    }
 
-                        <div className="modal-header">
-                            <span className="modal-id">
-                                O.S. #{osSelecionada.id}
-                            </span>
+    if (!usuario) {
+        return (
+            <main className="dashboard">
+                <div className="dashboard-mensagem">
+                    Não foi possível identificar o usuário conectado.
+                </div>
+            </main>
+        );
+    }
 
-                            <p className="modal-projeto">
-                                {TIPO_LABELS[
-                                    osSelecionada.tipo
-                                ]}
-                            </p>
+    const ehGestor = usuario.tipo === "gestor";
+    const ehTecnico = usuario.tipo === "tecnico";
 
-                            <p className="modal-projeto">
-                                Ordem de serviço
-                            </p>
+    const tituloPerfil = ehGestor
+        ? "Visão geral da empresa"
+        : ehTecnico
+          ? "Visão geral do técnico"
+          : "Visão geral do departamento";
+
+    const totalOrdens = ordensVisiveis.length;
+
+    const totalConcluidas = ordensVisiveis.filter(
+        (ordem) => ordem.status === "concluido",
+    ).length;
+
+    const totalCriticas = ordensVisiveis.filter(
+        (ordem) =>
+            ordem.criticidade === "muito_alto" ||
+            ordem.criticidade === "urgente",
+    ).length;
+
+    return (
+        <main className="dashboard">
+            <NotificacoesSla
+                notificacoes={notificacoes}
+                onDispensar={async (id) => {
+                    try {
+                        await apiRequest<void>(
+                            `/notificacoes/${encodeURIComponent(id)}`,
+                            { method: "DELETE" },
+                        );
+
+                        setNotificacoes((atuais) =>
+                            atuais.filter(
+                                (notificacao) => notificacao.id !== id,
+                            ),
+                        );
+                    } catch (error: unknown) {
+                        console.error(
+                            "Erro ao dispensar notificação:",
+                            error,
+                        );
+
+                        window.alert(
+                            error instanceof ApiError
+                                ? error.message
+                                : "Não foi possível dispensar a notificação. Tente novamente.",
+                        );
+                    }
+                }}
+            />
+
+            <header className="dashboard-header">
+                <div>
+                    <span className="dashboard-eyebrow">
+                        GESTEC / INDICADORES
+                    </span>
+                    <h1>Dashboard</h1>
+                    <p>{tituloPerfil}</p>
+                </div>
+
+                <div className="dashboard-perfil">
+                    <span className="dashboard-avatar">
+                        {usuario.nome.charAt(0).toUpperCase()}
+                    </span>
+
+                    <div>
+                        <strong>{usuario.nome}</strong>
+                        <span>
+                            {ehGestor
+                                ? "Gestor"
+                                : ehTecnico
+                                  ? "Técnico"
+                                  : "Líder / analista"}
+                        </span>
+                    </div>
+                </div>
+            </header>
+
+            <section className="dashboard-indicadores">
+                <article className="dashboard-indicador indicador-azul">
+                    <span className="indicador-icone">▤</span>
+                    <span className="indicador-titulo">Total de O.S.</span>
+                    <strong>{totalOrdens}</strong>
+                    <small>Ordens no escopo do perfil</small>
+                </article>
+
+                <article className="dashboard-indicador indicador-verde">
+                    <span className="indicador-icone">✓</span>
+                    <span className="indicador-titulo">Concluídas</span>
+                    <strong>{totalConcluidas}</strong>
+                    <small>
+                        {totalOrdens > 0
+                            ? `${Math.round(
+                                  (totalConcluidas / totalOrdens) * 100,
+                              )}% das O.S.`
+                            : "Nenhuma O.S. cadastrada"}
+                    </small>
+                </article>
+
+                <article className="dashboard-indicador indicador-laranja">
+                    <span className="indicador-icone">!</span>
+                    <span className="indicador-titulo">
+                        Alta criticidade
+                    </span>
+                    <strong>{totalCriticas}</strong>
+                    <small>Muito alta ou urgente</small>
+                </article>
+
+                <article className="dashboard-indicador indicador-roxo">
+                    <span className="indicador-icone">◷</span>
+                    <span className="indicador-titulo">
+                        Horas registradas
+                    </span>
+                    <strong>
+                        {totalHoras === null ? "—" : `${totalHoras} h`}
+                    </strong>
+                    <small>
+                        Aguardando integração dos apontamentos
+                    </small>
+                </article>
+            </section>
+
+            <section className="dashboard-graficos">
+                <article className="dashboard-card">
+                    <div className="dashboard-card-header">
+                        <div>
+                            <h2>Ordens por status</h2>
+                            <p>Distribuição das ordens de serviço</p>
                         </div>
+                        <span className="dashboard-card-icone">◉</span>
+                    </div>
 
-                        <div className="modal-body">
-                            {erro && (
-                                <p className="form-hint">
-                                    {erro}
-                                </p>
-                            )}
-
-                            <div className="modal-datas">
-                                <div className="modal-info-item">
-                                    <span className="modal-label">
-                                        Data de criação
-                                    </span>
-
-                                    <p>
-                                        Ainda não registrada
-                                    </p>
-                                </div>
-
-                                <div className="modal-info-item">
-                                    <span className="modal-label">
-                                        Prazo de entrega
-                                    </span>
-
-                                    <p>
-                                        Ainda não definido
-                                    </p>
-                                </div>
-                            </div>
-
-                            <div className="modal-status">
-                                <CustomSelect
-                                    options={statusOptions}
-                                    value={osSelecionada.status}
-                                    onChange={alterarStatus}
-                                    placeholder="Selecione o status"
-                                    className="modal-status-select"
-                                />
-                            </div>
-
-                            <div className="modal-detalhes">
-                                <div>
-                                    <span className="modal-label">
-                                        Criticidade
-                                    </span>
-
-                                    <p
-                                        className={`modal-criticidade ${osSelecionada.criticidade ??
-                                            ""
-                                            }`}
-                                    >
-                                        {osSelecionada.criticidade
-                                            ? CRITICIDADE_LABELS[
-                                            osSelecionada
-                                                .criticidade
-                                            ]
-                                            : "Não definida"}
-                                    </p>
-                                </div>
-                            </div>
-
-                            <div className="modal-detalhes">
-                                <div>
-                                    <span className="modal-label">
-                                        Descrição
-                                    </span>
-
-                                    <p className="modal-descricao">
-                                        {osSelecionada.descricao ||
-                                            "Nenhuma descrição informada."}
-                                    </p>
-                                </div>
-                            </div>
-
-                            <div className="modal-detalhes">
-                                <div>
-                                    <span className="modal-label">
-                                        Departamento
-                                    </span>
-
-                                    <div className="modal-departamentos">
-                                        {osSelecionada.departamento_id ? (
-                                            <span>
-                                                Departamento{" "}
-                                                {
-                                                    osSelecionada.departamento_id
-                                                }
-                                            </span>
-                                        ) : (
-                                            <span>
-                                                Não informado
-                                            </span>
+                    {statusData.some((item) => item.quantidade > 0) ? (
+                        <div className="dashboard-grafico dashboard-grafico-rosca">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <PieChart>
+                                    <Pie
+                                        data={statusData.filter(
+                                            (item) => item.quantidade > 0,
                                         )}
-                                    </div>
-                                </div>
+                                        dataKey="quantidade"
+                                        nameKey="nome"
+                                        innerRadius="62%"
+                                        outerRadius="82%"
+                                        paddingAngle={4}
+                                        cornerRadius={5}
+                                    >
+                                        {statusData
+                                            .filter(
+                                                (item) =>
+                                                    item.quantidade > 0,
+                                            )
+                                            .map((item) => (
+                                                <Cell
+                                                    key={item.chave}
+                                                    fill={item.cor}
+                                                />
+                                            ))}
+                                    </Pie>
+                                    <Tooltip />
+                                    <Legend />
+                                </PieChart>
+                            </ResponsiveContainer>
+                        </div>
+                    ) : (
+                        <div className="dashboard-vazio">
+                            Nenhuma O.S. encontrada.
+                        </div>
+                    )}
+                </article>
+
+                <article className="dashboard-card">
+                    <div className="dashboard-card-header">
+                        <div>
+                            <h2>O.S. por criticidade</h2>
+                            <p>Distribuição por nível de prioridade</p>
+                        </div>
+                        <span className="dashboard-card-icone">⚑</span>
+                    </div>
+
+                    <div className="dashboard-grafico">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <BarChart
+                                data={criticidadeData}
+                                margin={{
+                                    top: 12,
+                                    right: 8,
+                                    left: -20,
+                                    bottom: 4,
+                                }}
+                            >
+                                <CartesianGrid
+                                    strokeDasharray="3 3"
+                                    vertical={false}
+                                    stroke="#e7edf4"
+                                />
+                                <XAxis
+                                    dataKey="nome"
+                                    tick={{ fontSize: 11 }}
+                                    axisLine={false}
+                                    tickLine={false}
+                                />
+                                <YAxis
+                                    allowDecimals={false}
+                                    tick={{ fontSize: 11 }}
+                                    axisLine={false}
+                                    tickLine={false}
+                                />
+                                <Tooltip />
+                                <Bar
+                                    dataKey="quantidade"
+                                    name="O.S."
+                                    radius={[6, 6, 0, 0]}
+                                >
+                                    {criticidadeData.map((item) => (
+                                        <Cell
+                                            key={item.chave}
+                                            fill={item.cor}
+                                        />
+                                    ))}
+                                </Bar>
+                            </BarChart>
+                        </ResponsiveContainer>
+                    </div>
+                </article>
+
+                {!ehTecnico && (
+                    <article className="dashboard-card dashboard-card-largo">
+                        <div className="dashboard-card-header">
+                            <div>
+                                <h2>O.S. por integrante</h2>
+                                <p>
+                                    Quantidade de ordens atribuídas a cada
+                                    pessoa do departamento
+                                </p>
                             </div>
+                            <span className="dashboard-card-icone">♙</span>
+                        </div>
 
-                            <div className="modal-detalhes">
+                        {osPorPessoaData.length > 0 ? (
+                            <div
+                                className="dashboard-grafico"
+                                style={{
+                                    height: Math.max(
+                                        260,
+                                        osPorPessoaData.length * 48,
+                                    ),
+                                }}
+                            >
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <BarChart
+                                        data={osPorPessoaData}
+                                        layout="vertical"
+                                        margin={{
+                                            top: 4,
+                                            right: 20,
+                                            left: 16,
+                                            bottom: 4,
+                                        }}
+                                    >
+                                        <CartesianGrid
+                                            strokeDasharray="3 3"
+                                            horizontal={false}
+                                            stroke="#e7edf4"
+                                        />
+                                        <XAxis
+                                            type="number"
+                                            allowDecimals={false}
+                                            axisLine={false}
+                                            tickLine={false}
+                                        />
+                                        <YAxis
+                                            type="category"
+                                            dataKey="nome"
+                                            width={110}
+                                            tick={{ fontSize: 11 }}
+                                            axisLine={false}
+                                            tickLine={false}
+                                        />
+                                        <Tooltip />
+                                        <Bar
+                                            dataKey="quantidade"
+                                            name="O.S."
+                                            fill="#1689ca"
+                                            radius={[0, 7, 7, 0]}
+                                            barSize={22}
+                                        />
+                                    </BarChart>
+                                </ResponsiveContainer>
+                            </div>
+                        ) : (
+                            <div className="dashboard-vazio">
+                                Nenhum integrante ativo encontrado.
+                            </div>
+                        )}
+                    </article>
+                )}
+
+                {ehGestor && (
+                    <>
+                        <article className="dashboard-card">
+                            <div className="dashboard-card-header">
                                 <div>
-                                    <span className="modal-label">
-                                        Técnico responsável
-                                    </span>
-
+                                    <h2>Horas por departamento</h2>
                                     <p>
-                                        {tecnicoDaOS
-                                            ? `#${tecnicoDaOS.id} — ${tecnicoDaOS.nome}`
-                                            : osSelecionada.responsavel_id
-                                                ? `Técnico #${osSelecionada.responsavel_id}`
-                                                : "Nenhum técnico atribuído"}
+                                        Total de horas efetivamente registradas
                                     </p>
                                 </div>
+                                <span className="dashboard-card-icone">◷</span>
                             </div>
+                            <div className="dashboard-vazio">
+                                O backend ainda precisa fornecer os registros
+                                de horas para gerar este gráfico.
+                            </div>
+                        </article>
 
-                            {isGestor && (
-                                <div className="modal-detalhes">
-                                    <div>
-                                        <span className="modal-label">
-                                            Alterar técnico
-                                        </span>
-
-                                        <CustomSelect
-                                            className="modal-tecnico"
-                                            options={funcionarioOptions}
-                                            value={tecnicoResponsavel}
-                                            onChange={atribuirTecnico}
-                                            placeholder="Selecione o funcionário"
-                                        />
-                                    </div>
+                        <article className="dashboard-card">
+                            <div className="dashboard-card-header">
+                                <div>
+                                    <h2>Horas por projeto</h2>
+                                    <p>Tempo registrado em cada projeto</p>
                                 </div>
-                            )}
+                                <span className="dashboard-card-icone">▥</span>
+                            </div>
+                            <div className="dashboard-vazio">
+                                O backend ainda precisa fornecer os registros
+                                de horas para gerar este gráfico.
+                            </div>
+                        </article>
+                    </>
+                )}
 
-                            {isTecnico && !osSelecionada.responsavel_id && (
-                                <div className="">
-                                    <button
-                                        type="button"
-                                        className="btn-primary modal-tecnico"
-                                        onClick={assumirOS}
-                                        disabled={salvandoResponsavel}
+                {!ehGestor && (
+                    <article className="dashboard-card dashboard-card-largo">
+                        <div className="dashboard-card-header">
+                            <div>
+                                <h2>
+                                    {ehTecnico
+                                        ? "Minhas O.S. por status"
+                                        : "Status das O.S. do departamento"}
+                                </h2>
+                                <p>
+                                    {ehTecnico
+                                        ? "Ordens atribuídas a você"
+                                        : "Ordens do departamento"}
+                                </p>
+                            </div>
+                            <span className="dashboard-card-icone">◉</span>
+                        </div>
+
+                        <div className="dashboard-grafico">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <BarChart
+                                    data={
+                                        ehTecnico
+                                            ? statusTecnicoData
+                                            : statusData
+                                    }
+                                    margin={{
+                                        top: 12,
+                                        right: 12,
+                                        left: -20,
+                                        bottom: 4,
+                                    }}
+                                >
+                                    <CartesianGrid
+                                        strokeDasharray="3 3"
+                                        vertical={false}
+                                        stroke="#e7edf4"
+                                    />
+                                    <XAxis
+                                        dataKey="nome"
+                                        tick={{ fontSize: 11 }}
+                                        axisLine={false}
+                                        tickLine={false}
+                                    />
+                                    <YAxis
+                                        allowDecimals={false}
+                                        tick={{ fontSize: 11 }}
+                                        axisLine={false}
+                                        tickLine={false}
+                                    />
+                                    <Tooltip />
+                                    <Bar
+                                        dataKey="quantidade"
+                                        name="O.S."
+                                        radius={[6, 6, 0, 0]}
                                     >
-                                        Assumir OS
-                                    </button>
-                                </div>
-                            )}
-
+                                        {(ehTecnico
+                                            ? statusTecnicoData
+                                            : statusData
+                                        ).map((item) => (
+                                            <Cell
+                                                key={item.chave}
+                                                fill={item.cor}
+                                            />
+                                        ))}
+                                    </Bar>
+                                </BarChart>
+                            </ResponsiveContainer>
                         </div>
-                    </div>
-                </div>
-            )}
+                    </article>
+                )}
 
-            {modalParecerAberto && (
-                <div
-                    className="modal-overlay"
-                    onClick={cancelarParecer}
-                >
-                    <div
-                        className="modal-parecer"
-                        onClick={(event) => event.stopPropagation()}
-                    >
-                        <button
-                            className="modal-close"
-                            type="button"
-                            onClick={cancelarParecer}
-                            aria-label="Fechar parecer técnico"
-                        >
-                            ×
-                        </button>
-
-                        <div className="modal-parecer-header">
-                            <span>PARECER TÉCNICO</span>
-
-                            <h2>
-                                Concluir O.S. #{osSelecionada?.id}
-                            </h2>
-                        </div>
-
-                        <div className="modal-parecer-body">
-                            <label htmlFor="parecer-tecnico">
-                                Parecer técnico
-                            </label>
-
-                            <textarea
-                                id="parecer-tecnico"
-                                value={parecerTecnico}
-                                onChange={(event) =>
-                                    setParecerTecnico(event.target.value)
-                                }
-                                placeholder="Descreva o parecer técnico da O.S..."
-                                rows={6}
-                            />
-
-                            <div className="modal-parecer-actions">
-                                <button
-                                    type="button"
-                                    onClick={cancelarParecer}
-                                >
-                                    Cancelar
-                                </button>
-
-                                <button
-                                    type="button"
-                                    disabled={!parecerTecnico.trim()}
-                                    onClick={confirmarConclusao}
-                                >
-                                    Concluir O.S.
-                                </button>
+                {!ehGestor && (
+                    <article className="dashboard-card">
+                        <div className="dashboard-card-header">
+                            <div>
+                                <h2>Horas registradas</h2>
+                                <p>
+                                    {ehTecnico
+                                        ? "Horas registradas por você"
+                                        : "Horas registradas pelo departamento"}
+                                </p>
                             </div>
+                            <span className="dashboard-card-icone">◷</span>
                         </div>
-                    </div>
-                </div>
-            )}
-        </div>
+                        <div className="dashboard-vazio">
+                            Aguardando integração dos registros de horas.
+                        </div>
+                    </article>
+                )}
+            </section>
+        </main>
     );
 }
 
-export default Home;
+export default Dashboard;

@@ -6,7 +6,7 @@
 import type { funcionarios } from '../prisma/generated/client';
 import { tipo_perfil } from '../prisma/generated/enums';
 
-/** Perfis válidos definidos pelo enum do schema. */
+/** Perfis de acesso válidos (espelho do enum `tipo_perfil`: gestor, tecnico). */
 export const PERFIS_FUNCIONARIO = Object.values(tipo_perfil);
 export type PerfilFuncionario = tipo_perfil;
 export const PERFIL_PADRAO: PerfilFuncionario = tipo_perfil.tecnico;

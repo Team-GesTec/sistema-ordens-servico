@@ -18,6 +18,11 @@ const somenteGestor = autorizar('gestor');
 // GET ALL — qualquer usuário autenticado (o `autenticar` global já é aplicado no app.ts)
 router.get('/', (req: Request, res: Response) => controllerOrdemServico.getAll(req, res));
 
+// GET HISTORICO
+router.get('/:id/historico', (req: Request, res: Response) =>
+    controllerOrdemServico.listarHistorico(req, res),
+);
+
 // GET ALL INATIVAS
 router.get('/inativas', somenteGestor, (req: Request, res: Response) =>
     controllerOrdemServico.getInativas(req, res),

@@ -1,6 +1,7 @@
 /**
  * Tipos das entidades e dos payloads trocados com a API (formato snake_case do backend).
  * AJ-06: OrdemServicoInput aceita os campos opcionais do cadastro de O.S. antiga.
+ * US#2.6: Anexo e ConfiguracaoAnexos (anexos da O.S.).
  */
 
 export type PerfilFuncionario = "gestor" | "analista" | "tecnico";
@@ -67,6 +68,13 @@ export interface Departamento {
 export interface DepartamentoInput {
     nome: string;
     responsavel_id: number | null;
+}
+
+export interface VisaoEquipe {
+    departamento: Departamento;
+    projetos: Array<Pick<Projeto, "id" | "nome" | "ativo" | "status" | "cliente_id">>;
+    ordens_servico: Array<Pick<OrdemServico, "id" | "titulo" | "status" | "ativo" | "data_criacao" | "data_limite_sla" | "responsavel_id" | "solicitante_id">>;
+    funcionarios: Array<Pick<Funcionario, "id" | "nome" | "usuario" | "tipo" | "ativo" | "departamento_id">>;
 }
 
 export interface FuncionarioInput {
@@ -140,9 +148,13 @@ export interface OrdemServico {
     status: StatusOrdemServico;
     ativo: boolean;
     data_criacao: string;
+    data_inicio?: string | null;
+    data_fim: string | null;
     /** Prazo final (SLA) devolvido pela API; ISO ou null quando não definido. */
     data_limite_sla?: string | null;
+    prazo_dias_uteis?: number | null;
     sla_manual?: boolean;
+    data_ultima_atualizacao?: string | null;
 }
 
 export interface OrdemServicoInput {
@@ -157,10 +169,52 @@ export interface OrdemServicoInput {
     responsavel_id?: number;
     /** AJ-06 — cadastro de O.S. antiga (somente gestor): data de abertura no passado, em ISO. */
     data_criacao?: string;
+    data_inicio?: string | null;
+    data_limite_sla?: string | null;
     /** AJ-06 — status atual da O.S. antiga. */
     status?: StatusOrdemServico;
     /** AJ-06 — obrigatório quando a O.S. antiga já está concluída. */
     parecer_tecnico?: string;
     /** AJ-06 — data de conclusão (ISO), obrigatória quando a O.S. antiga já está concluída. */
     data_fim?: string;
+}
+
+/** Anexo de uma O.S., como a API devolve (US#2.6). */
+export interface Anexo {
+    id: number;
+    os_id: number;
+    /** Nome original do arquivo. */
+    nome: string;
+    /** MIME type (ex.: "application/pdf"). */
+    tipo: string;
+    /** Tamanho em bytes. */
+    tamanho: number;
+    autor: { id: number; nome: string };
+    /** Data/hora da inclusão (ISO). */
+    data: string;
+    relato: string | null;
+}
+
+/** Regras dos anexos definidas no servidor (GET /anexos/configuracao). */
+export interface ConfiguracaoAnexos {
+    tipos_permitidos: string[];
+    /** Extensões aceitas, sem ponto. Vazio = a tela não restringe (o backend valida). */
+    extensoes_permitidas: string[];
+    tamanho_maximo_bytes: number;
+    quantidade_maxima_por_os: number;
+    tamanho_maximo_relato: number;
+}
+
+/** Registro real e imutável da auditoria de uma O.S. */
+export interface HistoricoOrdemServico {
+    id: number;
+    os_id: number;
+    funcionario_id: number;
+    data_modificacao: string;
+    acao: "insercao" | "atualizacao" | "exclusao";
+    campo_alterado: string | null;
+    dado_antigo: string | null;
+    dado_novo: string | null;
+    justificativa: string | null;
+    funcionarios: Pick<Funcionario, "id" | "nome" | "usuario">;
 }

@@ -34,15 +34,11 @@ function ClienteFormModal({
     onSave,
     onClearError,
 }: ClienteFormModalProps) {
-    const [form, setForm] =
-        useState<FormularioState>(FORMULARIO_INICIAL);
-
+    const [form, setForm] = useState<FormularioState>(FORMULARIO_INICIAL);
     const [erroLocal, setErroLocal] = useState<string | null>(null);
 
     useEffect(() => {
-        if (!aberto) {
-            return;
-        }
+        if (!aberto) return;
 
         setForm(
             cliente
@@ -57,15 +53,8 @@ function ClienteFormModal({
         setErroLocal(null);
     }, [aberto, cliente]);
 
-    function atualizarCampo(
-        campo: keyof FormularioState,
-        valor: string
-    ) {
-        setForm((anterior) => ({
-            ...anterior,
-            [campo]: valor,
-        }));
-
+    function atualizarCampo(campo: keyof FormularioState, valor: string) {
+        setForm((anterior) => ({ ...anterior, [campo]: valor }));
         setErroLocal(null);
         onClearError();
     }
@@ -78,48 +67,40 @@ function ClienteFormModal({
         const ramoAtuacao = form.ramoAtuacao.trim();
 
         if (!nome || !razaoSocial || !ramoAtuacao) {
-            setErroLocal(
-                "Preencha nome, razão social e ramo de atuação."
-            );
+            setErroLocal("Preencha nome, razão social e ramo de atuação.");
             return;
         }
 
         setErroLocal(null);
-
-        await onSave({
-            nome,
-            razao_social: razaoSocial,
-            ramo_atuacao: ramoAtuacao,
-        });
+        await onSave({ nome, razao_social: razaoSocial, ramo_atuacao: ramoAtuacao });
     }
 
-    if (!aberto) {
-        return null;
-    }
+    if (!aberto) return null;
 
     return (
         <div
             className="projeto-modal-overlay cliente-modal-overlay"
             onMouseDown={(event) => {
-                if (event.target === event.currentTarget) {
-                    onClose();
-                }
+                if (event.target === event.currentTarget && !salvando) onClose();
             }}
         >
             <section
-                className="projeto-modal cliente-modal cliente-form-modal projeto-form-modal"
+                className="projeto-modal projeto-form-modal cliente-form-modal"
                 role="dialog"
                 aria-modal="true"
                 aria-labelledby="cliente-modal-titulo"
             >
-                <header className="projeto-modal-header cliente-modal-header">
-                    <h2 id="cliente-modal-titulo">
-                        {cliente ? "Editar cliente" : "Cadastrar cliente"}
-                    </h2>
-
+                <header className="projeto-modal-header">
+                    <div>
+                        <span className="projetos-eyebrow">GESTÃO DE CLIENTES</span>
+                        <h2 id="cliente-modal-titulo">
+                            {cliente ? "Editar cliente" : "Cadastrar cliente"}
+                        </h2>
+                        <p>Dados cadastrais e identificação do cliente.</p>
+                    </div>
                     <button
                         type="button"
-                        className="projeto-modal-close cliente-modal-close"
+                        className="projeto-modal-close"
                         aria-label="Fechar formulário"
                         onClick={onClose}
                         disabled={salvando}
@@ -128,90 +109,65 @@ function ClienteFormModal({
                     </button>
                 </header>
 
-                <form className="cliente-form" onSubmit={handleSubmit}>
+                <form onSubmit={handleSubmit} aria-busy={salvando}>
                     {(erroLocal || erro) && (
-                        <div
-                            className="clientes-feedback clientes-feedback--error"
-                            role="alert"
-                        >
+                        <div className="projetos-feedback projetos-feedback--error" role="alert">
                             {erroLocal || erro}
                         </div>
                     )}
 
-                    <div className="projeto-field">
-                        <label htmlFor="cliente-nome">Nome</label>
-                        <input
-                            id="cliente-nome"
-                            type="text"
-                            value={form.nome}
-                            onChange={(event) =>
-                                atualizarCampo("nome", event.target.value)
-                            }
-                            maxLength={255}
-                            required
-                        />
+                    <div className="projeto-form-grid cliente-form-grid">
+                        <div className="projeto-field">
+                            <label htmlFor="cliente-nome">Nome *</label>
+                            <input
+                                id="cliente-nome"
+                                type="text"
+                                value={form.nome}
+                                onChange={(event) => atualizarCampo("nome", event.target.value)}
+                                maxLength={255}
+                                required
+                                disabled={salvando}
+                                autoComplete="organization-title"
+                            />
+                        </div>
+
+                        <div className="projeto-field">
+                            <label htmlFor="cliente-razao">Razão social *</label>
+                            <input
+                                id="cliente-razao"
+                                type="text"
+                                value={form.razaoSocial}
+                                onChange={(event) => atualizarCampo("razaoSocial", event.target.value)}
+                                maxLength={255}
+                                required
+                                disabled={salvando}
+                                autoComplete="organization"
+                            />
+                        </div>
+
+                        <div className="projeto-field projeto-field--wide">
+                            <label htmlFor="cliente-ramo">Ramo de atuação *</label>
+                            <input
+                                id="cliente-ramo"
+                                type="text"
+                                value={form.ramoAtuacao}
+                                onChange={(event) => atualizarCampo("ramoAtuacao", event.target.value)}
+                                maxLength={255}
+                                required
+                                disabled={salvando}
+                                autoComplete="off"
+                            />
+                        </div>
                     </div>
 
-                    <div className="projeto-field">
-                        <label htmlFor="cliente-razao">
-                            Razão social
-                        </label>
-                        <input
-                            id="cliente-razao"
-                            type="text"
-                            value={form.razaoSocial}
-                            onChange={(event) =>
-                                atualizarCampo(
-                                    "razaoSocial",
-                                    event.target.value
-                                )
-                            }
-                            maxLength={255}
-                            required
-                        />
-                    </div>
-
-                    <div className="projeto-field">
-                        <label htmlFor="cliente-ramo">
-                            Ramo de atuação
-                        </label>
-                        <input
-                            id="cliente-ramo"
-                            type="text"
-                            value={form.ramoAtuacao}
-                            onChange={(event) =>
-                                atualizarCampo(
-                                    "ramoAtuacao",
-                                    event.target.value
-                                )
-                            }
-                            maxLength={255}
-                            required
-                        />
-                    </div>
-
-                    <div className="projeto-modal-actions cliente-modal-actions">
-                        <button
-                            type="button"
-                            className="projeto-btn-secondary"
-                            onClick={onClose}
-                            disabled={salvando}
-                        >
+                    <footer className="projeto-modal-actions cliente-modal-actions">
+                        <button type="button" className="projeto-btn-secondary" onClick={onClose} disabled={salvando}>
                             Cancelar
                         </button>
-
-                        <button
-                            type="submit"
-                            className="projeto-btn-primary"
-                            disabled={salvando}
-                        >
-                            {salvando
-                                ? "Salvando..."
-                                : cliente
-                                  ? "Salvar alterações"
-                                  : "Cadastrar cliente"}
+                        <button type="submit" className="projeto-btn-primary" disabled={salvando}>
+                            {salvando ? "Salvando..." : cliente ? "Salvar alterações" : "Cadastrar cliente"}
                         </button>
-                    </div>
+                    </footer>
                 </form>
             </section>
         </div>

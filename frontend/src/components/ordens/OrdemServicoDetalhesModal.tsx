@@ -1,6 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type ChangeEvent } from "react";
 import { Link } from "react-router-dom";
 import Autocomplete, { type AutocompleteOption } from "../common/Autocomplete";
+import OrdemServicoHistorico from "./OrdemServicoHistorico";
 import type {
     Cliente,
     Departamento,
@@ -16,6 +17,44 @@ import {
 
 type OrdemComSla = OrdemServico & { data_limite_sla?: string | null };
 
+const LIMITE_ARQUIVO_MB = 50;
+const LIMITE_ARQUIVO_BYTES = LIMITE_ARQUIVO_MB * 1024 * 1024;
+
+export interface AnexoOrdemPayload {
+    arquivos: File[];
+    relato: string;
+}
+
+// Anexo já registrado (US#2.6), montado a partir da resposta da API em useAnexosOrdem.
+export interface AnexoOrdem {
+    id: number;
+    nome: string;
+    tamanho_bytes?: number | null;
+    data_envio?: string | null;
+    url?: string | null;
+    // Nome de quem enviou o anexo.
+    autor?: string | null;
+    // Relato enviado junto com o arquivo.
+    relato?: string | null;
+}
+
+// Erro de envio em que parte dos arquivos já foi gravada (ver useAnexosOrdem).
+function arquivosJaEnviados(erro: unknown): File[] {
+    if (typeof erro === "object" && erro !== null && "enviados" in erro && Array.isArray(erro.enviados)) {
+        return erro.enviados as File[];
+    }
+    return [];
+}
+
+function normalizarExtensao(extensao: string): string {
+    return extensao.trim().replace(/^\./, "").toLowerCase();
+}
+
+function formatarTamanho(bytes: number): string {
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
 interface OrdemServicoDetalhesModalProps {
     aberto: boolean;
     ordem: OrdemServico | null;
@@ -28,6 +67,7 @@ interface OrdemServicoDetalhesModalProps {
     erro: string | null;
     podeEditar: boolean;
     podeAlterarStatus: boolean;
+    podeConcluir: boolean;
     podeAlterarPrazo?: boolean;
     alterandoStatusId: number | null;
     alterandoPrazo?: boolean;
@@ -35,9 +75,24 @@ interface OrdemServicoDetalhesModalProps {
     onAtribuirResponsavel: (funcionarioId: number) => void;
     onFechar: () => void;
     onEditar: (ordem: OrdemServico) => void;
-    onAlterarStatus: (status: StatusOrdemServico) => void;
+    onAlterarStatus: (status: StatusOrdemServico, parecerTecnico?: string) => void;
     // Recebe a data (AAAA-MM-DD) e o motivo da alteração
     onAlterarPrazo?: (dataLimite: string, justificativa: string) => void;
+    statusSugerido?: StatusOrdemServico | null;
+    // Lista de anexos da O.S. vinda da API.
+    anexos?: AnexoOrdem[];
+    carregandoAnexos?: boolean;
+    erroAnexos?: string | null;
+    // Extensões aceitas (ex.: ["pdf", "png"]), vindas de GET /anexos/configuracao.
+    // Vazio ou ausente: o front não restringe e o backend valida.
+    tiposPermitidos?: string[];
+    // Upload multipart (POST /ordens-servico/:id/anexos); chama onProgresso com o percentual (0 a 100).
+    onEnviarAnexo?: (
+        dados: AnexoOrdemPayload,
+        onProgresso: (percentual: number) => void,
+    ) => Promise<void> | void;
+    // Download pela API com o token (o bucket de anexos é privado).
+    onBaixarAnexo?: (anexo: AnexoOrdem) => Promise<void> | void;
 }
 
 const STATUS_EDITAVEIS: StatusOrdemServico[] = [
@@ -72,6 +127,7 @@ function OrdemServicoDetalhesModal({
     erro,
     podeEditar,
     podeAlterarStatus,
+    podeConcluir,
     podeAlterarPrazo = false,
     alterandoStatusId,
     alterandoPrazo = false,
@@ -86,6 +142,13 @@ function OrdemServicoDetalhesModal({
     onEditar,
     onAlterarStatus,
     onAlterarPrazo,
+    statusSugerido = null,
+    anexos = [],
+    carregandoAnexos = false,
+    erroAnexos = null,
+    tiposPermitidos = [],
+    onEnviarAnexo,
+    onBaixarAnexo,
 }: OrdemServicoDetalhesModalProps) {
     const [parecerTemporario, setParecerTemporario] = useState("");
     const [responsavelNovoId, setResponsavelNovoId] = useState<number | null>(null);
@@ -94,24 +157,56 @@ function OrdemServicoDetalhesModal({
     const [prazoSelecionado, setPrazoSelecionado] = useState("");
     const [justificativaAberta, setJustificativaAberta] = useState(false);
     const [justificativaPrazo, setJustificativaPrazo] = useState("");
+    const [anexoAberto, setAnexoAberto] = useState(false);
+    const [arquivosAnexo, setArquivosAnexo] = useState<File[]>([]);
+    const [progressoAnexo, setProgressoAnexo] = useState(0);
+    const [sucessoAnexo, setSucessoAnexo] = useState<string | null>(null);
+    // O ref bloqueia cliques duplos antes de o estado re-renderizar.
+    const envioEmAndamento = useRef(false);
+    const [relatoAnexo, setRelatoAnexo] = useState("");
+    const [erroAnexo, setErroAnexo] = useState<string | null>(null);
+    const [enviandoAnexo, setEnviandoAnexo] = useState(false);
 
     const prazoAtual = paraInputData((ordem as OrdemComSla | null)?.data_limite_sla);
+    const statusEditaveis = useMemo<StatusOrdemServico[]>(
+        () => podeConcluir ? [...STATUS_EDITAVEIS, "concluido"] : STATUS_EDITAVEIS,
+        [podeConcluir],
+    );
 
     // Descarta o rascunho ao fechar o modal ou trocar de OS.
     useEffect(() => {
         setParecerTemporario("");
         setJustificativaAberta(false);
         setJustificativaPrazo("");
+        setAnexoAberto(false);
+        setArquivosAnexo([]);
+        setRelatoAnexo("");
+        setErroAnexo(null);
+        setSucessoAnexo(null);
+        setProgressoAnexo(0);
+        setEnviandoAnexo(false);
+        envioEmAndamento.current = false;
     }, [aberto, ordem?.id]);
 
     // Sincroniza o seletor com o status atual da ordem.
     useEffect(() => {
-        setStatusSelecionado(ordem?.status ?? "em_andamento");
-    }, [aberto, ordem?.id, ordem?.status]);
+        const statusInicial =
+            statusSugerido &&
+            (STATUS_EDITAVEIS.includes(statusSugerido) ||
+                (statusSugerido === "concluido" && podeConcluir))
+                ? statusSugerido
+                : ordem?.status ?? "em_andamento";
+        setStatusSelecionado(statusInicial);
+    }, [aberto, ordem?.id, ordem?.status, statusSugerido, podeConcluir]);
 
     // Sincroniza o seletor de data com o prazo atual da ordem.
     useEffect(() => {
         setPrazoSelecionado(prazoAtual);
+    }, [prazoAtual]);
+
+    useEffect(() => {
+        // Trocar a OS exige uma nova selecao explicita para evitar reenvio acidental.
+        setResponsavelNovoId(null);
     }, [aberto, ordem?.id, ordem?.responsavel_id]);
 
     // Permite fechar o modal com a tecla Escape.
@@ -120,6 +215,18 @@ function OrdemServicoDetalhesModal({
 
         function handleKeyDown(event: KeyboardEvent) {
             if (event.key === "Escape") {
+                // Com o modal de anexo aberto, o Escape fecha só ele.
+                if (anexoAberto) {
+                    if (!enviandoAnexo) {
+                        setAnexoAberto(false);
+                        setArquivosAnexo([]);
+                        setRelatoAnexo("");
+                        setErroAnexo(null);
+                        setSucessoAnexo(null);
+                    }
+                    return;
+                }
+
                 // Com o modal de motivo aberto, o Escape fecha só ele.
                 if (justificativaAberta) {
                     setJustificativaAberta(false);
@@ -136,9 +243,13 @@ function OrdemServicoDetalhesModal({
         return () => {
             document.removeEventListener("keydown", handleKeyDown);
         };
-    }, [aberto, onFechar, justificativaAberta]);
+    }, [aberto, onFechar, justificativaAberta, anexoAberto, enviandoAnexo]);
 
     if (!aberto) return null;
+
+    const extensoesPermitidas = tiposPermitidos
+        .map(normalizarExtensao)
+        .filter(Boolean);
 
     function cancelarJustificativa() {
         setJustificativaAberta(false);
@@ -152,6 +263,125 @@ function OrdemServicoDetalhesModal({
 
         onAlterarPrazo?.(prazoSelecionado, motivo);
         cancelarJustificativa();
+    }
+
+    function cancelarAnexo() {
+        setAnexoAberto(false);
+        setArquivosAnexo([]);
+        setRelatoAnexo("");
+        setErroAnexo(null);
+        setSucessoAnexo(null);
+        setProgressoAnexo(0);
+    }
+
+    function selecionarArquivos(event: ChangeEvent<HTMLInputElement>) {
+        const selecionados = Array.from(event.target.files ?? []);
+        const validos: File[] = [];
+        const erros: string[] = [];
+
+        for (const arquivo of selecionados) {
+            const extensao = arquivo.name.split(".").pop()?.toLowerCase() ?? "";
+
+            if (
+                extensoesPermitidas.length > 0 &&
+                !extensoesPermitidas.includes(extensao)
+            ) {
+                erros.push(
+                    `"${arquivo.name}": tipo não permitido (aceitos: ${extensoesPermitidas.join(", ")}).`,
+                );
+            } else if (arquivo.size > LIMITE_ARQUIVO_BYTES) {
+                erros.push(
+                    `"${arquivo.name}" (${formatarTamanho(arquivo.size)}) excede o limite de ${LIMITE_ARQUIVO_MB} MB e não foi adicionado.`,
+                );
+            } else {
+                validos.push(arquivo);
+            }
+        }
+
+        setArquivosAnexo((atuais) => {
+            const chaves = new Set(atuais.map((a) => `${a.name}-${a.size}`));
+            return [
+                ...atuais,
+                ...validos.filter((a) => !chaves.has(`${a.name}-${a.size}`)),
+            ];
+        });
+        setErroAnexo(erros.length ? erros.join(" ") : null);
+        setSucessoAnexo(null);
+
+        // Permite selecionar o mesmo arquivo novamente após removê-lo.
+        event.target.value = "";
+    }
+
+    async function baixarAnexo(anexo: AnexoOrdem) {
+        if (!onBaixarAnexo) return;
+
+        setErroAnexo(null);
+        try {
+            await onBaixarAnexo(anexo);
+        } catch (err) {
+            setErroAnexo(
+                err instanceof Error && err.message
+                    ? err.message
+                    : "Não foi possível baixar o anexo. Tente novamente.",
+            );
+        }
+    }
+
+    function removerArquivo(indice: number) {
+        setArquivosAnexo((atuais) => atuais.filter((_, i) => i !== indice));
+        setErroAnexo(null);
+    }
+
+    async function enviarAnexo() {
+        // Bloqueia envio duplicado enquanto o upload estiver em andamento.
+        if (envioEmAndamento.current) return;
+
+        const relato = relatoAnexo.trim();
+
+        // O relato é gravado junto com os arquivos: é preciso ao menos um arquivo.
+        if (arquivosAnexo.length === 0) {
+            setErroAnexo("Selecione ao menos um arquivo. O relato é enviado junto com os anexos.");
+            return;
+        }
+
+        if (!onEnviarAnexo) {
+            setErroAnexo("O envio de anexos ainda não está disponível.");
+            return;
+        }
+
+        envioEmAndamento.current = true;
+        setEnviandoAnexo(true);
+        setErroAnexo(null);
+        setSucessoAnexo(null);
+        setProgressoAnexo(0);
+
+        try {
+            await onEnviarAnexo(
+                { arquivos: arquivosAnexo, relato },
+                (percentual) =>
+                    setProgressoAnexo(
+                        Math.min(100, Math.max(0, Math.round(percentual))),
+                    ),
+            );
+            setArquivosAnexo([]);
+            setRelatoAnexo("");
+            setSucessoAnexo("Anexo enviado com sucesso.");
+        } catch (err) {
+            // Tira da seleção os arquivos que já foram gravados, para não duplicar no próximo envio.
+            const enviados = arquivosJaEnviados(err);
+            if (enviados.length > 0) {
+                setArquivosAnexo((atuais) => atuais.filter((arquivo) => !enviados.includes(arquivo)));
+            }
+            setErroAnexo(
+                err instanceof Error && err.message
+                    ? err.message
+                    : "Não foi possível enviar o anexo. Tente novamente.",
+            );
+        } finally {
+            envioEmAndamento.current = false;
+            setEnviandoAnexo(false);
+            setProgressoAnexo(0);
+        }
     }
 
     const podeEditarOrdem =
@@ -377,7 +607,7 @@ function OrdemServicoDetalhesModal({
                                                 }
                                                 disabled={alterandoStatusId !== null}
                                             >
-                                                {STATUS_EDITAVEIS.map((status) => (
+                                                {statusEditaveis.map((status) => (
                                                     <option key={status} value={status}>
                                                         {STATUS_LABELS[status]}
                                                     </option>
@@ -388,7 +618,10 @@ function OrdemServicoDetalhesModal({
                                         <button
                                             type="button"
                                             className="ordens-btn-primary ordem-status-atualizar"
-                                            onClick={() => onAlterarStatus(statusSelecionado)}
+                                            onClick={() => onAlterarStatus(
+                                                statusSelecionado,
+                                                statusSelecionado === "concluido" ? parecerTemporario : undefined,
+                                            )}
                                             disabled={
                                                 alterandoStatusId !== null ||
                                                 statusSelecionado === ordem.status
@@ -397,7 +630,9 @@ function OrdemServicoDetalhesModal({
                                         >
                                             {alterandoStatusId === ordem.id
                                                 ? "Atualizando..."
-                                                : "Atualizar status"}
+                                                : statusSelecionado === "concluido"
+                                                  ? "Concluir O.S."
+                                                  : "Atualizar status"}
                                         </button>
                                     </div>
                                 </section>
@@ -451,11 +686,21 @@ function OrdemServicoDetalhesModal({
                                 </p>
                             </section>
 
+                            <OrdemServicoHistorico osId={ordem.id} />
+
                             <section className="ordem-detalhes-descricao ordem-parecer-rascunho">
-                                <h3>Parecer técnico — rascunho temporário</h3>
+                                <h3>
+                                    {podeConcluir
+                                        ? "Parecer técnico"
+                                        : "Parecer técnico — rascunho temporário"}
+                                </h3>
+
+                                {podeConcluir && (
+                                    <p>O parecer será registrado ao concluir a O.S. e é obrigatório para essa ação.</p>
+                                )}
 
                                 <label htmlFor="parecer-tecnico-temporario">
-                                    Seu rascunho
+                                    {podeConcluir ? "Parecer técnico" : "Seu rascunho"}
                                 </label>
 
                                 <textarea
@@ -466,7 +711,9 @@ function OrdemServicoDetalhesModal({
                                     onChange={(event) =>
                                         setParecerTemporario(event.target.value)
                                     }
-                                    placeholder="Escreva aqui seu rascunho..."
+                                    placeholder={podeConcluir
+                                        ? "Descreva o trabalho realizado e o resultado dos testes..."
+                                        : "Escreva aqui seu rascunho..."}
                                 />
                             </section>
                         </>
@@ -482,6 +729,16 @@ function OrdemServicoDetalhesModal({
                         Fechar
                     </button>
 
+                    {ordem && (
+                        <button
+                            type="button"
+                            className="ordens-btn-secondary"
+                            onClick={() => setAnexoAberto(true)}
+                        >
+                            Anexar arquivos
+                        </button>
+                    )}
+
                     {podeEditarOrdem && ordem && (
                         <button
                             type="button"
@@ -493,6 +750,191 @@ function OrdemServicoDetalhesModal({
                     )}
                 </footer>
             </section>
+
+            {anexoAberto && (
+                <div
+                    className="ordem-modal-overlay ordem-modal-overlay--sobreposto"
+                    onMouseDown={(event) => {
+                        if (event.target === event.currentTarget && !enviandoAnexo) {
+                            cancelarAnexo();
+                        }
+                    }}
+                >
+                    <section
+                        className="ordem-modal ordem-modal--anexo"
+                        role="dialog"
+                        aria-modal="true"
+                        aria-labelledby="ordem-anexo-titulo"
+                    >
+                        <header className="ordem-modal-header">
+                            <div>
+                                <span className="ordem-card-id">ANEXOS E RELATO</span>
+                                <h2 id="ordem-anexo-titulo">
+                                    Anexar à OS #{ordem?.id}
+                                </h2>
+                            </div>
+
+                            <button
+                                type="button"
+                                className="ordem-modal-close"
+                                onClick={cancelarAnexo}
+                                disabled={enviandoAnexo}
+                                aria-label="Fechar anexos"
+                            >
+                                ×
+                            </button>
+                        </header>
+
+                        <div className="ordem-modal-body ordem-parecer-rascunho">
+                            <label htmlFor="ordem-anexo-relato">Relato</label>
+                            <textarea
+                                id="ordem-anexo-relato"
+                                className="ordem-parecer-textarea"
+                                rows={5}
+                                maxLength={2000}
+                                value={relatoAnexo}
+                                onChange={(event) => setRelatoAnexo(event.target.value)}
+                                placeholder="Descreva a implementação realizada ou o impedimento encontrado..."
+                                disabled={enviandoAnexo}
+                            />
+
+                            <label htmlFor="ordem-anexo-arquivos">
+                                Arquivos (máx. {LIMITE_ARQUIVO_MB} MB cada
+                                {extensoesPermitidas.length > 0
+                                    ? `; aceitos: ${extensoesPermitidas.join(", ")}`
+                                    : ""}
+                                )
+                            </label>
+                            <input
+                                id="ordem-anexo-arquivos"
+                                type="file"
+                                multiple
+                                accept={
+                                    extensoesPermitidas.length > 0
+                                        ? extensoesPermitidas.map((e) => `.${e}`).join(",")
+                                        : undefined
+                                }
+                                onChange={selecionarArquivos}
+                                disabled={enviandoAnexo}
+                            />
+
+                            {arquivosAnexo.length > 0 && (
+                                <ul className="ordem-anexo-lista">
+                                    {arquivosAnexo.map((arquivo, indice) => (
+                                        <li key={`${arquivo.name}-${arquivo.size}`}>
+                                            <span>
+                                                {arquivo.name} · {formatarTamanho(arquivo.size)}
+                                            </span>
+                                            <button
+                                                type="button"
+                                                className="ordens-btn-secondary"
+                                                onClick={() => removerArquivo(indice)}
+                                                disabled={enviandoAnexo}
+                                                aria-label={`Remover ${arquivo.name}`}
+                                            >
+                                                Remover
+                                            </button>
+                                        </li>
+                                    ))}
+                                </ul>
+                            )}
+
+                            {erroAnexo && (
+                                <p className="ordens-feedback ordens-feedback--error" role="alert">
+                                    {erroAnexo}
+                                </p>
+                            )}
+
+                            {enviandoAnexo && (
+                                <div className="ordem-anexo-progresso" role="status">
+                                    <progress
+                                        value={progressoAnexo}
+                                        max={100}
+                                        aria-label="Progresso do envio"
+                                    />
+                                    <span>Enviando... {progressoAnexo}%</span>
+                                </div>
+                            )}
+
+                            {sucessoAnexo && (
+                                <p className="ordens-feedback" role="status">
+                                    {sucessoAnexo}
+                                </p>
+                            )}
+
+                            <h3>Anexos desta OS</h3>
+
+                            {carregandoAnexos ? (
+                                <p className="ordens-feedback" role="status">
+                                    Carregando anexos...
+                                </p>
+                            ) : erroAnexos ? (
+                                <p className="ordens-feedback ordens-feedback--error" role="alert">
+                                    {erroAnexos}
+                                </p>
+                            ) : anexos.length === 0 ? (
+                                <p>Nenhum anexo enviado para esta O.S.</p>
+                            ) : (
+                                <ul className="ordem-anexo-lista">
+                                    {anexos.map((anexo) => (
+                                        <li key={anexo.id}>
+                                            <span>
+                                                {anexo.url ? (
+                                                    <a
+                                                        href={anexo.url}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        onClick={(event) => {
+                                                            // O download exige o token: baixa pela API em vez de abrir o link.
+                                                            if (onBaixarAnexo) {
+                                                                event.preventDefault();
+                                                                void baixarAnexo(anexo);
+                                                            }
+                                                        }}
+                                                    >
+                                                        {anexo.nome}
+                                                    </a>
+                                                ) : (
+                                                    anexo.nome
+                                                )}
+                                                {anexo.tamanho_bytes
+                                                    ? ` · ${formatarTamanho(anexo.tamanho_bytes)}`
+                                                    : ""}
+                                                {anexo.data_envio
+                                                    ? ` · ${formatarData(anexo.data_envio)}`
+                                                    : ""}
+                                                {anexo.autor ? ` · ${anexo.autor}` : ""}
+                                                {anexo.relato ? ` — ${anexo.relato}` : ""}
+                                            </span>
+                                        </li>
+                                    ))}
+                                </ul>
+                            )}
+                        </div>
+
+                        <footer className="ordem-modal-actions">
+                            <button
+                                type="button"
+                                className="ordens-btn-secondary"
+                                onClick={cancelarAnexo}
+                                disabled={enviandoAnexo}
+                            >
+                                Fechar
+                            </button>
+
+                            <button
+                                type="button"
+                                className="ordens-btn-primary"
+                                onClick={enviarAnexo}
+                                disabled={enviandoAnexo || arquivosAnexo.length === 0}
+                                aria-busy={enviandoAnexo}
+                            >
+                                {enviandoAnexo ? "Enviando..." : "Enviar"}
+                            </button>
+                        </footer>
+                    </section>
+                </div>
+            )}
 
             {justificativaAberta && (
                 <div

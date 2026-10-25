@@ -19,35 +19,34 @@ function ClienteStatusModal({
     onClose,
     onConfirm,
 }: ClienteStatusModalProps) {
-    if (!cliente || !acao) {
-        return null;
-    }
+    if (!cliente || !acao) return null;
 
     const inativar = acao === "inativar";
 
     return (
         <div
-            className="cliente-modal-overlay"
+            className="projeto-modal-overlay cliente-modal-overlay"
             onMouseDown={(event) => {
-                if (event.target === event.currentTarget) {
-                    onClose();
-                }
+                if (event.target === event.currentTarget && !processando) onClose();
             }}
         >
             <section
-                className="cliente-modal cliente-confirmacao"
+                className="projeto-modal projeto-confirm-modal cliente-status-modal"
                 role="alertdialog"
                 aria-modal="true"
                 aria-labelledby="confirmacao-cliente-titulo"
+                aria-busy={processando}
             >
-                <header className="cliente-modal-header">
-                    <h2 id="confirmacao-cliente-titulo">
-                        {inativar ? "Inativar cliente?" : "Reativar cliente?"}
-                    </h2>
-
+                <header className="projeto-modal-header">
+                    <div>
+                        <span className="projetos-eyebrow">GESTÃO DE CLIENTES</span>
+                        <h2 id="confirmacao-cliente-titulo">
+                            {inativar ? "Inativar cliente?" : "Reativar cliente?"}
+                        </h2>
+                    </div>
                     <button
                         type="button"
-                        className="cliente-modal-close"
+                        className="projeto-modal-close"
                         aria-label="Fechar confirmação"
                         onClick={onClose}
                         disabled={processando}
@@ -56,16 +55,15 @@ function ClienteStatusModal({
                     </button>
                 </header>
 
-                <div className="cliente-confirmacao-conteudo">
+                <div className="projeto-confirm-copy cliente-confirm-copy">
                     <p>
-                        Confirma a ação para o cliente{" "}
-                        <strong>{cliente.nome}</strong>?
+                        Confirma a ação para o cliente <strong>{cliente.nome}</strong>?
                     </p>
 
                     <p>
                         {inativar
-                            ? "O registro e seu histórico serão preservados. Projetos ou ordens de serviço não concluídos impedem a inativação."
-                            : "O cliente voltará a aparecer na listagem de ativos."}
+                            ? "O registro será inativado. Projetos ou ordens de serviço não concluídos impedem a inativação."
+                            : "O cliente voltará a aparecer na listagem de ativos e poderá ser vinculado a novos projetos."}
                     </p>
 
                     {erro && (
@@ -105,6 +103,22 @@ function ClienteStatusModal({
                         </button>
                     </div>
                 </div>
+
+                {erro && <div className="projetos-feedback projetos-feedback--error" role="alert">{erro}</div>}
+
+                <footer className="projeto-modal-actions">
+                    <button type="button" className="projeto-btn-secondary" onClick={onClose} disabled={processando}>
+                        Cancelar
+                    </button>
+                    <button
+                        type="button"
+                        className={inativar ? "projeto-btn-danger" : "projeto-btn-primary"}
+                        onClick={() => void onConfirm()}
+                        disabled={processando}
+                    >
+                        {processando ? "Processando..." : inativar ? "Confirmar inativação" : "Confirmar reativação"}
+                    </button>
+                </footer>
             </section>
         </div>
     );

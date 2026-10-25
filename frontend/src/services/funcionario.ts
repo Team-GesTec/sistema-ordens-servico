@@ -42,4 +42,5 @@ export const funcionarioService = {
             method: "PATCH",
         });
     },
+
 };

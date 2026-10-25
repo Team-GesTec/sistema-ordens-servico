@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { Outlet } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
-import logo from "../images/logo_gestec.png";
-import logoDark from "../images/logo_darkmode.png";
+import logo from "../images/claro.png";
+import logoDark from "../images/dark.png";
 
 function MainLayout() {
     const [darkMode, setDarkMode] = useState(false);

@@ -1,3 +1,5 @@
+import { useEffect, useRef, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import "../styles/variaveis.css";
 import "../styles/global.css";
 import "../styles/layout.css";
@@ -7,14 +9,17 @@ import "../styles/filters.css";
 import "../styles/forms.css";
 import "../styles/autocomplete.css";
 import "../styles/projetos.css";
+
 import ProjetoAtivoModal from "../components/projetos/ProjetoAtivoModal";
 import ProjetoCard from "../components/projetos/ProjetoCard";
 import ProjetoDetalhesModal from "../components/projetos/ProjetoDetalhesModal";
 import ProjetoFormModal from "../components/projetos/ProjetoFormModal";
 import ProjetosBuscaAutocomplete from "../components/projetos/ProjetosBuscaAutocomplete";
-import { useProjetos } from "../hooks/useProjetos";
-import type { StatusProjeto } from "../types/api";
 import Autocomplete, { type AutocompleteOption } from "../components/common/Autocomplete";
+import { useProjetos } from "../hooks/useProjetos";
+import { ApiError } from "../services/api";
+import { projetoService } from "../services/projeto";
+import type { StatusProjeto } from "../types/api";
 
 const STATUS_OPTIONS: AutocompleteOption[] = [
     { value: "todos", label: "Todos os status" },
@@ -26,7 +31,38 @@ const STATUS_OPTIONS: AutocompleteOption[] = [
 
 function Projetos() {
     const projetos = useProjetos();
+    const [searchParams, setSearchParams] = useSearchParams();
+    const idVisualizar = searchParams.get("visualizar");
+    const idVisualizarProcessado = useRef<string | null>(null);
+    const [erroDetalheDireto, setErroDetalheDireto] = useState<string | null>(null);
+
     const modalAberto = projetos.formularioAberto || Boolean(projetos.confirmacaoAtivo);
+
+    useEffect(() => {
+        if (!idVisualizar) {
+            idVisualizarProcessado.current = null;
+            return;
+        }
+        if (projetos.carregando || idVisualizarProcessado.current === idVisualizar) return;
+
+        idVisualizarProcessado.current = idVisualizar;
+        const id = Number(idVisualizar);
+
+        if (Number.isSafeInteger(id) && id > 0) {
+            setErroDetalheDireto(null);
+            void projetoService.buscarPorId(id)
+                .then((detalhe) => projetos.setProjetoSelecionado(detalhe))
+                .catch((error: unknown) => setErroDetalheDireto(error instanceof ApiError ? error.message : "Não foi possível abrir os detalhes do projeto no escopo da sua conta."));
+        } else {
+            setErroDetalheDireto("Identificador do projeto inválido.");
+        }
+
+        setSearchParams((atuais) => {
+            const proximos = new URLSearchParams(atuais);
+            proximos.delete("visualizar");
+            return proximos;
+        }, { replace: true });
+    }, [idVisualizar, projetos.carregando, projetos.setProjetoSelecionado, setSearchParams]);
 
     return (
         <div className="layout">
@@ -45,6 +81,7 @@ function Projetos() {
 
                     {projetos.mensagem && !modalAberto && <div className="projetos-feedback projetos-feedback--success" role="status">{projetos.mensagem}</div>}
                     {projetos.erro && !modalAberto && <div className="projetos-feedback projetos-feedback--error" role="alert">{projetos.erro}</div>}
+                    {erroDetalheDireto && <div className="projetos-feedback projetos-feedback--error" role="alert">{erroDetalheDireto}</div>}
 
                     <section className="projetos-toolbar" aria-label="Pesquisar e filtrar projetos">
                         <ProjetosBuscaAutocomplete
