@@ -50,4 +50,9 @@
 
 | Item de feedback | Impacto | Destino |
 | --- | --- | --- |
-| [**em andamento**] | [**em andamento**] | [**em andamento**] |
+| Simplificar as ordens de serviço e a interface | Adotar um layout mais minimalista, facilitando a visualização e o gerenciamento de um grande volume de ordens de serviço | Sprint 3 (ajuste) |
+| Implementar paginação | Dividir a listagem de ordens de serviço em páginas, evitando rolagens longas e melhorando a navegação | Sprint 3 (ajuste) |
+| Exibir notificações temporárias | Configurar mensagens de sucesso, erro e confirmação para aparecerem na tela por um período determinado e desaparecerem automaticamente | Sprint 3 (ajuste) |
+| Ajustar a barra lateral | Revisar o layout, a organização dos itens e a usabilidade da barra lateral de navegação | Sprint 3 (ajuste) |
+| Melhorar o modo escuro | Realizar ajustes visuais no tema escuro, considerando que seu uso tem menor relevância para a empresa, que prioriza o tema claro | Backlog (baixa prioridade) |
+| Redesenhar a tela de login | Melhorar o design da tela de login, buscando uma interface mais moderna, intuitiva e alinhada à identidade visual do sistema | Sprint 3 (ajuste) |
