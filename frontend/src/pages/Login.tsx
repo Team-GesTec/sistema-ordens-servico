@@ -1,5 +1,6 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
+import { Lottie } from "lottie-react";
 import logo from "../images/AZUL.CLARO_BRANCO_SemNome.png";
 import { ApiError } from "../services/api";
 import { authService } from "../services/auth";
@@ -40,15 +41,27 @@ function Login() {
                     <span className="login-brand-mark"><img src={logo} alt="" /></span>
                     <span><strong>GesTec</strong><small>SISTEMA DE GESTÃO</small></span>
                 </div>
-                <div className="login-brand-copy">
-                    <p className="login-eyebrow">GESTÃO EM UM SÓ LUGAR</p>
-                    <h1>Seu trabalho conectado. Resultados em movimento.</h1>
-                    <p>Uma visão integrada para gerenciar ordens de serviço, clientes e projetos com mais clareza, organização e previsibilidade.</p>
-                    <ul className="login-feature-list">
-                        <li><i className="fa-solid fa-clipboard-list" aria-hidden="true" /> Acompanhe ordens de serviço</li>
-                        <li><i className="fa-solid fa-diagram-project" aria-hidden="true" /> Conecte clientes e projetos</li>
-                        <li><i className="fa-solid fa-chart-line" aria-hidden="true" /> Organize a operação em um só lugar</li>
-                    </ul>
+                <div className="login-brand-main">
+                    <div className="login-brand-copy">
+                        <p className="login-eyebrow">GESTÃO EM UM SÓ LUGAR</p>
+                        <h1>Seu trabalho conectado. Resultados em movimento.</h1>
+                        <p>Uma visão integrada para gerenciar ordens de serviço, clientes e projetos com mais clareza, organização e previsibilidade.</p>
+                        <ul className="login-feature-list">
+                            <li><i className="fa-solid fa-clipboard-list" aria-hidden="true" /> Acompanhe ordens de serviço</li>
+                            <li><i className="fa-solid fa-diagram-project" aria-hidden="true" /> Conecte clientes e projetos</li>
+                            <li><i className="fa-solid fa-chart-line" aria-hidden="true" /> Organize a operação em um só lugar</li>
+                        </ul>
+                    </div>
+
+                    <div className="login-animation-stage" aria-hidden="true">
+                        <div className="login-animation-glow" />
+                        <Lottie
+                            src={`${import.meta.env.BASE_URL}animations/drone_login.json`}
+                            autoplay
+                            loop
+                            renderer="svg"
+                        />
+                    </div>
                 </div>
                 <small className="login-brand-foot">GesTec · Gestão de serviços</small>
             </section>
