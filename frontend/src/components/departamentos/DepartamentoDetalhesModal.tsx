@@ -87,7 +87,7 @@ export default function DepartamentoDetalhesModal({
 
     function abrirOrdem(ordemId: number) {
         onClose();
-        navigate(`/ordens?visualizar=${ordemId}`);
+        navigate(`/ordens/${ordemId}`);
     }
 
     return (

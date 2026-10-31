@@ -1,0 +1,472 @@
+/* Composição das telas internas baseada diretamente no sistema de referência GesTec.
+   Esta camada altera somente apresentação; dados e ações continuam vindo dos componentes React existentes. */
+:root {
+  --gestec-navy: #090c5c;
+  --gestec-blue: #1589ca;
+  --gestec-cyan: #35b4e6;
+  --gestec-ink: #15243a;
+  --gestec-muted: #627b91;
+  --gestec-line: #d6e8f3;
+  --gestec-canvas: #edf8fd;
+  --gestec-green: #168260;
+  --gestec-amber: #a96a08;
+  --gestec-red: #c73d4a;
+  --gestec-purple: #6650bd;
+}
+
+.gestec-app .app-workspace { min-width: 0; }
+.gestec-app .layout { display: block; width: 100%; min-height: calc(100vh - var(--gestec-topbar-height)); max-height: none; background: transparent; }
+.gestec-app .main { width: 100%; min-width: 0; padding: 28px clamp(18px, 2.15vw, 34px) 38px; overflow: visible; background: transparent; }
+.gestec-app .container,
+.gestec-app .projetos-container,
+.gestec-app .projetos-container.clientes-container,
+.gestec-app .projetos-container.funcionarios-container { position: relative; z-index: 1; width: 100%; max-width: 1440px; padding: 0; margin: 0 auto; }
+.gestec-app .container::before { display: none; }
+.gestec-app .projetos-page-header,
+.gestec-app .page-heading { display: flex; align-items: center; justify-content: space-between; gap: 22px; margin: 4px 0 23px; }
+.gestec-app .projetos-page-header h1,
+.gestec-app .page-heading h1 { margin: 3px 0 7px; color: #0b2850; font-size: clamp(27px, 2vw, 34px); font-weight: 800; line-height: 1.16; letter-spacing: -.8px; }
+.gestec-app .projetos-eyebrow,
+.gestec-app .eyebrow { margin: 0 0 5px; color: #087cb7; font-size: 10px; font-weight: 850; letter-spacing: 1.5px; text-transform: uppercase; }
+.gestec-app .projetos-subtitle,
+.gestec-app .page-heading > div > p:not(.projetos-eyebrow):not(.eyebrow) { max-width: 760px; color: #527189; font-size: 13px; line-height: 1.65; }
+.gestec-app .heading-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 10px; }
+.gestec-app .projeto-btn-primary,
+.gestec-app .projeto-btn-secondary,
+.gestec-app .projeto-btn-danger,
+.gestec-app .btn { min-height: 38px; border-radius: 9px; font-size: 12px; font-weight: 750; line-height: 1.25; }
+.gestec-app .projeto-btn-primary,
+.gestec-app .btn-primary { border: 1px solid #1589ca; background: linear-gradient(110deg,#0c70b5,#158fd0 62%,#24a9dd); color: #fff; box-shadow: 0 6px 14px rgba(21,137,202,.19); }
+.gestec-app .projeto-btn-secondary,
+.gestec-app .btn-secondary { border: 1px solid #d3e5f0; background: #fff; color: #31536c; }
+.gestec-app .projeto-btn-danger { border: 1px solid #f0c5cb; background: #fff6f7; color: #bc3547; }
+.gestec-app .projeto-btn-primary:hover,
+.gestec-app .btn-primary:hover { filter: brightness(.97); transform: translateY(-1px); }
+.gestec-app .projeto-btn-secondary:hover,
+.gestec-app .btn-secondary:hover { border-color: #8bc9e8; background: #f5fbfe; }
+.gestec-app .projetos-feedback { margin: 0 0 16px; padding: 12px 14px; border: 1px solid var(--gestec-line); border-radius: 10px; font-size: 12px; }
+.gestec-app .projetos-feedback--success { border-color: #b7e6d4; background: #effbf6; color: #167a59; }
+.gestec-app .projetos-feedback--error { border-color: #f0c5cb; background: #fff5f6; color: #a82f42; }
+
+/* KPI cards: labels, values and contextual icon align with the reference dashboard. */
+.gestec-kpi-grid { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 15px; margin: 0 0 19px; }
+.gestec-kpi-card { position: relative; min-width: 0; min-height: 126px; display: flex; flex-direction: column; align-items: flex-start; gap: 5px; padding: 19px 19px 16px; overflow: hidden; border: 1px solid #c8e2f1; border-radius: 15px; background: rgba(255,255,255,.96); box-shadow: 0 8px 24px rgba(15,69,114,.055); }
+.gestec-kpi-label { max-width: calc(100% - 43px); color: #6c7f9d; font-size: 11px; font-weight: 750; line-height: 1.4; }
+.gestec-kpi-card > strong { color: #1a2a42; font-size: 29px; font-weight: 850; line-height: 1.25; letter-spacing: -.8px; font-variant-numeric: tabular-nums; }
+.gestec-kpi-card > small { color: #7f91a7; font-size: 10px; line-height: 1.5; }
+.gestec-kpi-icon { position: absolute; top: 17px; right: 16px; width: 37px; height: 37px; display: grid; place-items: center; border-radius: 11px; background: #e1f4fd; color: #087fb9; font-size: 17px; font-weight: 800; }
+.gestec-kpi-icon--green { background: #e1f6ee; color: #168260; }
+.gestec-kpi-icon--amber { background: #fff2d9; color: #a96a08; }
+.gestec-kpi-icon--purple { background: #eee9ff; color: #6650bd; }
+
+/* Search/filter bars follow the compact single-row treatment in the HTML reference. */
+.gestec-app .projetos-toolbar { position: relative; display: flex; flex-wrap: wrap; align-items: end; gap: 10px; margin: 0 0 18px; padding: 14px 16px; border: 1px solid #d1e5f1; border-radius: 13px; background: rgba(255,255,255,.86); box-shadow: 0 5px 16px rgba(15,69,114,.035); }
+.gestec-app .projetos-toolbar > * { min-width: 0; }
+.gestec-app .projetos-search-wrap { flex: 1 1 270px; }
+.gestec-app .projetos-search-wrap > label,
+.gestec-app .projetos-filter-wrap > label,
+.gestec-app .projetos-filter-wrap > span { display: block; margin: 0 0 5px; color: #607891; font-size: 10px; font-weight: 750; }
+.gestec-app .projetos-search,
+.gestec-app .projetos-filter-wrap select,
+.gestec-app .projetos-toolbar input,
+.gestec-app .projetos-toolbar select,
+.gestec-app .funcionarios-toolbar input,
+.gestec-app .funcionarios-toolbar select { width: 100%; min-width: 0; min-height: 38px; padding: 9px 11px; border: 1px solid #cfe2ee; border-radius: 9px; background: #fff; color: #29445d; font-size: 12px; outline: none; }
+.gestec-app .projetos-filter-wrap { flex: 0 1 190px; }
+.gestec-app .projeto-count-badge,
+.gestec-app .gestec-record-count { display: inline-flex; align-items: center; justify-content: center; align-self: center; padding: 6px 9px; border-radius: 7px; background: #f0f7fb; color: #527189; font-size: 10px; font-weight: 750; white-space: nowrap; }
+.gestec-app .projetos-list-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin: 0 0 13px; }
+.gestec-app .projetos-list-header h2 { margin: 0 0 3px; color: #153451; font-size: 16px; font-weight: 800; letter-spacing: -.2px; }
+.gestec-app .projetos-list-header p { margin: 0; color: #71869b; font-size: 11px; }
+.gestec-app .projetos-loading { color: #5e7891; font-size: 11px; }
+.gestec-app .projetos-empty { min-height: 150px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; padding: 28px; border: 1px dashed #c8deeb; border-radius: 13px; background: rgba(255,255,255,.72); color: #657d92; text-align: center; font-size: 12px; }
+.gestec-app .projetos-empty strong { color: #213a53; font-size: 14px; }
+.gestec-app .projetos-empty p { max-width: 560px; line-height: 1.65; }
+
+/* Data tables match the dense header/row system from clientes.html and funcionarios.html. */
+.gestec-app .gestec-data-card { min-width: 0; overflow: hidden; border: 1px solid #c8e2f1; border-radius: 15px; background: rgba(255,255,255,.97); box-shadow: 0 8px 24px rgba(15,69,114,.055); }
+.gestec-table-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 17px 18px 14px; }
+.gestec-table-heading h2 { margin: 0 0 4px; color: #183552; font-size: 15px; font-weight: 800; }
+.gestec-table-heading p { margin: 0; color: #70869a; font-size: 11px; line-height: 1.5; }
+.gestec-table-scroll { width: 100%; overflow: auto; }
+.gestec-app table.gestec-data-table { width: 100%; min-width: 720px; margin: 0; border-collapse: separate; border-spacing: 0; font-size: 11px; text-align: left; }
+.gestec-app .gestec-data-table thead th { padding: 12px 14px; border-top: 1px solid #e0edf5; border-bottom: 1px solid #d6e8f3; background: #f1f9fd; color: #55748c; font-size: 9px; font-weight: 850; letter-spacing: .6px; text-transform: uppercase; white-space: nowrap; }
+.gestec-app .gestec-data-table tbody td { padding: 12px 14px; border-bottom: 1px solid #e8f1f6; color: #4e6379; line-height: 1.5; vertical-align: middle; }
+.gestec-app .gestec-data-table tbody tr:last-child td { border-bottom: 0; }
+.gestec-app .gestec-data-table tbody tr:hover { background: #f5fbfe; }
+.gestec-app .gestec-data-table tbody td:first-child { color: #253b53; }
+.gestec-entity-cell { display: flex; align-items: center; gap: 10px; min-width: 180px; }
+.gestec-entity-cell > span:last-child { display: flex; flex-direction: column; min-width: 0; gap: 2px; }
+.gestec-entity-cell strong { display: block; overflow: hidden; color: #243951; font-size: 11px; font-weight: 800; text-overflow: ellipsis; }
+.gestec-entity-cell small { color: #8193a7; font-size: 9px; }
+.gestec-avatar { width: 31px; height: 31px; flex: 0 0 31px; display: grid; place-items: center; border-radius: 9px; background: #dcecff; color: #1b64b5; font-size: 10px; font-weight: 850; }
+.gestec-status-pill { display: inline-flex; align-items: center; gap: 6px; padding: 5px 8px; border-radius: 6px; font-size: 9px; font-weight: 850; white-space: nowrap; }
+.gestec-status-pill i { width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
+.gestec-status-pill.is-active { background: #e4f7ef; color: #168260; }
+.gestec-status-pill.is-inactive { background: #fff0f1; color: #c73d4a; }
+.gestec-role-pill { display: inline-flex; padding: 5px 7px; border-radius: 6px; background: #edf4ff; color: #3b65a1; font-size: 9px; font-weight: 800; white-space: nowrap; }
+.gestec-role-pill.role-gestor { background: #eee9ff; color: #6650bd; }
+.gestec-role-pill.role-analista { background: #e1f4fd; color: #087fb9; }
+.gestec-role-pill.role-tecnico { background: #e1f6ee; color: #168260; }
+.gestec-actions-cell { text-align: right !important; white-space: nowrap; }
+.gestec-row-actions { display: inline-flex; align-items: center; justify-content: flex-end; gap: 5px; }
+.gestec-icon-action { width: 31px; height: 31px; display: inline-grid; place-items: center; border: 1px solid #d6e8f3; border-radius: 8px; background: #fff; color: #617b92; font-size: 15px; text-decoration: none; cursor: pointer; }
+.gestec-icon-action:hover:not(:disabled) { border-color: #83c7e7; background: #f0f9fe; color: #0a79b6; }
+.gestec-icon-action.is-danger { color: #bd3b4d; }
+.gestec-icon-action:disabled { opacity: .5; cursor: not-allowed; }
+.gestec-table-footer { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; padding: 12px 18px; border-top: 1px solid #e3eef5; color: #70869a; font-size: 10px; }
+.gestec-muted { color: #8a9cad; }
+
+/* The remaining real pages keep their data-rich cards, but use the reference card geometry. */
+.gestec-app .projetos-grid { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); align-items: stretch; gap: 15px; }
+.gestec-app .projeto-card { min-width: 0; padding: 18px; border: 1px solid #c8e2f1; border-radius: 14px; background: rgba(255,255,255,.96); box-shadow: 0 7px 22px rgba(15,69,114,.055); color: #29445d; transition: border-color .16s ease, box-shadow .16s ease, transform .16s ease; }
+.gestec-app .projeto-card:hover { border-color: #a7d4ec; box-shadow: 0 12px 26px rgba(15,69,114,.09); transform: translateY(-1px); }
+.gestec-app .projeto-card-header { gap: 10px; margin-bottom: 14px; }
+.gestec-app .projeto-card-title { color: #203750; font-size: 16px; line-height: 1.4; font-weight: 800; }
+.gestec-app .projeto-card-client,
+.gestec-app .projeto-card-metadata { color: #70859a; font-size: 11px; line-height: 1.55; }
+.gestec-app .projeto-id { color: #5c7690; font-size: 9px; font-weight: 850; letter-spacing: .6px; }
+.gestec-app .projeto-status { display: inline-flex; align-items: center; padding: 5px 8px; border-radius: 6px; background: #e6f3ff; color: #2c6eb4; font-size: 9px; font-weight: 850; white-space: nowrap; }
+.gestec-app .projeto-status--concluido { background: #e2f6ed; color: #158260; }
+.gestec-app .projeto-status--pausado { background: #fff2d9; color: #9b680f; }
+.gestec-app .projeto-card-actions { gap: 8px; padding-top: 13px; border-top: 1px solid #e4eef5; }
+.gestec-app .projetos-grid .projeto-card button:not(.projeto-btn-primary):not(.projeto-btn-secondary):not(.projeto-btn-danger) { color: inherit; }
+.gestec-app .gestec-department-card { display: flex; flex-direction: column; gap: 13px; }
+.gestec-app .gestec-department-identity { display: flex; align-items: center; gap: 12px; }
+.gestec-app .gestec-department-mark { width: 43px; height: 43px; flex: 0 0 43px; display: grid; place-items: center; border-radius: 12px; background: #e1f4fd; color: #0b80bc; font-size: 13px; font-weight: 850; }
+.gestec-app .gestec-department-title { display: block; padding: 0; border: 0; background: transparent; color: #203750; text-align: left; font-size: 16px; font-weight: 800; cursor: pointer; }
+.gestec-app .gestec-department-title:hover { color: #0b83c1; }
+.gestec-app .gestec-department-meta { display: grid; grid-template-columns: 1fr; gap: 8px; margin-top: 4px; padding-top: 13px; border-top: 1px solid #e3eef5; }
+.gestec-app .gestec-department-meta span { color: #6d8297; font-size: 11px; line-height: 1.45; }
+
+/* Dashboard: preserve real Recharts and service-fed figures while matching the reference grid. */
+.gestec-app .dashboard { width: 100%; max-width: 1440px; padding: 0; margin: 0 auto; color: #15243a; }
+.gestec-app .dashboard-header { align-items: center; margin: 4px 0 22px; }
+.gestec-app .dashboard-header h1 { margin: 3px 0 7px; color: #0b2850; font-size: clamp(27px,2vw,34px); font-weight: 800; }
+.gestec-app .dashboard-header p { color: #527189; font-size: 13px; }
+.gestec-app .dashboard-eyebrow { color: #557b98; font-size: 10px; letter-spacing: 1.5px; }
+.gestec-app .dashboard-perfil { display: none; }
+.gestec-app .dashboard-indicadores { gap: 14px; margin-bottom: 17px; }
+.gestec-app .dashboard-indicador { min-height: 126px; padding: 18px 19px; border: 1px solid #c8e2f1; border-radius: 15px; background: rgba(255,255,255,.96); box-shadow: 0 8px 24px rgba(15,69,114,.055); }
+.gestec-app .dashboard-indicador .indicador-titulo { color: #6c7f9d; font-size: 11px; font-weight: 750; }
+.gestec-app .dashboard-indicador > strong { color: #1a2a42; font-size: 28px; font-weight: 850; }
+.gestec-app .dashboard-indicador small { color: #7f91a7; font-size: 10px; }
+.gestec-app .dashboard-indicador .indicador-icone { width: 36px; height: 36px; border-radius: 11px; font-size: 16px; }
+.gestec-app .dashboard-graficos { grid-template-columns: repeat(2,minmax(0,1fr)); gap: 15px; }
+.gestec-app .dashboard-card { min-width: 0; padding: 18px; border: 1px solid #c8e2f1; border-radius: 15px; background: rgba(255,255,255,.97); box-shadow: 0 8px 24px rgba(15,69,114,.055); }
+.gestec-app .dashboard-card-header { align-items: flex-start; margin-bottom: 15px; }
+.gestec-app .dashboard-card-header h2 { margin: 0 0 4px; color: #183552; font-size: 14px; font-weight: 800; }
+.gestec-app .dashboard-card-header p { color: #74899d; font-size: 10px; line-height: 1.5; }
+.gestec-app .dashboard-card-icone { width: 30px; height: 30px; border: 1px solid #d6e8f3; border-radius: 9px; background: #f6fbfe; color: #5a7994; }
+.gestec-app .dashboard-grafico { min-width: 0; }
+.gestec-app .dashboard-vazio,
+.gestec-app .dashboard-mensagem { border-radius: 10px; background: #f5fbfe; color: #71879b; font-size: 12px; }
+.gestec-app .dashboard-erro { border: 1px solid #f0c5cb; border-radius: 12px; background: #fff5f6; color: #a82f42; }
+
+/* Orders view toolbar and new real-data table. The current card/Kanban modes remain available. */
+.gestec-app .ordens-list-header { align-items: center; }
+.gestec-app .ordens-list-header-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 10px; }
+.gestec-app .ordens-view-switch { display: inline-flex; gap: 3px; padding: 3px; border: 1px solid #d3e5f0; border-radius: 9px; background: #f4f9fc; }
+.gestec-app .ordens-view-switch button { min-height: 30px; padding: 6px 10px; border: 0; border-radius: 6px; background: transparent; color: #58738a; font-size: 10px; font-weight: 750; cursor: pointer; }
+.gestec-app .ordens-view-switch button.active { background: #fff; color: #126da7; box-shadow: 0 1px 4px rgba(15,69,114,.12); }
+.gestec-app .ordens-prazo-filtro { display: flex; align-items: center; gap: 6px; }
+.gestec-app .ordens-prazo-filtro label { color: #607891; font-size: 10px; font-weight: 750; }
+.gestec-app .ordens-prazo-filtro select { min-height: 34px; border: 1px solid #cfe2ee; border-radius: 8px; background: #fff; color: #29445d; font-size: 10px; padding: 6px 9px; }
+.gestec-app .ordens-grid { grid-template-columns: repeat(3,minmax(0,1fr)); }
+.gestec-app .gestec-order-title { display: flex; align-items: center; gap: 8px; min-width: 220px; }
+.gestec-app .gestec-order-title a { color: #087db8; font-size: 10px; font-weight: 850; text-decoration: none; }
+.gestec-app .gestec-order-title a:hover { text-decoration: underline; }
+.gestec-app .gestec-order-title strong { display: block; color: #253b53; font-size: 11px; }
+.gestec-app .gestec-order-title small { display: block; max-width: 330px; overflow: hidden; color: #8193a7; font-size: 9px; text-overflow: ellipsis; white-space: nowrap; }
+.gestec-app .gestec-priority-pill { display: inline-flex; padding: 5px 7px; border-radius: 6px; background: #edf4ff; color: #3867a6; font-size: 9px; font-weight: 800; white-space: nowrap; }
+.gestec-app .gestec-priority-pill.priority-alto,
+.gestec-app .gestec-priority-pill.priority-muito_alto { background: #fff2e4; color: #a75c0d; }
+.gestec-app .gestec-priority-pill.priority-urgente { background: #fff0f1; color: #bf3346; }
+.gestec-app .gestec-priority-pill.priority-baixo { background: #e4f7ef; color: #168260; }
+.gestec-app .gestec-priority-pill.priority-indefinida { background: #f0f4f7; color: #627b91; }
+
+/* Real modal components use the radius, border, header and footer system from modais.html. */
+.gestec-app .projeto-modal,
+.gestec-app .modal,
+.gestec-app .modal-content { border: 1px solid #c8e2f1; border-radius: 16px; background: #fff; box-shadow: 0 20px 70px rgba(9,44,91,.22); }
+.gestec-app .projeto-modal-overlay,
+.gestec-app .modal-overlay { background: rgba(5,22,47,.52); backdrop-filter: blur(3px); }
+.gestec-app .projeto-modal-header,
+.gestec-app .modal-header { padding: 20px 22px; border-bottom: 1px solid #e1edf5; }
+.gestec-app .projeto-modal-header h2,
+.gestec-app .modal-header h2 { color: #153451; font-size: 19px; font-weight: 800; }
+.gestec-app .projeto-modal-actions,
+.gestec-app .modal-actions,
+.gestec-app .modal-footer { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 9px; padding: 15px 22px; border-top: 1px solid #e1edf5; }
+.gestec-app .projeto-field input,
+.gestec-app .projeto-field select,
+.gestec-app .projeto-field textarea,
+.gestec-app .form-field input,
+.gestec-app .form-field select,
+.gestec-app .form-field textarea { border-radius: 9px; border-color: #cfe2ee; background: #fbfdff; }
+
+/* Small screens retain scrollable tables, stacked headers and single-column card layouts. */
+@media (max-width: 1180px) {
+  .gestec-app .projetos-grid,
+  .gestec-app .ordens-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .gestec-app .main { padding: 24px 20px 32px; }
+}
+@media (max-width: 900px) {
+  .gestec-kpi-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .gestec-app .dashboard-graficos { grid-template-columns: minmax(0,1fr); }
+  .gestec-app .dashboard-indicadores { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .gestec-app .projetos-page-header,
+  .gestec-app .page-heading { align-items: flex-start; }
+}
+@media (max-width: 620px) {
+  .gestec-app .main { padding: 19px 12px 26px; }
+  .gestec-app .projetos-page-header,
+  .gestec-app .page-heading { flex-direction: column; gap: 14px; margin-bottom: 18px; }
+  .gestec-app .heading-actions { width: 100%; justify-content: flex-start; }
+  .gestec-app .projetos-grid,
+  .gestec-app .ordens-grid { grid-template-columns: minmax(0,1fr); }
+  .gestec-kpi-grid { gap: 9px; }
+  .gestec-kpi-card { min-height: 110px; padding: 14px; }
+  .gestec-kpi-label { max-width: calc(100% - 29px); font-size: 10px; }
+  .gestec-kpi-card > strong { font-size: 24px; }
+  .gestec-kpi-icon { top: 12px; right: 10px; width: 27px; height: 27px; border-radius: 8px; font-size: 13px; }
+  .gestec-table-heading { align-items: flex-start; padding: 14px; }
+  .gestec-app .gestec-data-table { min-width: 690px; }
+  .gestec-table-footer { align-items: flex-start; flex-direction: column; padding: 12px 14px; }
+  .gestec-app .projetos-toolbar { display: flex; align-items: stretch; flex-direction: column; padding: 12px; }
+  .gestec-app .projetos-filter-wrap { flex: 1 1 auto; }
+  .gestec-app .ordens-list-header { align-items: flex-start; flex-direction: column; }
+  .gestec-app .ordens-list-header-actions { width: 100%; align-items: flex-start; justify-content: flex-start; }
+  .gestec-app .ordens-prazo-filtro { align-items: flex-start; flex-direction: column; }
+  .gestec-app .dashboard-indicadores { gap: 9px; }
+  .gestec-app .dashboard-indicador { min-height: 112px; padding: 14px; }
+  .gestec-app .dashboard-indicador > strong { font-size: 24px; }
+}
+
+.gestec-app.dark-mode .projetos-page-header h1,
+.gestec-app.dark-mode .page-heading h1,
+.gestec-app.dark-mode .projetos-list-header h2,
+.gestec-app.dark-mode .gestec-table-heading h2,
+.gestec-app.dark-mode .gestec-entity-cell strong,
+.gestec-app.dark-mode .gestec-department-title,
+.gestec-app.dark-mode .projeto-card-title,
+.gestec-app.dark-mode .dashboard-header h1,
+.gestec-app.dark-mode .dashboard-card-header h2 { color: #eaf5ff; }
+.gestec-app.dark-mode .projetos-subtitle,
+.gestec-app.dark-mode .page-heading > div > p:not(.projetos-eyebrow):not(.eyebrow),
+.gestec-app.dark-mode .projetos-list-header p,
+.gestec-app.dark-mode .gestec-table-heading p,
+.gestec-app.dark-mode .gestec-muted { color: #a9c0d2; }
+.gestec-app.dark-mode .gestec-kpi-card,
+.gestec-app.dark-mode .gestec-data-card,
+.gestec-app.dark-mode .projeto-card,
+.gestec-app.dark-mode .dashboard-card,
+.gestec-app.dark-mode .projetos-toolbar,
+.gestec-app.dark-mode .projetos-empty { border-color: #28475e; background: rgba(13,34,52,.97); color: #e2eef8; }
+.gestec-app.dark-mode .gestec-kpi-label,
+.gestec-app.dark-mode .gestec-kpi-card > small,
+.gestec-app.dark-mode .projeto-card-client,
+.gestec-app.dark-mode .projeto-card-metadata,
+.gestec-app.dark-mode .gestec-department-meta span { color: #a7bdcf; }
+.gestec-app.dark-mode .gestec-kpi-card > strong { color: #edf7ff; }
+.gestec-app.dark-mode .gestec-table-heading { border-bottom-color: #28475e; }
+.gestec-app.dark-mode table.gestec-data-table,
+.gestec-app.dark-mode .gestec-data-table tbody td { color: #d5e5f1; }
+.gestec-app.dark-mode .gestec-data-table thead th { border-color: #28475e; background: #132e47; color: #a8c5d8; }
+.gestec-app.dark-mode .gestec-data-table tbody td { border-color: #223e54; }
+.gestec-app.dark-mode .gestec-data-table tbody tr:hover { background: #173249; }
+.gestec-app.dark-mode .gestec-entity-cell strong { color: #e6f2fb; }
+.gestec-app.dark-mode .gestec-table-footer { border-top-color: #28475e; color: #a7bdcf; }
+.gestec-app.dark-mode .gestec-icon-action,
+.gestec-app.dark-mode .projetos-search,
+.gestec-app.dark-mode .projetos-filter-wrap select,
+.gestec-app.dark-mode .projetos-toolbar input,
+.gestec-app.dark-mode .projetos-toolbar select,
+.gestec-app.dark-mode .ordens-prazo-filtro select { border-color: #2d4a63; background: #0c2033; color: #e5f0fa; }
+.gestec-app.dark-mode .dashboard { color: #e5f0fa; }
+.gestec-app.dark-mode .dashboard-header p,
+.gestec-app.dark-mode .dashboard-card-header p { color: #a1b6c8; }
+.gestec-app.dark-mode .dashboard-indicador { border-color: #28475e; background: #10263b; }
+.gestec-app.dark-mode .dashboard-indicador .indicador-titulo,
+.gestec-app.dark-mode .dashboard-indicador small { color: #a1b6c8; }
+.gestec-app.dark-mode .dashboard-indicador > strong { color: #edf7ff; }
+.gestec-app.dark-mode .dashboard-vazio,
+.gestec-app.dark-mode .dashboard-mensagem { background: #132f45; color: #b6cedd; }
+.gestec-app.dark-mode .projeto-modal,
+.gestec-app.dark-mode .modal,
+.gestec-app.dark-mode .modal-content { border-color: #28475e; background: #10263b; color: #e5f0fa; }
+.gestec-app.dark-mode .projeto-modal-header,
+.gestec-app.dark-mode .modal-header,
+.gestec-app.dark-mode .projeto-modal-actions,
+.gestec-app.dark-mode .modal-actions,
+.gestec-app.dark-mode .modal-footer { border-color: #28475e; }
+.gestec-app.dark-mode .projeto-modal-header h2,
+.gestec-app.dark-mode .modal-header h2 { color: #eaf5ff; }
+.gestec-app.dark-mode .projeto-field input,
+.gestec-app.dark-mode .projeto-field select,
+.gestec-app.dark-mode .projeto-field textarea,
+.gestec-app.dark-mode .form-field input,
+.gestec-app.dark-mode .form-field select,
+.gestec-app.dark-mode .form-field textarea { border-color: #2d4a63; background: #0c2033; color: #e5f0fa; }
+
+@media (prefers-reduced-motion: reduce) {
+  .gestec-app *, .gestec-app *::before, .gestec-app *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; animation-duration: .01ms !important; }
+}
+
+.gestec-app .gestec-orders-table { min-width: 1180px !important; }
+.gestec-app .gestec-table-link { color: #087db8; font-size: 10px; font-weight: 800; text-decoration: none; }
+.gestec-app .gestec-table-link:hover { text-decoration: underline; text-underline-offset: 2px; }
+.gestec-app .gestec-os-status.status-em_andamento { background: #e8f2ff; color: #2d6bc0; }
+.gestec-app .gestec-os-status.status-aguardando { background: #fff3db; color: #98630a; }
+.gestec-app .gestec-os-status.status-validacao_testes { background: #f0eaff; color: #6a4ac2; }
+.gestec-app .gestec-os-status.status-bloqueado { background: #fff0f1; color: #c33b4d; }
+.gestec-app .gestec-os-status.status-concluido { background: #e4f7ef; color: #168260; }
+.gestec-app .gestec-inline-note { display: block; margin-top: 4px; color: #9a6470; font-size: 9px; }
+.gestec-app .gestec-deadline { display: flex; flex-direction: column; gap: 3px; color: #526b82; font-size: 10px; white-space: nowrap; }
+.gestec-app .gestec-deadline.is-late { color: #bf3346; font-weight: 800; }
+.gestec-app .gestec-deadline small { width: fit-content; padding: 3px 5px; border-radius: 4px; background: #fff0f1; font-size: 8px; font-weight: 850; }
+.gestec-app .dashboard-recentes-grid { display: grid; grid-template-columns: minmax(0, 2fr) minmax(260px, 1fr); gap: 15px; margin-top: 15px; }
+.gestec-app .dashboard-recentes-grid .dashboard-card { min-width: 0; }
+.gestec-app .dashboard-recentes-table .dashboard-card-header { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; }
+.gestec-app .dashboard-link-action { display: inline-flex; align-items: center; gap: 5px; color: #087eb9; font-size: 10px; font-weight: 850; text-decoration: none; white-space: nowrap; }
+.gestec-app .dashboard-link-action:hover { text-decoration: underline; text-underline-offset: 3px; }
+.gestec-app .gestec-dashboard-table { min-width: 710px !important; }
+.gestec-app .gestec-dashboard-table thead th { padding: 10px 12px; }
+.gestec-app .gestec-dashboard-table tbody td { padding: 10px 12px; }
+.gestec-app .gestec-cell-subtitle { display: block; margin-top: 3px; color: #8294a8; font-size: 9px; }
+.gestec-app .gestec-dashboard-order-title { display: block; max-width: 290px; overflow: hidden; color: #283e55; font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
+.gestec-app .dashboard-summary-card { display: flex; flex-direction: column; }
+.gestec-app .dashboard-status-summary { display: grid; gap: 0; margin: 3px 0 18px; }
+.gestec-app .dashboard-status-line { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 11px 0; border-bottom: 1px solid #e6f0f6; font-size: 11px; }
+.gestec-app .dashboard-status-line:last-child { border-bottom: 0; }
+.gestec-app .dashboard-status-name { display: inline-flex; align-items: center; gap: 8px; color: #647d93; }
+.gestec-app .dashboard-status-name i { width: 7px; height: 7px; flex: 0 0 7px; border-radius: 50%; }
+.gestec-app .dashboard-status-line > strong { color: #253a52; font-size: 11px; font-variant-numeric: tabular-nums; }
+.gestec-app .dashboard-summary-card .dashboard-link-action { margin-top: auto; }
+.gestec-app.dark-mode .gestec-table-link,
+.gestec-app.dark-mode .dashboard-link-action { color: #6bd1ff; }
+.gestec-app.dark-mode .gestec-dashboard-order-title,
+.gestec-app.dark-mode .dashboard-status-line > strong { color: #e6f2fb; }
+.gestec-app.dark-mode .dashboard-status-line { border-bottom-color: #28475e; }
+.gestec-app.dark-mode .gestec-cell-subtitle,
+.gestec-app.dark-mode .dashboard-status-name { color: #a7bdcf; }
+.gestec-app.dark-mode .gestec-deadline { color: #bbcedb; }
+.gestec-app.dark-mode .gestec-deadline.is-late { color: #ff9eaa; }
+@media (max-width: 900px) { .gestec-app .dashboard-recentes-grid { grid-template-columns: minmax(0,1fr); } }
+
+/* Ordem de serviço detalhada: resumo em grade, seções agrupadas e ações fixadas no rodapé do diálogo. */
+.gestec-app .ordem-modal-overlay { position: fixed; z-index: 1800; inset: 0; display: flex; align-items: center; justify-content: center; padding: 24px; overflow-y: auto; background: rgba(5,22,47,.52); backdrop-filter: blur(3px); }
+.gestec-app .ordem-modal { width: min(100%, 1040px); max-height: min(92vh, 980px); display: flex; flex-direction: column; overflow: hidden; border: 1px solid #c8e2f1; border-radius: 17px; background: #fff; box-shadow: 0 24px 80px rgba(9,44,91,.25); color: #203750; }
+.gestec-app .ordem-modal-header { position: sticky; top: 0; z-index: 2; display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; padding: 22px 25px 20px; border-bottom: 1px solid #dcebf4; background: linear-gradient(110deg,#fff 0%,#f3faff 100%); }
+.gestec-app .ordem-modal-header .ordem-card-id { display: inline-flex; margin-bottom: 8px; padding: 5px 8px; border-radius: 6px; background: #e4f5fd; color: #087ab4; font-size: 9px; font-weight: 850; }
+.gestec-app .ordem-modal-header h2 { margin: 0; color: #102e50; font-size: 21px; font-weight: 850; line-height: 1.3; }
+.gestec-app .ordem-modal-close { width: 34px; height: 34px; flex: 0 0 34px; display: grid; place-items: center; border: 1px solid #d4e6f0; border-radius: 9px; background: #fff; color: #617b92; font-size: 22px; }
+.gestec-app .ordem-modal-body { flex: 1 1 auto; min-height: 0; overflow: auto; padding: 21px 25px 24px; }
+.gestec-app .ordem-detalhes-resumo { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 0; margin-bottom: 18px; overflow: hidden; border: 1px solid #d8e9f3; border-radius: 12px; background: #f7fbfe; }
+.gestec-app .ordem-detalhe { min-width: 0; padding: 13px 15px; border-right: 1px solid #e0edf5; border-bottom: 1px solid #e0edf5; }
+.gestec-app .ordem-detalhe:nth-child(4n) { border-right: 0; }
+.gestec-app .ordem-detalhe:nth-last-child(-n+4) { border-bottom: 0; }
+.gestec-app .ordem-detalhe > span { display: block; margin-bottom: 5px; color: #71869b; font-size: 9px; font-weight: 750; text-transform: uppercase; letter-spacing: .45px; }
+.gestec-app .ordem-detalhe > strong { display: block; overflow-wrap: anywhere; color: #253b53; font-size: 11px; line-height: 1.5; font-weight: 800; }
+.gestec-app .ordem-detalhes-descricao { margin-top: 14px; padding: 17px 18px; border: 1px solid #d8e9f3; border-radius: 12px; background: #fff; }
+.gestec-app .ordem-detalhes-descricao h3 { margin: 0 0 10px; color: #183b59; font-size: 13px; font-weight: 850; }
+.gestec-app .ordem-detalhes-descricao p { margin: 0; color: #5e758a; font-size: 11px; line-height: 1.7; white-space: pre-wrap; }
+.gestec-app .ordem-responsavel-edicao,
+.gestec-app .ordem-status-edicao { background: #f8fcff; }
+.gestec-app .ordem-reatribuicao-controles,
+.gestec-app .ordem-status-controls { display: flex; flex-wrap: wrap; align-items: end; gap: 10px; margin-top: 13px; }
+.gestec-app .ordem-reatribuicao-campo,
+.gestec-app .ordem-status-field { flex: 1 1 260px; min-width: 0; }
+.gestec-app .ordem-reatribuicao-campo label,
+.gestec-app .ordem-status-field label,
+.gestec-app .ordem-detalhes-descricao label { display: block; margin-bottom: 6px; color: #607891; font-size: 10px; font-weight: 800; }
+.gestec-app .ordem-status-select,
+.gestec-app .ordem-parecer-textarea { width: 100%; min-height: 38px; padding: 9px 11px; border: 1px solid #cfe2ee; border-radius: 9px; background: #fbfdff; color: #29445d; font-size: 12px; }
+.gestec-app .ordem-parecer-textarea { resize: vertical; }
+.gestec-app .ordem-modal-actions { position: sticky; bottom: 0; display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 9px; padding: 15px 25px; border-top: 1px solid #dcebf4; background: #f8fcff; }
+.gestec-app .ordens-btn-primary,
+.gestec-app .ordens-btn-secondary { min-height: 36px; padding: 9px 13px; border-radius: 8px; font-size: 11px; font-weight: 800; }
+.gestec-app .ordens-btn-primary { border: 1px solid #1589ca; background: linear-gradient(110deg,#0c70b5,#158fd0 62%,#24a9dd); color: #fff; }
+.gestec-app .ordens-btn-secondary { border: 1px solid #d3e5f0; background: #fff; color: #31536c; }
+.gestec-app .ordens-feedback { padding: 11px 13px; border: 1px solid #c8e2f1; border-radius: 9px; background: #f1faff; color: #315a76; font-size: 11px; }
+.gestec-app .ordens-feedback--error { border-color: #f0c5cb; background: #fff5f6; color: #a82f42; }
+.gestec-app .ordem-modal-overlay--sobreposto { z-index: 1850; }
+.gestec-app .ordem-modal--anexo,
+.gestec-app .ordem-modal--justificativa { width: min(100%, 660px); }
+.gestec-app.dark-mode .ordem-modal { border-color: #28475e; background: #10263b; color: #e5f0fa; }
+.gestec-app.dark-mode .ordem-modal-header { border-color: #28475e; background: linear-gradient(110deg,#10263b,#132e47); }
+.gestec-app.dark-mode .ordem-modal-header h2,
+.gestec-app.dark-mode .ordem-detalhe > strong,
+.gestec-app.dark-mode .ordem-detalhes-descricao h3 { color: #eaf5ff; }
+.gestec-app.dark-mode .ordem-modal-close,
+.gestec-app.dark-mode .ordens-btn-secondary { border-color: #2d4a63; background: #0c2033; color: #d8e8f3; }
+.gestec-app.dark-mode .ordem-detalhes-resumo,
+.gestec-app.dark-mode .ordem-responsavel-edicao,
+.gestec-app.dark-mode .ordem-status-edicao,
+.gestec-app.dark-mode .ordem-modal-actions,
+.gestec-app.dark-mode .ordem-detalhes-descricao { border-color: #28475e; background: #102b42; }
+.gestec-app.dark-mode .ordem-detalhe { border-color: #28475e; }
+.gestec-app.dark-mode .ordem-detalhe > span,
+.gestec-app.dark-mode .ordem-detalhes-descricao p { color: #a7bdcf; }
+.gestec-app.dark-mode .ordem-status-select,
+.gestec-app.dark-mode .ordem-parecer-textarea { border-color: #2d4a63; background: #0c2033; color: #e5f0fa; }
+@media (max-width: 720px) {
+  .gestec-app .ordem-modal-overlay { align-items: flex-end; padding: 0; }
+  .gestec-app .ordem-modal { width: 100%; max-height: 96vh; border-radius: 16px 16px 0 0; }
+  .gestec-app .ordem-modal-header { padding: 17px 16px; }
+  .gestec-app .ordem-modal-body { padding: 15px 14px 18px; }
+  .gestec-app .ordem-detalhes-resumo { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .gestec-app .ordem-detalhe:nth-child(4n) { border-right: 1px solid #e0edf5; }
+  .gestec-app .ordem-detalhe:nth-child(2n) { border-right: 0; }
+  .gestec-app .ordem-detalhe:nth-last-child(-n+4) { border-bottom: 1px solid #e0edf5; }
+  .gestec-app .ordem-detalhe:nth-last-child(-n+2) { border-bottom: 0; }
+  .gestec-app .ordem-modal-actions { padding: 12px 14px; }
+}
+
+
+/* Complementos de composição da referência: timeline real do histórico e atalhos do dashboard. */
+.gestec-app .ordem-historico-heading { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 12px; }
+.gestec-app .ordem-historico-heading h3 { margin: 0; }
+.gestec-app .ordem-historico-heading > span { display: inline-flex; padding: 4px 7px; border-radius: 6px; background: #e8f4fb; color: #32739a; font-size: 9px; font-weight: 800; }
+.gestec-app .ordem-historico-lista { display: grid; gap: 0; margin: 0; padding: 0 0 0 10px; list-style: none; }
+.gestec-app .ordem-historico-item { position: relative; padding: 4px 0 15px 17px; border-left: 2px solid #d5eaf5; }
+.gestec-app .ordem-historico-item::before { position: absolute; top: 8px; left: -5px; width: 8px; height: 8px; border: 2px solid #fff; border-radius: 50%; background: #1689ca; box-shadow: 0 0 0 1px #acd5e9; content: ""; }
+.gestec-app .ordem-historico-item:last-child { padding-bottom: 0; border-left-color: transparent; }
+.gestec-app .ordem-historico-meta { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 5px 12px; margin-bottom: 5px; }
+.gestec-app .ordem-historico-meta strong { color: #27445f; font-size: 10px; }
+.gestec-app .ordem-historico-meta time { color: #8496a7; font-size: 9px; }
+.gestec-app .ordem-historico-valores { display: flex; flex-wrap: wrap; gap: 5px 14px; margin-top: 7px !important; color: #647e92 !important; font-size: 10px !important; }
+.gestec-app .ordem-historico-justificativa { margin-top: 6px !important; padding: 8px 10px; border-radius: 7px; background: #f3f9fd; }
+.gestec-app .dashboard-atalhos { margin-top: 18px; }
+.gestec-app .dashboard-atalhos-heading { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.gestec-app .dashboard-atalhos-heading h2 { margin: 0 0 4px; color: #183552; font-size: 15px; font-weight: 800; }
+.gestec-app .dashboard-atalhos-heading p { margin: 0; color: #74899d; font-size: 10px; }
+.gestec-app .dashboard-atalhos-grid { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 14px; }
+.gestec-app .dashboard-atalho { min-width: 0; display: flex; align-items: center; gap: 11px; padding: 16px; border: 1px solid #c8e2f1; border-radius: 13px; background: rgba(255,255,255,.96); color: #29445d; text-decoration: none; box-shadow: 0 6px 20px rgba(15,69,114,.045); transition: border-color .15s ease, transform .15s ease; }
+.gestec-app .dashboard-atalho:hover { transform: translateY(-1px); border-color: #9ccfe8; }
+.gestec-app .dashboard-atalho > span:nth-child(2) { min-width: 0; display: flex; flex-direction: column; gap: 4px; flex: 1 1 auto; }
+.gestec-app .dashboard-atalho strong { color: #203750; font-size: 11px; font-weight: 850; }
+.gestec-app .dashboard-atalho small { color: #71879b; font-size: 9px; line-height: 1.5; }
+.gestec-app .dashboard-atalho > b { color: #3983aa; font-size: 16px; }
+.gestec-app .dashboard-atalho-icone { width: 36px; height: 36px; flex: 0 0 36px; display: grid; place-items: center; border-radius: 10px; background: #e1f4fd; color: #087fb9; font-size: 16px; }
+.gestec-app .dashboard-atalho-icone--green { background: #e1f6ee; color: #168260; }
+.gestec-app .dashboard-atalho-icone--purple { background: #eee9ff; color: #6650bd; }
+.gestec-app .gestec-report-empty { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 46px 28px; text-align: center; }
+.gestec-app .gestec-report-empty-icon { width: 50px; height: 50px; display: grid; place-items: center; border-radius: 14px; background: #e1f4fd; color: #087fb9; font-size: 23px; }
+.gestec-app .gestec-report-empty h2 { margin: 0; color: #183552; font-size: 16px; font-weight: 850; }
+.gestec-app .gestec-report-empty p { max-width: 650px; margin: 0; color: #71879b; font-size: 11px; line-height: 1.75; }
+.gestec-app.dark-mode .dashboard-atalho { border-color: #28475e; background: #10263b; }
+.gestec-app.dark-mode .dashboard-atalho strong,
+.gestec-app.dark-mode .dashboard-atalhos-heading h2,
+.gestec-app.dark-mode .gestec-report-empty h2,
+.gestec-app.dark-mode .ordem-historico-meta strong { color: #eaf5ff; }
+.gestec-app.dark-mode .dashboard-atalho small,
+.gestec-app.dark-mode .dashboard-atalhos-heading p,
+.gestec-app.dark-mode .gestec-report-empty p,
+.gestec-app.dark-mode .ordem-historico-meta time { color: #a7bdcf; }
+.gestec-app.dark-mode .ordem-historico-heading > span { background: #173b55; color: #8fd3f6; }
+.gestec-app.dark-mode .ordem-historico-item { border-left-color: #28475e; }
+.gestec-app.dark-mode .ordem-historico-item::before { border-color: #10263b; }
+.gestec-app.dark-mode .ordem-historico-justificativa { background: #132f45; }
+@media (max-width: 900px) { .gestec-app .dashboard-atalhos-grid { grid-template-columns: repeat(2,minmax(0,1fr)); } }
+@media (max-width: 620px) { .gestec-app .dashboard-atalhos-grid { grid-template-columns: minmax(0,1fr); } .gestec-app .gestec-report-empty { padding: 30px 18px; } }

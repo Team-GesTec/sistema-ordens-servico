@@ -3,7 +3,7 @@ import type { FiltroResponsavelOrdem, FiltroStatusOrdem } from "../../utils/orde
 import { STATUS_LABELS } from "../../utils/ordemServicoUtils";
 import { prazoFiltrosValidos } from "../../utils/prazoOrdem";
 
-export type TipoVisualizacaoOrdens = "cartoes" | "kanban";
+export type TipoVisualizacaoOrdens = "tabela" | "cartoes" | "kanban";
 
 export interface VisualizacaoOrdemSalva {
     id: string;
@@ -63,7 +63,7 @@ function lerVisualizacoes(valor: string | null): { visualizacoes: VisualizacaoOr
                 typeof registro.busca === "string" &&
                 typeof registro.status === "string" && STATUS_VALIDOS.has(registro.status) &&
                 responsavelValido(registro.responsavelId) &&
-                (registro.visualizacao === "cartoes" || registro.visualizacao === "kanban") &&
+                (registro.visualizacao === "tabela" || registro.visualizacao === "cartoes" || registro.visualizacao === "kanban") &&
                 typeof registro.atualizadoEm === "string";
         });
         const temFiltrosLegados = dados.some((item) => Boolean(item && typeof item === "object" && ("diasCorridosMin" in item || "diasCorridosMax" in item || "diasUteisMin" in item || "diasUteisMax" in item)));
@@ -317,7 +317,7 @@ export default function OrdemServicoVisualizacoesSalvas({
                 <div className="ordens-views-dialog-body">
                     <h3 className="ordens-views-section-title">Visualizações salvas</h3>
                     <p className="ordens-views-question">Deseja salvar os filtros atuais em suas visualizações?</p>
-                    <p className="ordens-views-active-layout">Layout ativo: <strong>{visualizacao === "cartoes" ? "Cartões" : "Kanban"}</strong></p>
+                    <p className="ordens-views-active-layout">Layout ativo: <strong>{visualizacao === "tabela" ? "Tabela" : visualizacao === "cartoes" ? "Cartões" : "Kanban"}</strong></p>
                     {avisoArmazenamento && <p className="ordens-views-feedback is-error" role="alert">{avisoArmazenamento}</p>}
                     <div className="ordens-views-context">
                         <span>Preferências pessoais deste navegador; não são sincronizadas entre dispositivos.</span>

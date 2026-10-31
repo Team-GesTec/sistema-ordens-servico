@@ -4,10 +4,12 @@ import MainLayout from "./layouts/MainLayout";
 import Login from "./pages/Login";
 import Home from "./pages/Home";
 import Funcionarios from "./pages/Funcionarios";
-// import Relatorios from "./pages/Relatorios";
 import Clientes from "./pages/Clientes";
 import Ordens from "./pages/Ordens";
+import OrdemServicoDetalhes from "./pages/OrdemServicoDetalhes";
 import Projetos from "./pages/Projetos";
+import Relatorios from "./pages/Relatorios";
+import Auditoria from "./pages/Auditoria";
 import PrivateRoute from "./components/PrivateRoutes";
 
 function App() {
@@ -22,9 +24,12 @@ function App() {
                     <Route path="/home" element={<Home />} />
                     <Route path="/clientes" element={<Clientes />} />
                     <Route path="/ordens" element={<Ordens />} />
+                    <Route path="/ordens/:id" element={<OrdemServicoDetalhes />} />
                     <Route path="/projetos" element={<Projetos />} />
                     <Route path="/funcionarios" element={<Funcionarios />} />
                     <Route path="/departamentos" element={<Departamentos />} />
+                    <Route path="/auditoria" element={<Auditoria />} />
+                    <Route path="/relatorios" element={<Relatorios />} />
                 </Route>
             </Route>
         </Routes>

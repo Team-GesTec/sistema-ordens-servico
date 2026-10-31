@@ -1,5 +1,6 @@
 import type { Cliente } from "../../types/api";
 import type { AcaoStatus } from "../../utils/clienteUtils";
+import { getGestecAvatarTone, getGestecInitials } from "../../utils/gestecAvatar";
 
 interface ClienteCardProps {
     cliente: Cliente;
@@ -17,13 +18,14 @@ function ClienteCard({
     onAlterarStatus,
 }: ClienteCardProps) {
     const nomeAvatar = cliente.nome.trim() || cliente.razao_social.trim();
-    const inicial = nomeAvatar.charAt(0).toLocaleUpperCase("pt-BR") || "C";
+    const iniciais = getGestecInitials(nomeAvatar, "CL");
+    const corAvatar = getGestecAvatarTone(Math.max(0, cliente.id - 1));
     const nomeExibicao = cliente.nome.trim() || `Cliente #${cliente.id}`;
 
     return (
         <article className={`projeto-card cliente-card${cliente.ativo ? "" : " projeto-card--inativo cliente-card--inativo"}`}>
             <header className="projeto-card-header cliente-card-header">
-                <div className="cliente-avatar" aria-hidden="true">{inicial}</div>
+                <div className={`cliente-avatar gestec-avatar--${corAvatar}`} aria-hidden="true">{iniciais}</div>
 
                 <div className="cliente-identificacao">
                     <span className="cliente-id">CLIENTE #{cliente.id}</span>

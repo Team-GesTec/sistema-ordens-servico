@@ -5,6 +5,8 @@ import type { HistoricoOrdemServico } from "../../types/api";
 
 interface OrdemServicoHistoricoProps {
     osId: number;
+    /** Mostra uma linha do tempo demonstrativa somente quando a API não retorna eventos. */
+    usarFallbackDemonstrativo?: boolean;
 }
 
 function dataHora(valor: string): string {
@@ -18,7 +20,7 @@ function rotuloAcao(acao: HistoricoOrdemServico["acao"]): string {
     return "Atualização";
 }
 
-export default function OrdemServicoHistorico({ osId }: OrdemServicoHistoricoProps) {
+export default function OrdemServicoHistorico({ osId, usarFallbackDemonstrativo = false }: OrdemServicoHistoricoProps) {
     const [registros, setRegistros] = useState<HistoricoOrdemServico[]>([]);
     const [carregando, setCarregando] = useState(true);
     const [erro, setErro] = useState<string | null>(null);
@@ -43,7 +45,33 @@ export default function OrdemServicoHistorico({ osId }: OrdemServicoHistoricoPro
                 <h3 id="ordem-historico-titulo">Histórico de alterações</h3>
                 {!carregando && !erro && <span>{registros.length} evento(s)</span>}
             </div>
-            {carregando ? <p role="status">Carregando histórico...</p> : erro ? <p role="alert" className="ordens-feedback ordens-feedback--error">{erro}</p> : registros.length === 0 ? <p>Nenhuma alteração registrada para esta O.S.</p> : (
+            {carregando ? <p role="status">Carregando histórico...</p> : erro && !usarFallbackDemonstrativo ? <p role="alert" className="ordens-feedback ordens-feedback--error">{erro}</p> : registros.length === 0 && usarFallbackDemonstrativo ? (
+                <>
+                    <ol className="ordem-historico-lista os-detail-demo-history-list">
+                        <li className="ordem-historico-item os-detail-demo-history-item os-detail-demo-history-item--install">
+                            <span className="os-detail-demo-history-icon" aria-hidden="true"><i className="fa-solid fa-wrench" /></span>
+                            <div className="ordem-historico-meta"><strong>Instalação iniciada em campo</strong><time>Hoje, 09:42 · demonstração</time></div>
+                            <p>Equipamentos recebidos e conferidos. Início da instalação na linha 2.</p>
+                        </li>
+                        <li className="ordem-historico-item os-detail-demo-history-item os-detail-demo-history-item--hours">
+                            <span className="os-detail-demo-history-icon" aria-hidden="true"><i className="fa-regular fa-clock" /></span>
+                            <div className="ordem-historico-meta"><strong>Horas de trabalho registradas</strong><time>Hoje, 09:38 · demonstração</time></div>
+                            <p>Foram registradas 3h30 de atividades de diagnóstico e instalação.</p>
+                        </li>
+                        <li className="ordem-historico-item os-detail-demo-history-item os-detail-demo-history-item--deadline">
+                            <span className="os-detail-demo-history-icon" aria-hidden="true"><i className="fa-solid fa-arrow-right-arrow-left" /></span>
+                            <div className="ordem-historico-meta"><strong>Prazo ajustado para 27/10</strong><time>Ontem, 16:15 · demonstração</time></div>
+                            <p>Prazo revisado após alinhamento com a operação do cliente.</p>
+                        </li>
+                        <li className="ordem-historico-item os-detail-demo-history-item os-detail-demo-history-item--created">
+                            <span className="os-detail-demo-history-icon" aria-hidden="true"><i className="fa-solid fa-plus" /></span>
+                            <div className="ordem-historico-meta"><strong>Ordem criada</strong><time>21 out., 10:21 · demonstração</time></div>
+                            <p>Solicitação recebida pelo canal de atendimento corporativo.</p>
+                        </li>
+                    </ol>
+                    <p className="os-detail-demo-note">{erro ? `A API não disponibilizou o histórico (${erro}). Os eventos acima são demonstrativos.` : "Linha do tempo demonstrativa exibida porque a API não retornou eventos para esta ordem."}</p>
+                </>
+            ) : registros.length === 0 ? <p>Nenhuma alteração registrada para esta O.S.</p> : (
                 <ol className="ordem-historico-lista">
                     {registros.map((registro) => (
                         <li key={registro.id} className="ordem-historico-item">

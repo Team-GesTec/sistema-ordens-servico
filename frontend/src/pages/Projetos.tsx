@@ -1,21 +1,14 @@
 import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import "../styles/variaveis.css";
-import "../styles/global.css";
-import "../styles/layout.css";
-import "../styles/sidebar.css";
-import "../styles/darkmode.css";
-import "../styles/filters.css";
-import "../styles/forms.css";
-import "../styles/autocomplete.css";
-import "../styles/projetos.css";
-
 import ProjetoAtivoModal from "../components/projetos/ProjetoAtivoModal";
 import ProjetoCard from "../components/projetos/ProjetoCard";
 import ProjetoDetalhesModal from "../components/projetos/ProjetoDetalhesModal";
 import ProjetoFormModal from "../components/projetos/ProjetoFormModal";
 import ProjetosBuscaAutocomplete from "../components/projetos/ProjetosBuscaAutocomplete";
 import Autocomplete, { type AutocompleteOption } from "../components/common/Autocomplete";
+import FilterDrawer from "../components/common/FilterDrawer";
+import Pagination from "../components/common/Pagination";
+import usePaginatedList from "../hooks/usePaginatedList";
 import { useProjetos } from "../hooks/useProjetos";
 import { ApiError } from "../services/api";
 import { projetoService } from "../services/projeto";
@@ -37,6 +30,7 @@ function Projetos() {
     const [erroDetalheDireto, setErroDetalheDireto] = useState<string | null>(null);
 
     const modalAberto = projetos.formularioAberto || Boolean(projetos.confirmacaoAtivo);
+    const paginacaoProjetos = usePaginatedList(projetos.projetos, 10);
 
     useEffect(() => {
         if (!idVisualizar) {
@@ -67,44 +61,64 @@ function Projetos() {
     return (
         <div className="layout">
             <main className="main">
-                <div className="container projetos-container">
-                    <header className="projetos-page-header">
+                <div className="container projetos-container gestec-page-content">
+                    <header className="projetos-page-header page-heading">
                         <div>
-                            <p className="projetos-eyebrow">GESTÃO DO SGOS</p>
+                            <p className="projetos-eyebrow eyebrow">GESTÃO DE PROJETOS</p>
                             <h1>Projetos</h1>
-                            <p className="projetos-subtitle">Acompanhe o andamento, os relacionamentos e as ordens de serviço de cada projeto.</p>
+                            <p className="projetos-subtitle">Planeje iniciativas, acompanhe o progresso e consulte as ordens de serviço vinculadas a cada cliente.</p>
                         </div>
-                        {projetos.podeGerenciar && !projetos.mostrarInativos && (
-                            <button type="button" className="projeto-btn-primary" onClick={projetos.abrirCadastro}>+ Novo projeto</button>
-                        )}
+                        <div className="heading-actions">
+                            {projetos.podeGerenciar && !projetos.mostrarInativos && <button type="button" className="projeto-btn-primary btn btn-primary" onClick={projetos.abrirCadastro}>＋ Novo projeto</button>}
+                        </div>
                     </header>
 
                     {projetos.mensagem && !modalAberto && <div className="projetos-feedback projetos-feedback--success" role="status">{projetos.mensagem}</div>}
                     {projetos.erro && !modalAberto && <div className="projetos-feedback projetos-feedback--error" role="alert">{projetos.erro}</div>}
                     {erroDetalheDireto && <div className="projetos-feedback projetos-feedback--error" role="alert">{erroDetalheDireto}</div>}
 
+                    <section className="gestec-kpi-grid" aria-label="Indicadores dos projetos">
+                        <article className="gestec-kpi-card"><span className="gestec-kpi-label">Projetos listados</span><strong>{projetos.projetos.length}</strong><small>{projetos.mostrarInativos ? "Registros inativos" : "Registros ativos disponíveis"}</small><span className="gestec-kpi-icon">▱</span></article>
+                        <article className="gestec-kpi-card"><span className="gestec-kpi-label">Em planejamento</span><strong>{projetos.projetos.filter((item) => item.status === "em_planejamento").length}</strong><small>Conforme o status cadastrado</small><span className="gestec-kpi-icon gestec-kpi-icon--purple">◷</span></article>
+                        <article className="gestec-kpi-card"><span className="gestec-kpi-label">Em andamento</span><strong>{projetos.projetos.filter((item) => item.status === "em_andamento").length}</strong><small>Projetos em execução</small><span className="gestec-kpi-icon">↗</span></article>
+                        <article className="gestec-kpi-card"><span className="gestec-kpi-label">Concluídos</span><strong>{projetos.projetos.filter((item) => item.status === "concluido").length}</strong><small>Conforme o status cadastrado</small><span className="gestec-kpi-icon gestec-kpi-icon--green">✓</span></article>
+                    </section>
+
                     <section className="projetos-toolbar" aria-label="Pesquisar e filtrar projetos">
+                        <div className="gestec-search-toolbar-row projetos-search-toolbar-row">
                         <ProjetosBuscaAutocomplete
                             projetos={projetos.projetos}
                             value={projetos.busca}
-                            onChange={projetos.setBusca}
+                            onChange={(valor) => { projetos.setBusca(valor); paginacaoProjetos.setPage(1); }}
                         />
-                        <div className="projetos-filter-wrap projetos-status-filter-wrap">
-                            <label htmlFor="projetos-status-filter">Status</label>
-                            <Autocomplete
-                                id="projetos-status-filter"
-                                options={STATUS_OPTIONS}
-                                value={projetos.filtroStatus}
-                                onChange={(value) => projetos.setFiltroStatus(value === null ? "todos" : value as "todos" | StatusProjeto)}
-                                placeholder="Todos os status"
-                                emptyMessage="Nenhum status encontrado."
-                            />
+                        <FilterDrawer
+                            activeCount={(projetos.filtroStatus !== "todos" ? 1 : 0) + (projetos.mostrarInativos ? 1 : 0)}
+                            onClear={() => {
+                                projetos.setFiltroStatus("todos");
+                                paginacaoProjetos.setPage(1);
+                                if (projetos.mostrarInativos) void projetos.alternarInativos();
+                            }}
+                        >
+                            <div className="gestec-filter-field">
+                                <label htmlFor="projetos-status-filter">Status do projeto</label>
+                                <Autocomplete
+                                    id="projetos-status-filter"
+                                    options={STATUS_OPTIONS}
+                                    value={projetos.filtroStatus}
+                                    onChange={(value) => { projetos.setFiltroStatus(value === null ? "todos" : value as "todos" | StatusProjeto); paginacaoProjetos.setPage(1); }}
+                                    placeholder="Todos os status"
+                                    emptyMessage="Nenhum status encontrado."
+                                />
+                            </div>
+                            {projetos.podeGerenciar && (
+                                <label className="gestec-filter-toggle">
+                                    <span><strong>Consultar projetos inativos</strong><small>{projetos.mostrarInativos ? "Exibindo registros inativos" : "Exibindo registros ativos"}</small></span>
+                                    <input type="checkbox" checked={projetos.mostrarInativos} onChange={() => { paginacaoProjetos.setPage(1); void projetos.alternarInativos(); }} />
+                                    <span className="gestec-toggle-track" aria-hidden="true"><span /></span>
+                                </label>
+                            )}
+                        </FilterDrawer>
                         </div>
-                        {projetos.podeGerenciar && (
-                            <button type="button" className="projeto-btn-secondary projetos-toggle-inativos" onClick={() => void projetos.alternarInativos()} aria-pressed={projetos.mostrarInativos}>
-                                {projetos.mostrarInativos ? "Ver projetos ativos" : "Consultar inativos"}
-                            </button>
-                        )}
                     </section>
 
                     <div className="projetos-list-header">
@@ -124,7 +138,7 @@ function Projetos() {
                         </div>
                     ) : (
                         <div className="projetos-grid">
-                            {projetos.projetos.map((projeto) => (
+                            {paginacaoProjetos.pageItems.map((projeto) => (
                                 <ProjetoCard
                                     key={projeto.id}
                                     projeto={projeto}
@@ -136,6 +150,9 @@ function Projetos() {
                                 />
                             ))}
                         </div>
+                    )}
+                    {!projetos.carregando && projetos.projetos.length > 0 && (
+                        <Pagination page={paginacaoProjetos.page} totalPages={paginacaoProjetos.totalPages} totalItems={projetos.projetos.length} pageSize={10} onPageChange={paginacaoProjetos.setPage} />
                     )}
                 </div>
             </main>
