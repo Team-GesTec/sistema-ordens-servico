@@ -11,17 +11,17 @@
 | --- | --- |
 | Objetivo | O Técnico recebe, executa e acompanha O.S. com prazo calculado e alerta de risco, e o Gestor acompanha tudo em um dashboard por perfil |  
 | Histórias planejadas | 7 (US#1.3, US#2.4, US#3.2, US#2.3, US#3.1, US#2.6, US#2.5) |
-| Pontos | 25 (8 + 3 + 3 + 3 + 3 + 5) |
-| Épicos envolvidos | EP01 Gestão e Rastreabilidade de Projetos · EP02 Gestão do Ciclo de Vida da O.S. · EP04 Auditoria de Ações e Documentação |
+| Pontos | 25 (5 + 3 + 3 + 3 + 5 + 3 + 3) |
+| Épicos envolvidos | EP01 Gestão e Rastreabilidade de Projetos · EP02 Gestão do Ciclo de Vida da O.S. · EP03 Controle de SLA, Priorização e Alertas |
 | Data da 2ª entrega | 27/10/2026 |
-| Resultado | [**em andamento**] |
+| Resultado | A 2ª entrega ocorreu e o cliente deu retorno  |
 
 
 ## 2. Backlog da Sprint 2
 
 
-| Rank | Épico | Prioridade | User Story | Sprint |
-| :---: | :--- | :---: | :--- | :---: |
+| Rank | Épico | Prioridade | User Story | Estimativa | Sprint |
+| :---: | :--- | :---: | :--- | :---: | ---: |
 | 7 **MVP**| EP01 - Gestão e Rastreabilidade de Projetos | Alta | **US#1.3** Como usuário do SGOS, quero ver ao entrar no sistema um dashboard de acordo com meu perfil, para acompanhar o andamento das O.S. | 5 | 2 |
 | 8 | EP02 - Gestão do Ciclo de Vida da O.S. | Alta | **US#2.4** Como responsável técnico, quero alterar o status da O.S. (passando por Pendente, Em Andamento, Aguardando Embarque, Validação/Testes, Bloqueado, Review ou Concluído) e registrar o parecer técnico, para oficializar o andamento e a conclusão do trabalho. | 3 | 2 |
 | 9 | EP03 - Controle de SLA, Priorização e Alertas | Alta | **US#3.2** Como responsável técnico, quero receber alertas visuais quando uma O.S. atingir a margem de risco de SLA, para priorizar atendimentos críticos. | 3 | 2 |
