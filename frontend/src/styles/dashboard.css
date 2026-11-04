@@ -15,9 +15,42 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     gap: 20px;
     margin-bottom: 28px;
+
+    width: 100%;
+    min-width: 0;
+    overflow-x: auto;
+    overflow-y: hidden;
+
+    padding-bottom: 10px;
+    scrollbar-width: thin;
+    scrollbar-color: #1689ca transparent;
+}
+
+/* Impede que os elementos sejam comprimidos */
+.dashboard-header > * {
+    flex-shrink: 0;
+}
+
+/* Scrollbar para Chrome, Edge e Safari */
+.dashboard-header::-webkit-scrollbar {
+    height: 6px;
+}
+
+.dashboard-header::-webkit-scrollbar-track {
+    background: transparent;
+    border-radius: 10px;
+}
+
+.dashboard-header::-webkit-scrollbar-thumb {
+    background: #1689ca;
+    border-radius: 10px;
+}
+
+.dashboard-header::-webkit-scrollbar-thumb:hover {
+    background: #0c3f57;
 }
 
 .dashboard-eyebrow {
@@ -127,7 +160,7 @@
     height: 36px;
     margin-bottom: 14px;
     border-radius: 11px;
-    background: currentColor;
+    background: rgba(22, 137, 202, 0.1);
     font-size: 18px;
     font-weight: 800;
 }
@@ -229,12 +262,75 @@
 
 .dashboard-grafico {
     width: 100%;
-    height: 300px;
+    height: 320px;
     min-width: 0;
 }
 
 .dashboard-grafico-rosca {
     height: 320px;
+}
+
+.dashboard-recentes-grid {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 16px;
+
+    width: 100%;
+    min-width: 0;
+
+    overflow-x: auto;
+    overflow-y: hidden;
+
+    padding-bottom: 10px;
+
+    scrollbar-width: thin;
+    scrollbar-color: #1689ca transparent;
+}
+.dashboard-recentes-table {
+    display: block;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+
+    overflow-x: auto;
+    overflow-y: hidden;
+
+    white-space: nowrap;
+
+    scrollbar-width: thin;
+    scrollbar-color: #1689ca transparent;
+}
+
+/* Mantém a largura natural das colunas */
+.dashboard-recentes-table table {
+    width: max-content;
+    min-width: 100%;
+    border-collapse: collapse;
+}
+
+/* Impede que o conteúdo das células seja comprimido */
+.dashboard-recentes-table th,
+.dashboard-recentes-table td {
+    white-space: nowrap;
+}
+
+/* Chrome, Edge e Safari */
+.dashboard-recentes-table::-webkit-scrollbar {
+    height: 6px;
+}
+
+.dashboard-recentes-table::-webkit-scrollbar-track {
+    background: transparent;
+    border-radius: 10px;
+}
+
+.dashboard-recentes-table::-webkit-scrollbar-thumb {
+    background: #1689ca;
+    border-radius: 10px;
+}
+
+.dashboard-recentes-table::-webkit-scrollbar-thumb:hover {
+    background: #0c3f57;
 }
 
 .dashboard-vazio,

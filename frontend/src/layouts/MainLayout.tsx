@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Outlet } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
 import NotificationCenter from "../components/notifications/NotificationCenter";
+import "../styles/filters.css";
 import ToastViewport from "../components/feedback/ToastViewport";
 import { useFeedback } from "../context/FeedbackContext";
 

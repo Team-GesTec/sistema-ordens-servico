@@ -124,7 +124,14 @@ export default function NotificationCenter() {
                             <span aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="10.8" cy="10.8" r="6.8" /><path d="m16 16 5 5" /></svg></span>
                             <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Buscar notificações..." aria-label="Buscar notificações" />
                         </div>
-                        <select value={category} onChange={(event) => setCategory(event.target.value as NotificationCategory | "Todas")} aria-label="Filtrar por categoria">
+                        <select
+                            className="select-notification"
+                            value={category}
+                            onChange={(event) =>
+                                setCategory(event.target.value as NotificationCategory | "Todas")
+                            }
+                            aria-label="Filtrar por categoria"
+                        >
                             <option value="Todas">Todas as categorias</option>
                             <option value="OS">Ordens de serviço</option>
                             <option value="Projetos">Projetos</option>
