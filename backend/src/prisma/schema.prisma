@@ -222,6 +222,7 @@ enum tipo_ordem_servico {
 
 enum tipo_perfil {
   gestor
+  analista
   tecnico
 }
 
