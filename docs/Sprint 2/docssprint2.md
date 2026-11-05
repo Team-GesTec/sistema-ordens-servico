@@ -17,6 +17,7 @@
 | Resultado | A 2ª entrega ocorreu e o cliente deu retorno  |
 
 
+
 ## 2. Backlog da Sprint 2
 
 
