@@ -3,6 +3,7 @@
  *
  * Acesso a dados de OS: ÚNICO lugar que fala com `prisma.ordens_servico`.
  * Leituras passam pelo cache; escritas vão ao banco e, confirmadas, atualizam o cache.
+ * Criação e atribuição registram auditoria na mesma transação da O.S.
  */
 
 import { prisma } from '../prisma/client';
@@ -26,6 +27,8 @@ interface DadosAtribuicaoResponsavel {
 }
 
 export class RepositoryOrdemServico {
+    constructor(private readonly banco: Pick<typeof prisma, '$transaction'> = prisma) {}
+
     /** Lista todas as OS (cache → banco), mais recentes primeiro. */
     async listar(): Promise<OrdemServico[]> {
         return ordemServicoCache.obterTodos(() => prisma.ordens_servico.findMany({ orderBy: { data_criacao: 'desc' } }));
@@ -36,10 +39,21 @@ export class RepositoryOrdemServico {
         return ordemServicoCache.obterPorId(id, () => prisma.ordens_servico.findUnique({ where: { id } }));
     }
 
-    /** Cria uma OS no banco e coloca no cache. */
+    /** Cria O.S. e auditoria atomicamente; publica no cache somente após o commit. */
     async criar(dados: DadosCriacaoOrdemServico): Promise<OrdemServico> {
         try {
-            const criada = await prisma.ordens_servico.create({ data: dados });
+            const criada = await this.banco.$transaction(async (tx) => {
+                const ordem = await tx.ordens_servico.create({ data: dados });
+                await tx.auditoria.create({
+                    data: {
+                        os_id: ordem.id,
+                        funcionario_id: dados.solicitante_id,
+                        acao: 'insercao',
+                        tipo_entidade: 'ordem_servico',
+                    },
+                });
+                return ordem;
+            });
             ordemServicoCache.definir(criada);
             return criada;
         } catch (erro) {

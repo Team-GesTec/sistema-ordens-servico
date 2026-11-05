@@ -24,7 +24,7 @@ export class ControllerOrdemServico {
     public async criarOrdem(req: Request, resp: Response): Promise<Response> {
         const usuario = usuarioAutenticado(req);
 
-        const novaOS = await serviceOrdemServico.criar(req.body, usuario.id);
+        const novaOS = await serviceOrdemServico.criar(req.body, usuario);
         return resp.status(201).json(novaOS);
     }
 

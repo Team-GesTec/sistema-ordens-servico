@@ -9,12 +9,14 @@
  *  - campos opcionais ausentes recebem null no cadastro;
  *  - anterior_id, se informado, deve apontar para uma O.S. existente;
  *  - o status inicial é em_andamento;
+ *  - analista abre O.S. sem responsável e não configura SLA manual;
  *  - PUT exige os campos obrigatórios; PATCH altera somente os campos enviados.
  */
 
 import { AppError } from '../errors/AppError';
 import { repositoryOrdemServico, type RepositoryOrdemServico } from '../repositories/repositoryOrdemServico';
 import { repositoryFuncionario, type RepositoryFuncionario } from '../repositories/repositoryFuncionario';
+import type { Funcionario } from '../models/modelFuncionario';
 import {
     type DadosCriacaoOrdemServico,
     type DadosAtualizacaoOrdemServico,
@@ -70,11 +72,19 @@ export class ServiceOrdemServico {
     /**
      * Valida o corpo e abre uma O.S.
      * @param corpo O `req.body` recebido.
-     * @param solicitanteId Id do funcionário logado (vem do token, nunca do corpo).
+     * @param solicitante Funcionário autenticado (vem do token, nunca do corpo).
      * @throws AppError 400 se algum campo for inválido ou o `anterior_id` não existir.
      */
-    async criar(corpo: unknown, solicitanteId: number): Promise<OrdemServico> {
+    async criar(corpo: unknown, solicitante: Pick<Funcionario, 'id' | 'tipo'>): Promise<OrdemServico> {
         const dados = lerCorpo(corpo);
+
+        if (solicitante.tipo === 'analista') {
+            const camposSlaManual = ['prazo_dias_uteis', 'data_limite_sla', 'justificativa_sla_manual'];
+            if ((dados.sla_manual !== undefined && dados.sla_manual !== null && dados.sla_manual !== false)
+                || camposSlaManual.some((campo) => dados[campo] !== undefined && dados[campo] !== null)) {
+                throw AppError.acessoNegado('Analistas não podem configurar SLA manual');
+            }
+        }
 
         const tipo = exigirEnum(dados.tipo, TIPOS_ORDEM_SERVICO, 'tipo');
         const titulo = exigirTexto(dados.titulo, 'titulo', { maximo: TEXTO_MAXIMO_TITULO });
@@ -82,10 +92,11 @@ export class ServiceOrdemServico {
 
         const departamentoId = exigirInteiroPositivo(dados.departamento_id, 'departamento_id');
 
-        const slaManual = Boolean(dados.sla_manual);
+        const slaManual = dados.sla_manual === undefined || dados.sla_manual === null
+            ? false : exigirBoolean(dados.sla_manual, 'sla_manual');
         const slaConfigId = inteiroPositivoOpcional(dados.sla_config_id, 'sla_config_id');
         const clienteId = inteiroPositivoOpcional(dados.cliente_id, 'cliente_id');
-        const responsavelId = inteiroPositivoOpcional(dados.responsavel_id, 'responsavel_id');
+        const responsavelIdInformado = inteiroPositivoOpcional(dados.responsavel_id, 'responsavel_id');
         const projetoId = inteiroPositivoOpcional(dados.projeto_id, 'projeto_id');
         const ativoId = inteiroPositivoOpcional(dados.ativo_id, 'ativo_id');
         const anteriorId = inteiroPositivoOpcional(dados.anterior_id, 'anterior_id');
@@ -94,7 +105,7 @@ export class ServiceOrdemServico {
                 ? NIVEIS_CRITICIDADE[1]
                 : exigirEnum(dados.criticidade, NIVEIS_CRITICIDADE, 'criticidade');
         const parecerTecnico = textoOpcional(dados.parecer_tecnico, 'parecer_tecnico', { maximo: TEXTO_MAXIMO_DESCRICAO });
-        const status = 
+        const statusInformado =
             dados.status === undefined || dados.status === null
                 ? STATUS_PADRAO
                 : exigirEnum(dados.status, STATUS_ORDEM, 'status');
@@ -115,7 +126,11 @@ export class ServiceOrdemServico {
             }
         }
 
-        if (responsavelId !== null){
+        const ehAnalista = solicitante.tipo === 'analista';
+        const responsavelId = ehAnalista ? null : responsavelIdInformado;
+        const status = ehAnalista ? STATUS_PADRAO : statusInformado;
+
+        if (responsavelId !== null) {
             await this.garantirFuncionarioExiste(responsavelId, 'responsavel_id');
         }
 
@@ -126,7 +141,7 @@ export class ServiceOrdemServico {
             sla_config_id: slaConfigId,
             cliente_id: clienteId,
             departamento_id: departamentoId,
-            solicitante_id: solicitanteId,
+            solicitante_id: solicitante.id,
             responsavel_id: responsavelId,
             projeto_id: projetoId,
             ativo_id: ativoId,
@@ -172,6 +187,10 @@ export class ServiceOrdemServico {
 
         if (!solicitante) {
             throw AppError.naoEncontrado('Solicitante não encontrado');
+        }
+
+        if (solicitante.tipo === 'analista') {
+            throw AppError.acessoNegado('Analistas não podem atribuir responsáveis a O.S.');
         }
 
         const ordem = await this.repositorio.buscarPorId(osId);
