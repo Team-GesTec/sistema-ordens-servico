@@ -23,6 +23,10 @@ const somenteGestor = autorizar('gestor');
 // GET ALL — qualquer usuário autenticado
 router.get('/', (req: Request, res: Response) => controller.getAll(req, res));
 
+router.get('/inativos', (req, res) =>
+    controller.getInativos(req, res)
+);
+
 // GET BY ID — qualquer usuário autenticado
 router.get('/:id', (req: Request, res: Response) => controller.getById(req, res));
 
@@ -37,5 +41,8 @@ router.patch('/:id', somenteGestor, (req: Request, res: Response) => controller.
 
 // DELETE — gestor
 router.delete('/:id', somenteGestor, (req: Request, res: Response) => controller.deleteCliente(req, res));
+
+// PATCH — reativar cliente (gestor)
+router.patch("/:id/ativar", somenteGestor, (req: Request, res: Response) => controller.ativarCliente(req, res));
 
 export default router;

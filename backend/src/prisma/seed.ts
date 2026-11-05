@@ -12,6 +12,11 @@
  *   2. Rode: npm run db:seed        (equivale a `npx prisma db seed`, configurado em prisma.config.ts)
  *
  * O script é idempotente: se o usuário já existir, não faz nada.
+ *
+ * ALTERAÇÕES (17/10/2026):
+ *  - 3.1-BE01: grava os valores iniciais da configuração de SLA (`sla_config`) para O.S. de
+ *    manutenção, conforme o Documento Mestre. Só insere as criticidades que ainda não existem:
+ *    um valor já alterado no banco nunca é sobrescrito pelo seed.
  */
 import 'dotenv/config';
 import { prisma } from './client';
@@ -27,6 +32,27 @@ function lerVariavel(nome: string): string {
         throw new Error(`Defina ${nome} no backend/.env para rodar o seed.`);
     }
     return valor;
+}
+
+/**
+ * Dias úteis base iniciais do SLA de manutenção por criticidade (Documento Mestre — 3.1-BE01).
+ * Depois do seed, o valor que vale é o da tabela `sla_config`; este é só o ponto de partida.
+ */
+const SLA_MANUTENCAO_INICIAL = [
+    { criticidade: 'baixo', prazo_dias_uteis: 7 }, //      nível 1
+    { criticidade: 'medio', prazo_dias_uteis: 5 }, //      nível 2
+    { criticidade: 'alto', prazo_dias_uteis: 3 }, //       nível 3
+    { criticidade: 'muito_alto', prazo_dias_uteis: 2 }, // nível 4
+    { criticidade: 'urgente', prazo_dias_uteis: 1 }, //    nível 5
+] as const;
+
+/** Insere a configuração de SLA de manutenção que ainda não existir (não altera as existentes). */
+async function criarConfigSla(): Promise<void> {
+    const resultado = await prisma.sla_config.createMany({
+        data: SLA_MANUTENCAO_INICIAL.map((config) => ({ tipo: 'manutencao' as const, ...config })),
+        skipDuplicates: true,
+    });
+    console.log(`[seed] Configuração de SLA: ${resultado.count} criticidade(s) de manutenção inserida(s).`);
 }
 
 /**
@@ -101,6 +127,9 @@ async function main(): Promise<void> {
             `[seed] Técnico "${tecnico.usuario}" (id ${tecnico.id}) criado no departamento "${departamentoTecnico.nome}" (id ${departamentoTecnico.id}).`,
         );
     }
+
+    // 3.1-BE01: configuração inicial do SLA
+    await criarConfigSla();
 }
 
 main()

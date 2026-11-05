@@ -39,7 +39,7 @@ function extrairToken(cabecalho: string | undefined): string {
  * Middleware de autenticação.
  *
  * Além de validar o token, busca o funcionário (pelo cache) a cada requisição. Assim:
- *   - um funcionário excluído perde o acesso na hora, mesmo com token ainda válido;
+ *   - um funcionário inexistente ou inativo perde o acesso nas próximas requisições, mesmo com token válido;
  *   - uma mudança de perfil (ex.: gestor → técnico) vale imediatamente, porque `autorizar`
  *     usa o perfil atual, e não o que estava gravado no token.
  *
@@ -52,6 +52,9 @@ export async function autenticar(req: Request, _res: Response, next: NextFunctio
     const funcionario = await repositoryFuncionario.buscarPorId(idFuncionario);
     if (!funcionario) {
         throw AppError.naoAutenticado('O usuário deste token não existe mais. Faça login novamente');
+    }
+    if (!funcionario.ativo) {
+        throw AppError.naoAutenticado('Acesso desativado para este funcionário. Entre em contato com um Gestor.');
     }
     req.usuario = funcionario;
     next();

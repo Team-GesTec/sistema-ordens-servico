@@ -11,15 +11,21 @@ import { serviceFuncionario } from '../services/serviceFuncionario';
 import { lerId } from '../utils/validacao';
 
 export class ControllerFuncionario {
-    /** GET /funcionario — lista todos os funcionários. */
+    /** GET /funcionario — lista somente funcionários ativos/elegíveis. */
     public async getAll(_req: Request, resp: Response): Promise<Response> {
         return resp.status(200).json(await serviceFuncionario.listar());
     }
 
-    /** GET /funcionario/:id — busca o funcionário pelo id (404 se não existir). */
+    /** GET /funcionario/inativos — lista inativos (a rota exige perfil Gestor). */
+    public async getInativos(_req: Request, resp: Response): Promise<Response> {
+        return resp.status(200).json(await serviceFuncionario.listarInativos());
+    }
+
+    /** GET /funcionario/:id — detalhe ativo para perfis comuns; Gestor também consulta inativos. */
     public async getById(req: Request, resp: Response): Promise<Response> {
         const id = lerId(req.params.id);
-        return resp.status(200).json(await serviceFuncionario.buscarPorId(id));
+        const podeConsultarInativo = usuarioAutenticado(req).tipo === 'gestor';
+        return resp.status(200).json(await serviceFuncionario.buscarPorIdVisivel(id, podeConsultarInativo));
     }
 
     /** POST /funcionario — cadastra o funcionário (201 com o registro criado). */
@@ -39,15 +45,18 @@ export class ControllerFuncionario {
         return resp.status(200).json(await serviceFuncionario.atualizar(id, req.body, true));
     }
 
-    /**
-     * DELETE /funcionario/:id — exclui o funcionário.
-     * Um funcionário não pode excluir a si mesmo, e o último gestor não pode ser excluído.
-     * Responde 409 se o registro ainda estiver vinculado a outros dados.
-     */
+    /** DELETE /funcionario/:id — inativação lógica; o histórico e todos os vínculos são preservados. */
     public async deleteFuncionario(req: Request, resp: Response): Promise<Response> {
         const id = lerId(req.params.id);
-        await serviceFuncionario.remover(id, usuarioAutenticado(req).id);
-        return resp.status(200).json({ mensagem: 'Funcionário excluído com sucesso' });
+        const funcionario = await serviceFuncionario.inativar(id, usuarioAutenticado(req).id);
+        return resp.status(200).json({ mensagem: 'Funcionário inativado com sucesso', funcionario });
+    }
+
+    /** PATCH /funcionario/:id/ativar — reativação lógica exclusiva de Gestores. */
+    public async ativarFuncionario(req: Request, resp: Response): Promise<Response> {
+        const id = lerId(req.params.id);
+        const funcionario = await serviceFuncionario.reativar(id);
+        return resp.status(200).json({ mensagem: 'Funcionário reativado com sucesso', funcionario });
     }
 }
 

@@ -1,0 +1,127 @@
+
+import type { Cliente } from "../../types/api";
+import type { AcaoStatus } from "../../utils/clienteUtils";
+
+interface ClienteStatusModalProps {
+    cliente: Cliente | null;
+    acao: AcaoStatus | null;
+    processando: boolean;
+    erro: string | null;
+    onClose: () => void;
+    onConfirm: () => Promise<void>;
+}
+
+function ClienteStatusModal({
+    cliente,
+    acao,
+    processando,
+    erro,
+    onClose,
+    onConfirm,
+}: ClienteStatusModalProps) {
+    if (!cliente || !acao) return null;
+
+    const inativar = acao === "inativar";
+
+    return (
+        <div
+            className="projeto-modal-overlay cliente-modal-overlay"
+            onMouseDown={(event) => {
+                if (event.target === event.currentTarget && !processando) onClose();
+            }}
+        >
+            <section
+                className="projeto-modal projeto-confirm-modal cliente-status-modal"
+                role="alertdialog"
+                aria-modal="true"
+                aria-labelledby="confirmacao-cliente-titulo"
+                aria-busy={processando}
+            >
+                <header className="projeto-modal-header">
+                    <div>
+                        <span className="projetos-eyebrow">GESTÃO DE CLIENTES</span>
+                        <h2 id="confirmacao-cliente-titulo">
+                            {inativar ? "Inativar cliente?" : "Reativar cliente?"}
+                        </h2>
+                    </div>
+                    <button
+                        type="button"
+                        className="projeto-modal-close"
+                        aria-label="Fechar confirmação"
+                        onClick={onClose}
+                        disabled={processando}
+                    >
+                        ×
+                    </button>
+                </header>
+
+                <div className="projeto-confirm-copy cliente-confirm-copy">
+                    <p>
+                        Confirma a ação para o cliente <strong>{cliente.nome}</strong>?
+                    </p>
+
+                    <p>
+                        {inativar
+                            ? "O registro será inativado. Projetos ou ordens de serviço não concluídos impedem a inativação."
+                            : "O cliente voltará a aparecer na listagem de ativos e poderá ser vinculado a novos projetos."}
+                    </p>
+
+                    {erro && (
+                        <div
+                            className="clientes-feedback clientes-feedback--error"
+                            role="alert"
+                        >
+                            {erro}
+                        </div>
+                    )}
+
+                    <div className="cliente-modal-actions">
+                        <button
+                            type="button"
+                            className="clientes-btn-secondary"
+                            onClick={onClose}
+                            disabled={processando}
+                        >
+                            Cancelar
+                        </button>
+
+                        <button
+                            type="button"
+                            className={
+                                inativar
+                                    ? "clientes-btn-danger"
+                                    : "clientes-btn-primary"
+                            }
+                            onClick={() => void onConfirm()}
+                            disabled={processando}
+                        >
+                            {processando
+                                ? "Processando..."
+                                : inativar
+                                  ? "Confirmar inativação"
+                                  : "Confirmar reativação"}
+                        </button>
+                    </div>
+                </div>
+
+                {erro && <div className="projetos-feedback projetos-feedback--error" role="alert">{erro}</div>}
+
+                <footer className="projeto-modal-actions">
+                    <button type="button" className="projeto-btn-secondary" onClick={onClose} disabled={processando}>
+                        Cancelar
+                    </button>
+                    <button
+                        type="button"
+                        className={inativar ? "projeto-btn-danger" : "projeto-btn-primary"}
+                        onClick={() => void onConfirm()}
+                        disabled={processando}
+                    >
+                        {processando ? "Processando..." : inativar ? "Confirmar inativação" : "Confirmar reativação"}
+                    </button>
+                </footer>
+            </section>
+        </div>
+    );
+}
+
+export default ClienteStatusModal;

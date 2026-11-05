@@ -13,7 +13,7 @@ const { ServiceFuncionario } = require('../src/services/serviceFuncionario.ts');
 const { repositoryFuncionario } = require('../src/repositories/repositoryFuncionario.ts');
 const { RepositoryOrdemServico } = require('../src/repositories/repositoryOrdemServico.ts');
 const { ordemServicoCache } = require('../src/cache/ordemServicoCache.ts');
-const analista = { id: 11, tipo: 'analista', departamento_id: 1, nome: 'Analista', usuario: 'analista' };
+const analista = { id: 11, tipo: 'analista', ativo: true, departamento_id: 1, nome: 'Analista', usuario: 'analista' };
 const corpo = { tipo: 'instalacao', titulo: 'Nova demanda', descricao: 'Descrição', departamento_id: 2, sla_manual: false };
 const status403 = (erro) => erro.statusCode === 403;
 afterEach(() => mock.restoreAll());
@@ -25,7 +25,12 @@ function criarService() {
         buscarPorId: async () => null,
     };
     const funcionarios = { buscarPorId: async () => analista };
-    return { service: new ServiceOrdemServico(repositorio, funcionarios), salvo: () => salvo };
+    const service = new ServiceOrdemServico(repositorio, funcionarios);
+    mock.method(service, 'criarComAuditoria', async (dados, registros) => {
+        assert.ok(registros.some((registro) => registro.acao === 'insercao' && registro.funcionario_id === analista.id));
+        return repositorio.criar(dados);
+    });
+    return { service, salvo: () => salvo };
 }
 
 test('Analista escolhe outro departamento; responsável e status enviados não prevalecem', async () => {
@@ -49,9 +54,9 @@ for (const campo of [
     });
 }
 
-test('Analista pode enviar campos opcionais de SLA nulos', async () => {
+test('Campos de SLA calculados pelo sistema não são aceitos nem nulos', async () => {
     const { service } = criarService();
-    assert.equal((await service.criar({ ...corpo, prazo_dias_uteis: null, data_limite_sla: null }, analista)).sla_manual, false);
+    await assert.rejects(service.criar({ ...corpo, prazo_dias_uteis: null, data_limite_sla: null }, analista), (erro) => erro.statusCode === 400);
 });
 
 test('Analista não atribui responsável mesmo chamando o service diretamente', async () => {
@@ -99,7 +104,9 @@ for (const [metodo, rota] of [
     ...['cliente', 'departamento', 'funcionario'].flatMap((recurso) => [
         ['post', `/${recurso}`], ['put', `/${recurso}/71`], ['patch', `/${recurso}/71`], ['delete', `/${recurso}/71`],
     ]),
-    ['post', '/projeto'], ['put', '/projeto/71'], ['delete', '/projeto/71'],
+    ['post', '/projeto'], ['put', '/projeto/71'], ['patch', '/projeto/71'], ['patch', '/projeto/71/ativo'],
+    ['patch', '/ordens-servico/71/status'], ['patch', '/ordens-servico/71/sla-manual'],
+    ['patch', '/ordens-servico/71/ativo'], ['post', '/ordens-servico/71/anexos'],
 ]) {
     test(`Analista recebe 403 em ${metodo.toUpperCase()} ${rota}`, async () => {
         await request(criarApp())[metodo](rota).set('Authorization', autenticar()).send({}).expect(403);

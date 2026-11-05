@@ -5,6 +5,8 @@
  * Leituras passam pelo cache; escritas vão ao banco e, confirmadas, atualizam o cache.
  */
 import { prisma } from '../prisma/client';
+import type { Prisma } from '../prisma/generated/client';
+import { AppError } from '../errors/AppError';
 import { departamentoCache } from '../cache/departamentoCache';
 import { traduzirErroPrisma } from '../errors/tratarErroPrisma';
 import type {
@@ -27,10 +29,16 @@ export class RepositoryDepartamento {
         return departamentoCache.obterPorId(id, () => prisma.departamentos.findUnique({ where: { id } }));
     }
 
-    /** Cria um departamento no banco e o coloca no cache. */
+    /** Cria um departamento; um novo responsável deve continuar ativo até o commit. */
     async criar(dados: DadosCriacaoDepartamento): Promise<Departamento> {
         try {
-            const criado = await prisma.departamentos.create({ data: dados });
+            const criado = dados.responsavel_id === null
+                ? await prisma.departamentos.create({ data: dados })
+                : await prisma.$transaction(async (tx) => {
+                    await tx.$executeRaw`SELECT pg_advisory_xact_lock(734031, 3)`;
+                    await this.validarResponsavelAtivoNaTransacao(tx, dados.responsavel_id!);
+                    return tx.departamentos.create({ data: dados });
+                });
             departamentoCache.definir(criado);
             return criado;
         } catch (erro) {
@@ -38,10 +46,16 @@ export class RepositoryDepartamento {
         }
     }
 
-    /** Atualiza os campos informados de um departamento e atualiza o cache. */
+    /** Atualiza campos do departamento. Novos vínculos de responsável usam o mesmo lock da inativação. */
     async atualizar(id: number, dados: DadosAtualizacaoDepartamento): Promise<Departamento> {
         try {
-            const atualizado = await prisma.departamentos.update({ where: { id }, data: dados });
+            const atualizado = dados.responsavel_id === undefined || dados.responsavel_id === null
+                ? await prisma.departamentos.update({ where: { id }, data: dados })
+                : await prisma.$transaction(async (tx) => {
+                    await tx.$executeRaw`SELECT pg_advisory_xact_lock(734031, 3)`;
+                    await this.validarResponsavelAtivoNaTransacao(tx, dados.responsavel_id!);
+                    return tx.departamentos.update({ where: { id }, data: dados });
+                });
             departamentoCache.definir(atualizado);
             return atualizado;
         } catch (erro) {
@@ -49,6 +63,21 @@ export class RepositoryDepartamento {
                 registroNaoEncontrado: 'Departamento não encontrado',
                 referenciaInvalida: RESPONSAVEL_INVALIDO,
             });
+        }
+    }
+
+    /** Revalida o novo vínculo no banco dentro do lock compartilhado com a inativação de funcionários. */
+    private async validarResponsavelAtivoNaTransacao(
+        tx: Prisma.TransactionClient,
+        responsavelId: number,
+    ): Promise<void> {
+        const responsavel = await tx.funcionarios.findUnique({
+            where: { id: responsavelId },
+            select: { id: true, ativo: true },
+        });
+        if (!responsavel) throw AppError.requisicaoInvalida(RESPONSAVEL_INVALIDO);
+        if (!responsavel.ativo) {
+            throw AppError.requisicaoInvalida('responsavel_id não pode corresponder a um funcionário inativo');
         }
     }
 

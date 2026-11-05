@@ -27,14 +27,14 @@
 
 ## 3. Situação das histórias
 
-| História | Planejada | Indício de entrega | Confirmação do time |
-| --- | --- | --- | --- |
-| US#4.1 Autenticação | Sim | Sim (faltam logout, perfil logado e esqueci a senha) | Ajuste sendo realizados na sprint 2 |
-| US#1.2 Abrir projeto | Sim | Sim | Sim |
-| US#2.1 Abrir O.S. | Sim | Sim | Sim] |
-| US#4.2 Departamentos e colaboradores | Sim | Sim | Sim |
+| História | Planejada | Confirmação do time |
+| --- | --- | --- |
+| US#4.1 Autenticação | Sim | Sim |
+| US#1.2 Abrir projeto | Sim | Sim |
+| US#2.1 Abrir O.S. | Sim | Sim |
+| US#4.2 Departamentos e colaboradores | Sim | Sim |
 | US#1.1 Cliente | Sim | Sim | Sim |
-| US#2.2 Desmembrar projeto | Sim | Sim | Como pedido pelo cliente, desmembramento é manual |
+| US#2.2 Desmembrar projeto | Sim | Sim | 
 
 ## 4. Retorno do cliente sobre a 1ª entrega
 

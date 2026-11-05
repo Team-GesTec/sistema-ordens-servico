@@ -1,75 +1,52 @@
-# React + TypeScript + Vite
+# SGOS — Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Frontend do Sistema de Gestão de Ordens de Serviço, construído com React, TypeScript e Vite.
 
-Currently, two official plugins are available:
+## Requisitos
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- Node.js compatível com a versão usada pelo projeto (Node.js 22 ou superior recomendado).
+- Backend SGOS em execução, normalmente em `http://localhost:3000`.
 
-## React Compiler
+Não é necessário acessar o Supabase diretamente pelo navegador. O frontend chama a API Express e apenas o backend acessa o PostgreSQL. Nunca coloque senha de banco, `DATABASE_URL`, `DIRECT_URL` ou chaves administrativas em variáveis `VITE_*`, pois elas podem ser incluídas no bundle público.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Configuração local
 
-## Expanding the ESLint configuration
+Na pasta `frontend/`, copie o arquivo de exemplo para `.env`.
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+PowerShell:
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-
+```powershell
+Copy-Item .env.example .env
 ```
 
-You can also install [eslint-plugin-react-x](https://npmx.dev/package/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://npmx.dev/package/eslint-plugin-react-dom) for React-specific lint rules:
+macOS/Linux:
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-
+```bash
+cp .env.example .env
 ```
+
+O valor padrão aponta para a API local:
+
+```env
+VITE_API_URL=http://localhost:3000
+```
+
+Se a API estiver em outro endereço, altere essa URL e ajuste `CORS_ORIGIN` no `backend/.env` para corresponder à origem real do frontend.
+
+## Instalar e executar
+
+```bash
+npm ci
+npm run dev
+```
+
+Abra `http://localhost:5173` no navegador. Mantenha o backend iniciado em outro terminal.
+
+## Verificações
+
+```bash
+npm run lint
+npm run build
+```
+
+Consulte o [Manual de Instalação do projeto](../docs/instalacao.md) para preparar o backend e conectar o ambiente de desenvolvimento ao Supabase.

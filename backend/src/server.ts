@@ -9,6 +9,7 @@
  * encerramento gracioso (fecha o servidor e a conexão com o banco ao receber SIGINT/SIGTERM).
  * Como o cache é write-through, não há nada pendente para gravar no banco ao desligar.
  */
+import { iniciarRotinaNotificacoes } from './jobs/rotinaNotificacoes';
 import { criarApp } from './app';
 import { env } from './config/env';
 import { prisma } from './prisma/client';
@@ -22,6 +23,7 @@ const TEMPO_LIMITE_DESLIGAMENTO = 10_000;
 function iniciar(): void {
     const app = criarApp();
     const servidor = app.listen(env.porta, (erro?: Error) => {
+        iniciarRotinaNotificacoes();
         if (erro) {
             console.error('[servidor] não foi possível iniciar:', erro);
             process.exit(1);
