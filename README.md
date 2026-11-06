@@ -29,11 +29,12 @@ O SGOS resolve essa dor ao oferecer um agrupador central de projetos, ordens de 
 | 11 | EP03 - Controle de SLA, Priorização e Alertas | Média | **US#3.1** Como gestor de projetos, quero que o sistema calcule a data limite de SLA automaticamente para demandas padrão e permita a sobreposição manual de prazos, para ajustar datas a paradas operacionais e regras contratuais. | 5 | 2 |
 | 12 | EP02 - Gestão do Ciclo de Vida da O.S. | Média | **US#2.6**  Como colaborador, quero anexar fotos, laudos e documentos à O.S. com limite de tamanho por arquivo (50MB), para comprovar a execução do serviço ou detalhar o problema operacional. | 3 | 2 |
 | 13 | EP02 - Gestão do Ciclo de Vida da O.S. | Baixa | **US#2.5** Como responsável técnico, quero consultar minha fila de O.S. atribuídas com filtro por status e criticidade, para organizar os atendimentos do dia. | 3 | 2 |
-| 14 | EP04 - Auditoria de Ações e Documentação | Alta | **US#4.3** Como gestor de projetos, quero consultar o histórico de alterações da O.S. (quem alterou, o quê e quando), para atender às exigências de rastreabilidade. | 8 | 3 |
-| 15 | EP04 - Auditoria de Ações e Documentação | Média | **US#4.4** Como desenvolvedor ou avaliador, quero acessar a documentação interativa da API via Swagger, para validar as integrações e contratos das rotas. | 8 | 3 |
-| 16 | EP03 - Controle de SLA, Priorização e Alertas | Média | **US#3.3** Como envolvido na O.S., quero receber notificações no sistema (in-app) e por e-mail sobre alterações de status, prioridade e nova atribuição, para acompanhar a evolução do atendimento em tempo real. | 5 | 3 |
-| 17 | EP02 - Gestão do Ciclo de Vida da O.S. | Média | **US#2.7** Como responsável técnico, quero registrar horas gastas nas ordens de serviço, para que meu líder e gestor tenham controle de quanto tempo foi gasto ao realizar uma ordem de serviço | 3 | 3 |
-
+| 14 | EP02 - Gestão do Ciclo de Vida da O.S. | Alta | **US#2.7** Como responsável técnico, quero registrar horas gastas nas ordens de serviço, para que meu líder e gestor tenham controle de quanto tempo foi gasto ao realizar uma ordem de serviço | 3 | 3 |
+| 15 | EP02 - Gestão do Ciclo de Vida da O.S. | Alta | **US#2.8** Como analista de suporte ou líder de departamento, quero exportar relatório de uma ordem de serviço em PDF com os detalhes preenchidos em sua criação, para encaminhar ao gestor. | 3 | 3 |
+| 16 | EP04 - Auditoria de Ações e Documentação | Alta | **US#4.4** Como desenvolvedor ou avaliador, quero acessar a documentação interativa da API via Swagger e manuais do usuário, para validar as integrações, contratos das rotas e utilização do sistema. | 5 | 3 |
+| 17 | EP02 - Gestão do Ciclo de Vida da O.S. | Média | **US#2.9** Como gestor, quero exportar relatório de um cliente em PDF com os detalhes de quais O.S. foram feitas a ele, para encaminhar ao gestor.| 3 | 3 |
+| 18 | EP02 - Gestão do Ciclo de Vida da O.S. | Média | **US#2.10** Como gestor, quero acessar as atividades realizadas nas ordens de serviço, para analisar o que foi feito, acompanhar a execução do atendimento e verificar os registros e resultados do trabalho realizado. | 3 | 3 |
+| 19 | EP03 - Controle de SLA, Priorização e Alertas | Média | **US#3.3** Como envolvido na O.S., quero receber notificações no sistema (in-app) e por e-mail sobre alterações de status, SLA e nova atribuição, para acompanhar a evolução do atendimento em tempo real. | 5 | 3 |
 
 ---
 
@@ -42,7 +43,7 @@ O SGOS resolve essa dor ao oferecer um agrupador central de projetos, ordens de 
 ```text
 [Sprint 1: Set/2026] ➔ [Sprint 2: Out/2026] ➔ [Sprint 3: Nov/2026]
  ├─ Autenticação        ├─ Dashboards Visuais       ├─ Histórico & Auditoria
- ├─ Cadastros Base      ├─ Ciclo de Vida O.S.       ├─ Notificação
+ ├─ Cadastros Base      ├─ Ciclo de Vida O.S.       ├─ Notificação, registro de horas e exportação PDF
  └─ Abertura de O.S.    └─ Regras de SLA e Anexos   └─ Documentação Swagger
 ```
 
@@ -51,17 +52,17 @@ O SGOS resolve essa dor ao oferecer um agrupador central de projetos, ordens de 
 | Período da Sprint | Meta (User Stories) | Link para Documentação da Sprint | Link para Vídeo no Youtube do Incremento Entregue |
 | --- | --- | --- | --- |
 | Sprint 1: 01/09/2026 - 25/09/2026 | US#4.1, US#2.1, US#1.2 | [Documentação da Sprint 1](./docs/Sprint%201/docssprint1.md) | [Demonstração da Sprint 1 - YouTube](https://www.youtube.com/watch?v=vnbYhxT90lo) |
-| Sprint 2: 28/09/2026 - 24/10/2026 | US#1.3 | [Documentação da Sprint 2](./docs/Sprint%202/docssprint2.md) | [Demonstração da Sprint 2 - YouTube](#) |
+| Sprint 2: 28/09/2026 - 25/10/2026 | US#1.3 | [Documentação da Sprint 2](./docs/Sprint%202/docssprint2.md) | [Demonstração da Sprint 2 - YouTube](https://youtu.be/4kNHCjK8SPg?si=vP9TE9JBvktB4IfU) |
 | Sprint 3: 26/10/2026 - 20/11/2026 | *Em progresso* | [Documentação da Sprint 3](./docs/Sprint%203/docssprint3.md) | [Demonstração da Sprint 3 - YouTube](#) |
 
 ---
 
 ## Tecnologias Utilizadas
 
-- **Frontend:** React.js / TypeScript / Tailwind CSS
+- **Frontend:** React.js / TypeScript / CSS
 - **Backend:** Node.js / TypeScript / Express.js
 - **Banco de Dados:** PostgreSQL hospedado no Supabase, acessado pelo backend via Prisma ORM 7
-- **Documentação de API:** Swagger (OpenAPI 3.0) — *planejado para a Sprint 3 (US#4.4), ainda não implementado*
+- **Documentação de API:** Swagger (OpenAPI 3.0)
 - **Autenticação:** JSON Web Token (JWT) e bcrypt
 
 ---
