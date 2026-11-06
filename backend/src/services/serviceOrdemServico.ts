@@ -1,7 +1,5 @@
 /**
  * services/serviceOrdemServico.ts
-/**
- * services/serviceOrdemServico.ts
  *
  * Regras de negócio da O.S.: abertura (US#2.1), edição, atribuição de responsável (US#2.3)
  * e alteração de status (US#2.4).
@@ -12,6 +10,7 @@
  *  - campos opcionais ausentes recebem null no cadastro;
  *  - anterior_id, se informado, deve apontar para uma O.S. existente;
  *  - o status inicial é em_andamento;
+ *  - analista abre O.S. sem responsável e não configura SLA manual;
  *  - PUT exige os campos obrigatórios; PATCH altera somente os campos enviados.
  *
  * Regras da alteração de status:
@@ -53,7 +52,7 @@ import { calcularEstadoSla, type EstadoSla } from '../utils/estadoSla';
 import { serviceSla } from './serviceSla';
 import type { DadosRegistroAuditoria } from '../models/modelAuditoria';
 import { bloquearOrdemServico, bloquearProjetosRelacionados, validarProjetoDaOrdem } from '../utils/projetoOsInvariant';
-import type { PerfilFuncionario } from '../models/modelFuncionario';
+import type { PerfilFuncionario, Funcionario } from '../models/modelFuncionario';
 import {
     type DadosCriacaoOrdemServico,
     type DadosAtualizacaoOrdemServico,
@@ -186,8 +185,18 @@ export class ServiceOrdemServico {
      *                   ou a data limite de uma O.S. de instalação (3.1-BE01).
      * @throws AppError 422 se faltar configuração de SLA ou a data de instalação passar de 3 meses (3.1-BE01).
      */
-    async criar(corpo: unknown, solicitanteId: number, perfil: PerfilFuncionario): Promise<OrdemServico> {
+    async criar(corpo: unknown, solicitante: Pick<Funcionario, 'id' | 'tipo'>): Promise<OrdemServico> {
         const dados = lerCorpo(corpo);
+        const perfil = solicitante.tipo;
+        const solicitanteId = solicitante.id;
+
+        if (solicitante.tipo === 'analista') {
+            const camposSlaManual = ['prazo_dias_uteis', 'data_limite_sla', 'justificativa_sla_manual'];
+            if ((dados.sla_manual !== undefined && dados.sla_manual !== null && dados.sla_manual !== false)
+                || camposSlaManual.some((campo) => dados[campo] !== undefined && dados[campo] !== null)) {
+                throw AppError.acessoNegado('Analistas não podem configurar SLA manual');
+            }
+        }
 
         const tipo = exigirEnum(dados.tipo, TIPOS_ORDEM_SERVICO, 'tipo');
         const titulo = exigirTexto(dados.titulo, 'titulo', { maximo: TEXTO_MAXIMO_TITULO });
@@ -207,7 +216,7 @@ export class ServiceOrdemServico {
         }
 
         const clienteId = inteiroPositivoOpcional(dados.cliente_id, 'cliente_id');
-        const responsavelId = inteiroPositivoOpcional(dados.responsavel_id, 'responsavel_id');
+        const responsavelIdInformado = inteiroPositivoOpcional(dados.responsavel_id, 'responsavel_id');
         const projetoId = inteiroPositivoOpcional(dados.projeto_id, 'projeto_id');
         const ativoId = inteiroPositivoOpcional(dados.ativo_id, 'ativo_id');
         const anteriorId = inteiroPositivoOpcional(dados.anterior_id, 'anterior_id');
@@ -216,7 +225,7 @@ export class ServiceOrdemServico {
                 ? NIVEIS_CRITICIDADE[1]
                 : exigirEnum(dados.criticidade, NIVEIS_CRITICIDADE, 'criticidade');
         const parecerTecnico = textoOpcional(dados.parecer_tecnico, 'parecer_tecnico', { maximo: TEXTO_MAXIMO_DESCRICAO });
-        const status =
+        const statusInformado =
             dados.status === undefined || dados.status === null
                 ? STATUS_PADRAO
                 : exigirEnum(dados.status, STATUS_ORDEM, 'status');
@@ -232,6 +241,7 @@ export class ServiceOrdemServico {
             'prazo_dias_uteis_custom',
         );
 
+        const status = perfil === 'analista' ? STATUS_PADRAO : statusInformado;
         // AJ-06: data de abertura no passado = cadastro de O.S. antiga (migração manual)
         const migracao = ehDataNoPassado(dataCriacao);
         if (migracao) {
@@ -248,7 +258,10 @@ export class ServiceOrdemServico {
             }
         }
 
-        if (responsavelId !== null){
+        const ehAnalista = solicitante.tipo === 'analista';
+        const responsavelId = ehAnalista ? null : responsavelIdInformado;
+
+        if (responsavelId !== null) {
             await this.garantirFuncionarioExiste(responsavelId, 'responsavel_id');
         }
 
@@ -269,7 +282,7 @@ export class ServiceOrdemServico {
             sla_config_id: sla.sla_config_id,
             cliente_id: clienteId,
             departamento_id: departamentoId,
-            solicitante_id: solicitanteId,
+            solicitante_id: solicitante.id,
             responsavel_id: responsavelId,
             projeto_id: projetoId,
             ativo_id: ativoId,
@@ -286,7 +299,14 @@ export class ServiceOrdemServico {
             justificativa_sla_manual: sla.sla_manual ? sla.descricao : null,
         };
 
-        const registros: RegistroAuditoriaCriacao[] = [];
+        const registros: RegistroAuditoriaCriacao[] = [{
+            funcionario_id: solicitanteId,
+            acao: 'insercao',
+            campo_alterado: null,
+            dado_antigo: null,
+            dado_novo: null,
+            justificativa: 'Criação da O.S.',
+        }];
 
         if (migracao) {
             // AJ-06: a data_criacao informada (no passado) é mantida como data de abertura
@@ -550,6 +570,10 @@ export class ServiceOrdemServico {
 
         if (!solicitante) {
             throw AppError.naoEncontrado('Solicitante não encontrado');
+        }
+
+        if (solicitante.tipo === 'analista') {
+            throw AppError.acessoNegado('Analistas não podem atribuir responsáveis a O.S.');
         }
 
         const ordem = await this.repositorio.buscarPorId(osId);

@@ -1,0 +1,1 @@
+ALTER TYPE "public"."tipo_perfil" ADD VALUE IF NOT EXISTS 'analista';

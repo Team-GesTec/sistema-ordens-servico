@@ -1,4 +1,5 @@
-import { Router, type Request, type Response } from 'express';
+/** Rotas de projetos: consulta autenticada e operações de escrita exclusivas do Gestor. */
+import { Router, Request, Response } from 'express';
 import { controller } from '../controllers/controllerProjeto';
 import { autorizar } from '../middlewares/authMiddleware';
 

@@ -1,6 +1,6 @@
 /**
  * Rotas de O.S., montadas em /ordens-servico no app.ts
- * Gestor e técnico podem abrir O.S. conforme Ata de alinhamento de 16/09
+ * Gestor, técnico e analista abrem O.S.; atribuição e demais escritas exigem perfil específico.
  */
 
 import { Router, type Request, type Response } from 'express';
@@ -9,7 +9,9 @@ import { autorizar } from '../middlewares/authMiddleware';
 
 const router = Router();
 
-/** Gestor e técnico podem criar O.S. e atribuir responsável. */
+/** Gestor, técnico e analista podem criar uma O.S. */
+const podeCriarOrdem = autorizar('gestor', 'tecnico', 'analista');
+/** Gestor e técnico podem atribuir uma O.S.; analista só consulta. */
 const gestorOuTecnico = autorizar('gestor', 'tecnico');
 
 /** Somente gestores podem bloquear uma O.S. e modificá-la livremente. */
@@ -31,9 +33,8 @@ router.get('/inativas', somenteGestor, (req: Request, res: Response) =>
 // GET BY ID — qualquer usuário autenticado
 router.get('/:id', (req: Request, res: Response) => controllerOrdemServico.getById(req, res));
 
-// POST - gestor / técnico
-// AJ-06: data de abertura (data_criacao) no passado é exclusiva do gestor — checado no service (403 para técnico)
-router.post('/', gestorOuTecnico, (req: Request, res: Response) => controllerOrdemServico.criarOrdem(req, res));
+// POST - gestor / técnico / analista
+router.post('/', podeCriarOrdem, (req: Request, res: Response) => controllerOrdemServico.criarOrdem(req, res));
 
 // Regras de atribuição para gestores e técnicos são validadas no service.
 router.patch('/atribuir/:id', gestorOuTecnico, (req: Request, res: Response) => controllerOrdemServico.atribuirResponsavel(req, res));
