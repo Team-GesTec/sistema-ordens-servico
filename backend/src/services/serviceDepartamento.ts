@@ -23,6 +23,7 @@ import type {
 import {
     campoPresente,
     exigirAlteracoes,
+    exigirInteiroPositivo,
     exigirTexto,
     inteiroPositivoOpcional,
     lerCorpo,
@@ -54,9 +55,14 @@ export class ServiceDepartamento {
         this.ordensServico = ordensServico;
     }
 
-    /** Lista todos os departamentos. */
+    /** Lista somente departamentos ativos. */
     listar(): Promise<Departamento[]> {
-        return this.departamentos.listar();
+        return this.departamentos.listar(true);
+    }
+
+    /** Lista somente departamentos inativos. */
+    listarInativos(): Promise<Departamento[]> {
+        return this.departamentos.listar(false);
     }
 
     /**
@@ -104,6 +110,11 @@ export class ServiceDepartamento {
      */
     async criar(corpo: unknown): Promise<Departamento> {
         const dados = lerCorpo(corpo);
+        if (campoPresente(dados, 'ativo')) {
+            throw AppError.requisicaoInvalida(
+                'O estado ativo/inativo deve ser alterado pela rota específica do departamento.'
+            );
+        }
         const novo: DadosCriacaoDepartamento = {
             nome: exigirTexto(dados.nome, 'nome', { maximo: NOME_MAXIMO }),
             responsavel_id: await this.validarResponsavel(dados.responsavel_id),
@@ -125,9 +136,15 @@ export class ServiceDepartamento {
         return this.departamentos.atualizar(id, alteracoes);
     }
 
-    /** Remove um departamento (o banco bloqueia se houver vínculos). */
-    remover(id: number): Promise<void> {
-        return this.departamentos.remover(id);
+    /** Altera o estado ativo/inativo do departamento. */
+    async alterarAtivo(id: number, ativo: unknown): Promise<Departamento> {
+        const idDepartamento = exigirInteiroPositivo(id, 'id');
+
+        if (typeof ativo !== 'boolean') {
+            throw AppError.requisicaoInvalida('O campo ativo deve ser true ou false.');
+        }
+
+        return this.departamentos.alterarAtivo(idDepartamento, ativo);
     }
 
     /** Monta o objeto de alterações conforme o modo (PUT ou PATCH). */

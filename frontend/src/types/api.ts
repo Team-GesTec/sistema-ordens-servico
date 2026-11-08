@@ -63,6 +63,7 @@ export interface Departamento {
     id: number;
     nome: string;
     responsavel_id: number | null;
+    ativo: boolean;
 }
 
 export interface DepartamentoInput {

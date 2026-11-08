@@ -56,6 +56,7 @@ model departamentos {
   id                                                       Int                      @id @default(autoincrement())
   responsavel_id                                           Int?
   nome                                                     String
+  ativo                                                    Boolean                  @default(true)
   funcionarios_departamentos_responsavel_idTofuncionarios  funcionarios?            @relation("departamentos_responsavel_idTofuncionarios", fields: [responsavel_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "responsavel_fk")
   funcionarios_funcionarios_departamento_idTodepartamentos funcionarios[]           @relation("funcionarios_departamento_idTodepartamentos")
   ordens_servico                                           ordens_servico[]

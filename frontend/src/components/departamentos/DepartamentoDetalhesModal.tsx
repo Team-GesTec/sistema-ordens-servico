@@ -128,7 +128,15 @@ export default function DepartamentoDetalhesModal({
                                 <h3>Visão geral</h3>
                                 <div className="projeto-details-grid">
                                     <div><span>Identificador</span><strong>Departamento #{departamento.id}</strong></div>
-                                    <div><span>Estado</span><strong>Registro existente</strong><small>O schema atual não persiste estado ativo/inativo para departamentos.</small></div>
+                                    <div>
+                                        <span>Estado</span>
+                                        <strong>{departamento.ativo ? "Ativo" : "Inativo"}</strong>
+                                        <small>
+                                            {departamento.ativo
+                                                ? "Departamento disponível nas listagens operacionais."
+                                                : "Departamento inativo. Seus vínculos e registros históricos foram preservados."}
+                                        </small>
+                                    </div>
                                     <div><span>Funcionários</span><strong>{funcionarios.length}</strong></div>
                                     <div><span>Projetos</span><strong>{projetos.length}</strong></div>
                                     <div><span>Ordens de serviço</span><strong>{ordens.length}</strong></div>
