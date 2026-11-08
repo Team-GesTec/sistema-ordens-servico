@@ -1,4 +1,5 @@
 import Autocomplete, { type AutocompleteOption } from "../common/Autocomplete";
+import FilterDrawer from "../common/FilterDrawer";
 import type { Departamento, Funcionario, PerfilFuncionario } from "../../types/api";
 
 export type SituacaoFuncionario = "ativos" | "inativos" | "todos";
@@ -48,7 +49,8 @@ export default function FuncionariosToolbar({
 
     return (
         <section className="projetos-toolbar funcionarios-toolbar" aria-label="Pesquisar e filtrar funcionários">
-            <div className="projetos-filter-wrap funcionarios-search-wrap">
+            <div className="gestec-search-toolbar-row funcionarios-search-toolbar-row">
+                <div className="projetos-filter-wrap funcionarios-search-wrap">
                 <label htmlFor="funcionarios-busca">Pesquisar funcionário</label>
                 <Autocomplete
                     id="funcionarios-busca"
@@ -62,32 +64,32 @@ export default function FuncionariosToolbar({
                     loadingMessage="Carregando funcionários..."
                     emptyMessage="Nenhum funcionário corresponde à pesquisa."
                 />
-            </div>
+                </div>
 
-            {podeGerenciar && (
-                <div className="projetos-filter-wrap">
-                    <label htmlFor="funcionarios-situacao">Situação</label>
-                    <select
-                        id="funcionarios-situacao"
-                        value={situacao}
-                        onChange={(event) => onSituacaoChange(event.target.value as SituacaoFuncionario)}
-                    >
-                        <option value="ativos">Ativos</option>
-                        <option value="inativos">Inativos</option>
-                        <option value="todos">Todos</option>
+            <FilterDrawer
+                activeCount={(podeGerenciar && situacao !== "ativos" ? 1 : 0) + (perfil !== "todos" ? 1 : 0)}
+                onClear={() => {
+                    onSituacaoChange(podeGerenciar ? "todos" : "ativos");
+                    onPerfilChange("todos");
+                }}
+            >
+                {podeGerenciar && (
+                    <div className="gestec-filter-field">
+                        <label htmlFor="funcionarios-situacao">Situação</label>
+                        <select id="funcionarios-situacao" value={situacao} onChange={(event) => onSituacaoChange(event.target.value as SituacaoFuncionario)}>
+                            <option value="ativos">Somente ativos</option>
+                            <option value="inativos">Somente inativos</option>
+                            <option value="todos">Todos os funcionários</option>
+                        </select>
+                    </div>
+                )}
+                <div className="gestec-filter-field">
+                    <label htmlFor="funcionarios-perfil">Perfil de acesso</label>
+                    <select id="funcionarios-perfil" value={perfil} onChange={(event) => onPerfilChange(event.target.value as PerfilFuncionario | "todos")}>
+                        {PERFIL_OPTIONS.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
                     </select>
                 </div>
-            )}
-
-            <div className="projetos-filter-wrap funcionarios-perfil-wrap">
-                <label htmlFor="funcionarios-perfil">Perfil</label>
-                <select
-                    id="funcionarios-perfil"
-                    value={perfil}
-                    onChange={(event) => onPerfilChange(event.target.value as PerfilFuncionario | "todos")}
-                >
-                    {PERFIL_OPTIONS.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
-                </select>
+            </FilterDrawer>
             </div>
         </section>
     );

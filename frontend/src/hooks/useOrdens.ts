@@ -271,9 +271,8 @@ export function useOrdens() {
             return;
         }
 
-        setDetalhesAbertos(false);
-        setOrdemSelecionada(null);
-
+        // Preserve the selected order and its details view while the edit form is open.
+        // The form is rendered above the details page; closing it must reveal the same OS.
         if (ordem.status === "concluido" || ordem.status === "bloqueado") {
             setErro("Esta ordem de serviço não pode ser editada no estado atual.");
             return;
@@ -789,6 +788,10 @@ export function useOrdens() {
         if (ordemEmEdicao) {
             setOrdens((anteriores) => anteriores.map((item) => item.id === ordemSalva.id ? ordemSalva : item));
             setOrdensInativas((anteriores) => anteriores.map((item) => item.id === ordemSalva.id ? ordemSalva : item));
+            if (detalhesAbertos && ordemSelecionada?.id === ordemSalva.id) {
+                const detalheAtualizado = { ...ordemSelecionada, ...ordemSalva };
+                setOrdemSelecionada(detalheAtualizado);
+            }
             setMensagem(`Ordem de serviço #${ordemSalva.id} atualizada com sucesso.`);
         } else {
             setOrdens((anteriores) => [ordemSalva, ...anteriores.filter((item) => item.id !== ordemSalva.id)]);
@@ -809,6 +812,10 @@ export function useOrdens() {
             setErro(
                 `A O.S. #${ordemSalva.id} foi salva, mas não foi possível atualizar a listagem. Recarregue a tela para sincronizar os dados.`,
             );
+        }
+
+        if (ordemEmEdicao && detalhesAbertos && ordemSelecionada?.id === ordemSalva.id) {
+            await recarregarDetalheAposMutacao(ordemSalva, { ...ordemSelecionada, ...ordemSalva });
         }
 
         setFormularioAberto(false);

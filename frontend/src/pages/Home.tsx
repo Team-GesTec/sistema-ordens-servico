@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import {
     ResponsiveContainer,
     PieChart,
@@ -12,8 +13,6 @@ import {
     YAxis,
     CartesianGrid,
 } from "recharts";
-
-import "../styles/dashboard.css";
 
 import { ApiError, apiRequest } from "../services/api";
 import { getStoredUser } from "../services/auth";
@@ -33,6 +32,7 @@ import type {
 
 import NotificacoesSla from "../components/NotificacoesSla";
 import type { NotificacaoSla } from "../types/notificacao";
+import { formatarDataOrdem, parseDataOrdem, STATUS_LABELS } from "../utils/ordemServicoUtils";
 
 const CORES_STATUS: Record<StatusOrdemServico, string> = {
     em_andamento: "#1689ca",
@@ -231,7 +231,32 @@ function Dashboard() {
         [funcionariosDepartamento, ordensDepartamento],
     );
 
-    const totalHoras = null as number | null;
+    const hoje = new Date();
+    hoje.setHours(0, 0, 0, 0);
+    const ordensAbertas = ordensVisiveis.filter((ordem) => ordem.status !== "concluido").length;
+    const ordensEmAndamento = ordensVisiveis.filter((ordem) => ordem.status === "em_andamento").length;
+    const inicioMes = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
+    const concluidasNoMes = ordensVisiveis.filter((ordem) => {
+        if (ordem.status !== "concluido" || !ordem.data_fim) return false;
+        const data = parseDataOrdem(ordem.data_fim);
+        const amanha = new Date(hoje);
+        amanha.setDate(amanha.getDate() + 1);
+        return Boolean(data && data >= inicioMes && data < amanha);
+    }).length;
+    const ordensComSla = ordensVisiveis.filter((ordem) => ordem.status !== "concluido" && Boolean(ordem.data_limite_sla));
+    const ordensDentroSla = ordensComSla.filter((ordem) => {
+        const prazo = parseDataOrdem(ordem.data_limite_sla);
+        if (!prazo) return false;
+        prazo.setHours(0, 0, 0, 0);
+        return prazo >= hoje;
+    }).length;
+    const percentualDentroSla = ordensComSla.length > 0
+        ? `${Math.round((ordensDentroSla / ordensComSla.length) * 100)}%`
+        : "—";
+    const ordensRecentes = [...ordensVisiveis]
+        .sort((a, b) => new Date(b.data_ultima_atualizacao ?? b.data_criacao).getTime() - new Date(a.data_ultima_atualizacao ?? a.data_criacao).getTime())
+        .slice(0, 5);
+    const dataHoje = new Date().toLocaleDateString("pt-BR", { weekday: "long", day: "2-digit", month: "long", year: "numeric" });
 
     if (carregando) {
         return (
@@ -278,18 +303,6 @@ function Dashboard() {
           ? "Visão geral do técnico"
           : "Visão geral do departamento";
 
-    const totalOrdens = ordensVisiveis.length;
-
-    const totalConcluidas = ordensVisiveis.filter(
-        (ordem) => ordem.status === "concluido",
-    ).length;
-
-    const totalCriticas = ordensVisiveis.filter(
-        (ordem) =>
-            ordem.criticidade === "muito_alto" ||
-            ordem.criticidade === "urgente",
-    ).length;
-
     return (
         <main className="dashboard">
             <NotificacoesSla
@@ -306,89 +319,47 @@ function Dashboard() {
                                 (notificacao) => notificacao.id !== id,
                             ),
                         );
+                        return true;
                     } catch (error: unknown) {
-                        console.error(
-                            "Erro ao dispensar notificação:",
-                            error,
-                        );
-
-                        window.alert(
-                            error instanceof ApiError
-                                ? error.message
-                                : "Não foi possível dispensar a notificação. Tente novamente.",
-                        );
+                        // O cliente HTTP global já apresenta um toast quando a operação falha.
+                        console.error("Erro ao dispensar notificação:", error);
+                        return false;
                     }
                 }}
             />
 
-            <header className="dashboard-header">
+            <header className="dashboard-header page-heading">
                 <div>
-                    <span className="dashboard-eyebrow">
-                        GESTEC / INDICADORES
-                    </span>
-                    <h1>Dashboard</h1>
-                    <p>{tituloPerfil}</p>
-                </div>
-
-                <div className="dashboard-perfil">
-                    <span className="dashboard-avatar">
-                        {usuario.nome.charAt(0).toUpperCase()}
-                    </span>
-
-                    <div>
-                        <strong>{usuario.nome}</strong>
-                        <span>
-                            {ehGestor
-                                ? "Gestor"
-                                : ehTecnico
-                                  ? "Técnico"
-                                  : "Líder / analista"}
-                        </span>
-                    </div>
+                    <span className="dashboard-eyebrow projetos-eyebrow eyebrow">{dataHoje}</span>
+                    <h1>Visão geral</h1>
+                    <p>Acompanhe indicadores, ordens em andamento e a saúde da operação. · {tituloPerfil}</p>
                 </div>
             </header>
 
-            <section className="dashboard-indicadores">
+            <section className="dashboard-indicadores" aria-label="Indicadores principais">
                 <article className="dashboard-indicador indicador-azul">
                     <span className="indicador-icone">▤</span>
-                    <span className="indicador-titulo">Total de O.S.</span>
-                    <strong>{totalOrdens}</strong>
-                    <small>Ordens no escopo do perfil</small>
+                    <span className="indicador-titulo">Ordens abertas</span>
+                    <strong>{ordensAbertas}</strong>
+                    <small>Ordens não concluídas no seu escopo</small>
                 </article>
-
                 <article className="dashboard-indicador indicador-verde">
-                    <span className="indicador-icone">✓</span>
-                    <span className="indicador-titulo">Concluídas</span>
-                    <strong>{totalConcluidas}</strong>
-                    <small>
-                        {totalOrdens > 0
-                            ? `${Math.round(
-                                  (totalConcluidas / totalOrdens) * 100,
-                              )}% das O.S.`
-                            : "Nenhuma O.S. cadastrada"}
-                    </small>
-                </article>
-
-                <article className="dashboard-indicador indicador-laranja">
-                    <span className="indicador-icone">!</span>
-                    <span className="indicador-titulo">
-                        Alta criticidade
-                    </span>
-                    <strong>{totalCriticas}</strong>
-                    <small>Muito alta ou urgente</small>
-                </article>
-
-                <article className="dashboard-indicador indicador-roxo">
                     <span className="indicador-icone">◷</span>
-                    <span className="indicador-titulo">
-                        Horas registradas
-                    </span>
-                    <strong>
-                        {totalHoras === null ? "—" : `${totalHoras} h`}
-                    </strong>
-                    <small>
-                        Aguardando integração dos apontamentos
-                    </small>
+                    <span className="indicador-titulo">Em andamento</span>
+                    <strong>{ordensEmAndamento}</strong>
+                    <small>Status atual informado pela API</small>
+                </article>
+                <article className="dashboard-indicador indicador-roxo">
+                    <span className="indicador-icone">✓</span>
+                    <span className="indicador-titulo">Concluídas no mês</span>
+                    <strong>{concluidasNoMes}</strong>
+                    <small>Conclusões registradas neste mês</small>
+                </article>
+                <article className="dashboard-indicador indicador-laranja">
+                    <span className="indicador-icone">◉</span>
+                    <span className="indicador-titulo">SLA dentro do prazo</span>
+                    <strong>{percentualDentroSla}</strong>
+                    <small>{ordensComSla.length > 0 ? `${ordensDentroSla} de ${ordensComSla.length} ordens abertas com prazo` : "Sem prazos de SLA disponíveis para calcular"}</small>
                 </article>
             </section>
 
@@ -692,6 +663,49 @@ function Dashboard() {
                         </div>
                     </article>
                 )}
+            </section>
+
+            <section className="dashboard-recentes-grid" aria-label="Ordens recentes e resumo dos status">
+                <article className="dashboard-card dashboard-recentes-table">
+                    <div className="dashboard-card-header">
+                        <div><h2>Ordens recentes</h2><p>Ordens com atualização mais recente no escopo da sua conta.</p></div>
+                        <Link to="/ordens" className="dashboard-link-action">Ver todas →</Link>
+                    </div>
+                    {ordensRecentes.length === 0 ? <div className="dashboard-vazio">Nenhuma ordem de serviço disponível.</div> : (
+                        <div className="table-scroll"><table className="table gestec-data-table gestec-dashboard-table">
+                            <thead><tr><th>Ordem / ID</th><th>Solicitação</th><th>Responsável</th><th>Status</th><th>Prioridade</th><th>Prazo</th><th>Ação</th></tr></thead>
+                            <tbody>{ordensRecentes.map((ordem) => {
+                                const clienteId = ordem.cliente_id;
+                                const responsavel = dados.funcionarios.find((funcionario) => funcionario.id === ordem.responsavel_id);
+                                return <tr key={ordem.id}>
+                                    <td><Link to={`/ordens/${ordem.id}`} className="gestec-table-link">OS #{ordem.id}</Link><small className="gestec-cell-subtitle">{formatarDataOrdem(ordem.data_ultima_atualizacao ?? ordem.data_criacao)}</small></td>
+                                    <td><strong className="gestec-dashboard-order-title">{ordem.titulo}</strong><small className="gestec-cell-subtitle">{clienteId !== null ? `Cliente #${clienteId}` : "Sem cliente vinculado"}</small></td>
+                                    <td>{responsavel?.nome ?? (ordem.responsavel_id !== null ? `Funcionário #${ordem.responsavel_id}` : "Não atribuído")}</td>
+                                    <td><span className={`gestec-status-pill gestec-os-status status-${ordem.status}`}><i aria-hidden="true" />{STATUS_LABELS[ordem.status]}</span></td>
+                                    <td><span className={`gestec-priority-pill priority-${ordem.criticidade ?? "indefinida"}`}>{ordem.criticidade ? ROTULOS_CRITICIDADE[ordem.criticidade] : "Não definida"}</span></td>
+                                    <td>{formatarDataOrdem(ordem.data_limite_sla)}</td>
+                                    <td><Link to={`/ordens/${ordem.id}`} className="gestec-table-link" aria-label={`Abrir ordem ${ordem.id}`}>Abrir →</Link></td>
+                                </tr>;
+                            })}</tbody>
+                        </table></div>
+                    )}
+                </article>
+                <article className="dashboard-card dashboard-summary-card">
+                    <div className="dashboard-card-header"><div><h2>Resumo por status</h2><p>Distribuição das ordens visíveis para seu perfil.</p></div></div>
+                    <div className="dashboard-status-summary">{statusData.map((item) => <div className="dashboard-status-line" key={item.chave}><span className="dashboard-status-name"><i style={{ background: item.cor }} aria-hidden="true" />{item.nome}</span><strong>{item.quantidade}</strong></div>)}</div>
+                    <Link to="/ordens" className="dashboard-link-action">Acessar ordens →</Link>
+                </article>
+            </section>
+
+            <section className="dashboard-atalhos" aria-labelledby="dashboard-atalhos-titulo">
+                <div className="dashboard-atalhos-heading">
+                    <div><h2 id="dashboard-atalhos-titulo">Acessos rápidos</h2><p>Atalhos para os módulos disponíveis no seu SGOS.</p></div>
+                </div>
+                <div className="dashboard-atalhos-grid">
+                    <Link to="/ordens" className="dashboard-atalho"><span className="dashboard-atalho-icone">▤</span><span><strong>Ordens de serviço</strong><small>Consultar solicitações, responsáveis e prazos</small></span><b aria-hidden="true">→</b></Link>
+                    <Link to="/clientes" className="dashboard-atalho"><span className="dashboard-atalho-icone dashboard-atalho-icone--green">♙</span><span><strong>Clientes</strong><small>Pesquisar os cadastros disponíveis</small></span><b aria-hidden="true">→</b></Link>
+                    <Link to="/projetos" className="dashboard-atalho"><span className="dashboard-atalho-icone dashboard-atalho-icone--purple">▱</span><span><strong>Projetos</strong><small>Acompanhar iniciativas e ordens vinculadas</small></span><b aria-hidden="true">→</b></Link>
+                </div>
             </section>
         </main>
     );

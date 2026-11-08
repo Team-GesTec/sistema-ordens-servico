@@ -1,4 +1,7 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
+import FilterDrawer from "../components/common/FilterDrawer";
+import Pagination from "../components/common/Pagination";
+import usePaginatedList from "../hooks/usePaginatedList";
 import { Link, useSearchParams } from "react-router-dom";
 import { ApiError } from "../services/api";
 import { getStoredUser } from "../services/auth";
@@ -7,19 +10,14 @@ import { funcionarioService } from "../services/funcionario";
 import DepartamentoDetalhesModal from "../components/departamentos/DepartamentoDetalhesModal";
 import type { Departamento, Funcionario, VisaoEquipe } from "../types/api";
 
-import "../styles/variaveis.css";
-import "../styles/global.css";
-import "../styles/layout.css";
-import "../styles/sidebar.css";
-import "../styles/darkmode.css";
-import "../styles/filters.css";
-import "../styles/forms.css";
-import "../styles/projetos.css";
-import "../styles/equipes.css";
 
 function mensagemErro(error: unknown, fallback: string): string {
     if (error instanceof ApiError) return error.message;
     return error instanceof Error && error.message ? error.message : fallback;
+}
+
+function iniciais(nome: string): string {
+    return nome.trim().split(/\s+/).slice(0, 2).map((parte) => parte[0]?.toLocaleUpperCase("pt-BR") ?? "").join("") || "?";
 }
 
 export default function Departamentos() {
@@ -28,10 +26,10 @@ export default function Departamentos() {
     const modoVisualizacao = searchParams.has("visualizar") && Number.isSafeInteger(departamentoVisualizadoId) && departamentoVisualizadoId > 0;
     const usuario = getStoredUser();
     const podeGerenciar = usuario?.tipo === "gestor";
-
     const [departamentos, setDepartamentos] = useState<Departamento[]>([]);
     const [departamentoSelecionado, setDepartamentoSelecionado] = useState<Departamento | null>(null);
     const [visaoDetalhe, setVisaoDetalhe] = useState<VisaoEquipe | null>(null);
+    const [resumosDepartamentos, setResumosDepartamentos] = useState<Record<number, VisaoEquipe | null>>({});
     const [carregandoDetalhe, setCarregandoDetalhe] = useState(false);
     const [erroDetalhe, setErroDetalhe] = useState<string | null>(null);
     const [busca, setBusca] = useState("");
@@ -47,6 +45,12 @@ export default function Departamentos() {
     const [responsavelCarregado, setResponsavelCarregado] = useState(false);
     const [erro, setErro] = useState<string | null>(null);
     const [mensagem, setMensagem] = useState<string | null>(null);
+
+    const departamentosComResponsavel = departamentos.filter((item) => item.responsavel_id !== null).length;
+    const departamentosSemResponsavel = departamentos.length - departamentosComResponsavel;
+    const percentualComResponsavel = departamentos.length > 0
+        ? `${Math.round((departamentosComResponsavel / departamentos.length) * 100)}%`
+        : "—";
 
     const carregarDepartamentos = useCallback(async () => {
         setCarregando(true);
@@ -72,6 +76,35 @@ export default function Departamentos() {
         }).sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
     }, [departamentos, busca, modoVisualizacao, departamentoVisualizadoId]);
 
+    const paginacaoDepartamentos = usePaginatedList(departamentosExibidos, 10);
+    const idsPaginaDepartamentos = paginacaoDepartamentos.pageItems.map((item) => item.id).join(",");
+
+    // Reutiliza o endpoint de visão da equipe para exibir somente vínculos reais nos cards.
+    useEffect(() => {
+        const ids = idsPaginaDepartamentos ? idsPaginaDepartamentos.split(",").map(Number) : [];
+        const pendentes = ids
+            .filter((id) => !Object.prototype.hasOwnProperty.call(resumosDepartamentos, id))
+            .map((id) => departamentos.find((item) => item.id === id))
+            .filter((item): item is Departamento => item !== undefined);
+        if (pendentes.length === 0) return;
+
+        let vigente = true;
+        void Promise.all(pendentes.map(async (item): Promise<[number, VisaoEquipe | null]> => {
+            try {
+                return [item.id, await departamentoService.buscarEquipe(item.id)];
+            } catch {
+                return [item.id, null];
+            }
+        })).then((resultados) => {
+            if (!vigente) return;
+            const novosResumos = resultados.reduce<Record<number, VisaoEquipe | null>>((acumulados, [id, visao]) => {
+                acumulados[id] = visao;
+                return acumulados;
+            }, {});
+            setResumosDepartamentos((atuais) => ({ ...atuais, ...novosResumos }));
+        });
+        return () => { vigente = false; };
+    }, [idsPaginaDepartamentos, departamentos, resumosDepartamentos]);
     const departamentoSelecionadoId = departamentoSelecionado?.id ?? null;
 
     useEffect(() => {
@@ -200,32 +233,48 @@ export default function Departamentos() {
     return (
         <div className="layout">
             <main className="main">
-                <div className="container projetos-container">
-                    <header className="projetos-page-header">
+                <div className="container projetos-container gestec-page-content">
+                    <header className="projetos-page-header page-heading">
                         <div>
-                            <p className="projetos-eyebrow">GESTÃO OPERACIONAL</p>
-                            <h1>{modoVisualizacao ? "Departamento" : "Equipes e departamentos"}</h1>
-                            <p className="projetos-subtitle">Consulte departamentos, integrantes, projetos e ordens de serviço relacionados, respeitando o escopo da sua conta.</p>
+                            <p className="projetos-eyebrow eyebrow">ESTRUTURA ORGANIZACIONAL</p>
+                            <h1>{modoVisualizacao ? "Departamento" : "Departamentos"}</h1>
+                            <p className="projetos-subtitle">Organize a estrutura da empresa e consulte os responsáveis, integrantes e ordens relacionadas dentro do seu escopo autorizado.</p>
                         </div>
-                        {modoVisualizacao ? <Link to="/departamentos" className="projeto-btn-secondary">Voltar à lista</Link> : podeGerenciar && <button type="button" className="projeto-btn-primary" onClick={abrirCadastro}>+ Novo departamento</button>}
+                        <div className="heading-actions">
+                            {modoVisualizacao ? <Link to="/departamentos" className="projeto-btn-secondary btn btn-secondary">Voltar à lista</Link> : podeGerenciar && <button type="button" className="projeto-btn-primary btn btn-primary" onClick={abrirCadastro}>＋ Novo departamento</button>}
+                        </div>
                     </header>
 
                     {mensagem && <div className="projetos-feedback projetos-feedback--success" role="status">{mensagem}</div>}
                     {erro && !modalAberto && <div className="projetos-feedback projetos-feedback--error" role="alert">{erro}</div>}
 
+                    {!modoVisualizacao && <section className="gestec-kpi-grid" aria-label="Indicadores de departamentos">
+                        <article className="gestec-kpi-card"><span className="gestec-kpi-label">Departamentos</span><strong>{departamentos.length}</strong><small>Total carregado pela API</small><span className="gestec-kpi-icon">▦</span></article>
+                        <article className="gestec-kpi-card"><span className="gestec-kpi-label">Com responsável</span><strong>{departamentosComResponsavel}</strong><small>Responsável vinculado</small><span className="gestec-kpi-icon gestec-kpi-icon--green">✓</span></article>
+                        <article className="gestec-kpi-card"><span className="gestec-kpi-label">Sem responsável</span><strong>{departamentosSemResponsavel}</strong><small>Precisam de atribuição</small><span className="gestec-kpi-icon gestec-kpi-icon--amber">◷</span></article>
+                        <article className="gestec-kpi-card"><span className="gestec-kpi-label">Com responsável</span><strong>{percentualComResponsavel}</strong><small>Percentual da estrutura cadastrada</small><span className="gestec-kpi-icon gestec-kpi-icon--purple">%</span></article>
+                    </section>}
+
                     {!modoVisualizacao && (
-                        <section className="projetos-toolbar" aria-label="Pesquisa e filtros de departamentos">
+                        <section className="projetos-toolbar gestec-search-toolbar" aria-label="Pesquisa e filtros de departamentos">
+                            <div className="gestec-search-toolbar-row departamentos-search-toolbar-row">
                             <div className="projetos-search-wrap">
                                 <label htmlFor="departamentos-busca">Pesquisar departamentos</label>
-                                <input id="departamentos-busca" className="projetos-search" type="search" value={busca} onChange={(event) => setBusca(event.target.value)} placeholder="Nome ou número do departamento..." />
+                                <input id="departamentos-busca" className="projetos-search" type="search" value={busca} onChange={(event) => { setBusca(event.target.value); paginacaoDepartamentos.setPage(1); }} placeholder="Nome ou número do departamento..." />
                             </div>
-                            <span className="projeto-count-badge">{departamentosExibidos.length} departamento(s)</span>
+                            <FilterDrawer activeCount={incluirHistorico ? 1 : 0} onClear={() => setIncluirHistorico(false)}>
+                                <label className="gestec-filter-toggle">
+                                    <span><strong>Incluir histórico/inativos</strong><small>Usado para consultar detalhes do departamento no escopo permitido.</small></span>
+                                    <input type="checkbox" checked={incluirHistorico} onChange={(event) => alternarHistorico(event.target.checked)} />
+                                    <span className="gestec-toggle-track" aria-hidden="true"><span /></span>
+                                </label>
+                            </FilterDrawer>
+                            </div>
                         </section>
                     )}
 
                     <div className="projetos-list-header">
                         <div><h2>{modoVisualizacao ? "Departamento selecionado" : "Departamentos cadastrados"}</h2><p>{departamentosExibidos.length} resultado(s)</p></div>
-                        <label className="equipes-history-toggle"><input type="checkbox" checked={incluirHistorico} onChange={(event) => alternarHistorico(event.target.checked)} /> Incluir históricos/inativos do meu escopo</label>
                     </div>
 
                     {carregando ? (
@@ -234,28 +283,86 @@ export default function Departamentos() {
                         <div className="projetos-empty"><strong>{modoVisualizacao ? "Departamento não encontrado" : "Nenhum departamento encontrado"}</strong><p>{modoVisualizacao ? "O departamento não existe ou não está no escopo autorizado." : "Ajuste a pesquisa ou cadastre um departamento."}</p></div>
                     ) : (
                         <div className="projetos-grid equipes-integradas-grid">
-                            {departamentosExibidos.map((departamento) => (
-                                <article key={departamento.id} className="projeto-card equipes-integradas-card">
-                                    <header className="projeto-card-header">
-                                        <span className="projeto-id">DEPARTAMENTO #{departamento.id}</span>
-                                        <span className="projeto-status">Estrutura operacional</span>
-                                    </header>
-                                    <button
-                                        type="button"
-                                        className="equipes-departamento-title"
-                                        onClick={() => abrirDetalhes(departamento)}
-                                        aria-haspopup="dialog"
-                                        aria-label={`Abrir detalhes do departamento ${departamento.nome}`}
-                                    >
-                                        {departamento.nome}
-                                    </button>
-                                    <p className="projeto-card-client">Responsável: {departamento.responsavel_id ? `Funcionário #${departamento.responsavel_id}` : "Não definido"}</p>
-                                    <div className="projeto-card-actions">
-                                        {podeGerenciar && <button type="button" className="projeto-btn-secondary" onClick={() => abrirEdicao(departamento)} disabled={salvando}>Editar</button>}
-                                    </div>
+                            {paginacaoDepartamentos.pageItems.map((departamento) => (
+                                <article
+                                    key={departamento.id}
+                                    className="projeto-card gestec-department-card gestec-clickable-card"
+                                    tabIndex={0}
+                                    aria-label={`Abrir detalhes do departamento ${departamento.nome}`}
+                                    onClick={() => abrirDetalhes(departamento)}
+                                    onKeyDown={(event) => {
+                                        if (event.target !== event.currentTarget) return;
+                                        if (event.key === "Enter" || event.key === " ") {
+                                            event.preventDefault();
+                                            abrirDetalhes(departamento);
+                                        }
+                                    }}
+                                >
+                                    {(() => {
+                                        const resumoSolicitado = Object.prototype.hasOwnProperty.call(resumosDepartamentos, departamento.id);
+                                        const resumo = resumosDepartamentos[departamento.id];
+                                        const membros = resumo?.funcionarios ?? [];
+                                        const lider = membros.find((item) => item.id === departamento.responsavel_id);
+                                        const quantidadeMembros = resumo ? membros.length : "—";
+                                        const quantidadeOrdens = resumo ? resumo.ordens_servico.length : "—";
+                                        return (
+                                            <>
+                                                <header className="gestec-department-card-top">
+                                                    <span className="gestec-department-mark" aria-hidden="true">{iniciais(departamento.nome)}</span>
+                                                    {podeGerenciar && (
+                                                        <button
+                                                            type="button"
+                                                            className="gestec-department-more"
+                                                            aria-label={`Editar departamento ${departamento.nome}`}
+                                                            title="Editar departamento"
+                                                            onClick={(event) => { event.stopPropagation(); abrirEdicao(departamento); }}
+                                                            disabled={salvando}
+                                                        >
+                                                            <i className="fa-solid fa-ellipsis" aria-hidden="true" />
+                                                        </button>
+                                                    )}
+                                                </header>
+                                                <div className="gestec-department-heading">
+                                                    <h3>{departamento.nome}</h3>
+                                                    <p>Estrutura operacional</p>
+                                                </div>
+                                                <section className="gestec-department-leader" aria-label="Líder da equipe">
+                                                    <span className="gestec-department-label">Líder da equipe</span>
+                                                    <div className="gestec-department-leader-person">
+                                                        {lider ? <span className="gestec-department-leader-avatar" aria-hidden="true">{iniciais(lider.nome)}</span> : null}
+                                                        <strong>{lider?.nome ?? (departamento.responsavel_id ? `Funcionário #${departamento.responsavel_id}` : "Não definido")}</strong>
+                                                    </div>
+                                                </section>
+                                                <div className="gestec-department-stats">
+                                                    <div><strong>{quantidadeMembros}</strong><span>membros</span></div>
+                                                    <div><strong>{quantidadeOrdens}</strong><span>ordens vinculadas</span></div>
+                                                </div>
+                                                <footer className="gestec-department-card-footer">
+                                                    <div
+                                                        className="gestec-department-avatars"
+                                                        aria-label={!resumoSolicitado ? "Carregando vínculos" : resumo ? `${membros.length} membros vinculados` : "Vínculos não disponíveis"}
+                                                    >
+                                                        {membros.slice(0, 3).map((membro, index) => (
+                                                            <span key={membro.id} className={`gestec-department-avatar gestec-department-avatar--${index + 1}`} title={membro.nome}>{iniciais(membro.nome)}</span>
+                                                        ))}
+                                                        {membros.length > 3 && <span className="gestec-department-avatar gestec-department-avatar--more">+{membros.length - 3}</span>}
+                                                        {!resumoSolicitado && <span className="gestec-department-avatar gestec-department-avatar--loading" aria-label="Carregando membros">…</span>}
+                                                        {resumoSolicitado && !resumo && <span className="gestec-department-avatar gestec-department-avatar--unavailable" title="Não foi possível carregar os vínculos">—</span>}
+                                                    </div>
+                                                    <button type="button" className="gestec-department-orders-link" onClick={(event) => { event.stopPropagation(); abrirDetalhes(departamento); }}>
+                                                        Ver ordens <span aria-hidden="true">→</span>
+                                                    </button>
+                                                </footer>
+                                            </>
+                                        );
+                                    })()}
                                 </article>
                             ))}
                         </div>
+                    )}
+
+                    {!carregando && !modoVisualizacao && departamentosExibidos.length > 0 && (
+                        <Pagination page={paginacaoDepartamentos.page} totalPages={paginacaoDepartamentos.totalPages} totalItems={departamentosExibidos.length} pageSize={10} onPageChange={paginacaoDepartamentos.setPage} />
                     )}
 
                     <p className="equipes-note">Departamentos são a estrutura de equipe existente. A inativação permanente não está disponível porque o schema atual não tem estado persistente para departamentos; nenhuma exclusão física, reativação ou estado simulado é oferecido.</p>

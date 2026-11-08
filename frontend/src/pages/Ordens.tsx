@@ -1,18 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { calcularDiasUteisRestantes } from "../utils/filtroPrazo";
-import { useSearchParams } from "react-router-dom";
-import "../styles/variaveis.css";
-import "../styles/global.css";
-import "../styles/layout.css";
-import "../styles/sidebar.css";
-import "../styles/darkmode.css";
-import "../styles/forms.css";
-import "../styles/autocomplete.css";
-import "../styles/details.css";
-import "../styles/ordens.css";
-import "../styles/projetos.css";
-
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import OrdensToolbar from "../components/ordens/OrdensToolbar";
+import Pagination from "../components/common/Pagination";
+import usePaginatedList from "../hooks/usePaginatedList";
 import OrdemServicoAtivoModal from "../components/ordens/OrdemServicoAtivoModal";
 import OrdemServicoCard from "../components/ordens/OrdemServicoCard";
 import OrdemServicoDetalhesModal from "../components/ordens/OrdemServicoDetalhesModal";
@@ -23,6 +14,7 @@ import { useOrdens } from "../hooks/useOrdens";
 import { useAnexosOrdem } from "../hooks/useAnexosOrdem";
 
 import type { NivelCriticidade } from "../types/api";
+import { CRITICIDADE_LABELS, STATUS_LABELS, formatarDataOrdem, parseDataOrdem } from "../utils/ordemServicoUtils";
 
 type FiltroPrazo = "todos" | "proximos3" | "proximos5" | "proximos7";
 
@@ -43,10 +35,11 @@ function pesoCriticidade(
 
 function Ordens() {
     const ordens = useOrdens();
+    const navigate = useNavigate();
     const anexosOrdem = useAnexosOrdem(
         ordens.detalhesAbertos ? ordens.ordemSelecionada : null,
     );
-    const [visualizacao, setVisualizacao] = useState<TipoVisualizacaoOrdens>("cartoes");
+    const [visualizacao, setVisualizacao] = useState<TipoVisualizacaoOrdens>("tabela");
 
     const [filtroPrazo, setFiltroPrazo] = useState<FiltroPrazo>("todos");
 
@@ -98,8 +91,9 @@ function Ordens() {
             )
             .map((item) => item.ordem);
     }, [ordens.ordensFiltradas, filtroPrazo]);
+    const paginacaoOrdens = usePaginatedList(ordensExibidas, 10);
 
-    const [searchParams, setSearchParams] = useSearchParams();
+    const [searchParams] = useSearchParams();
     const idVisualizar = searchParams.get("visualizar");
     const idVisualizarProcessado = useRef<string | null>(null);
 
@@ -108,40 +102,34 @@ function Ordens() {
             idVisualizarProcessado.current = null;
             return;
         }
-        if (ordens.carregando || idVisualizarProcessado.current === idVisualizar) return;
-
+        if (idVisualizarProcessado.current === idVisualizar) return;
         idVisualizarProcessado.current = idVisualizar;
         const id = Number(idVisualizar);
         if (Number.isSafeInteger(id) && id > 0) {
-            void ordens.abrirDetalhesPorId(id);
+            navigate(`/ordens/${id}`, { replace: true });
         }
-
-        // Consome o parâmetro uma única vez sem criar uma nova entrada no histórico.
-        setSearchParams((atuais) => {
-            const proximos = new URLSearchParams(atuais);
-            proximos.delete("visualizar");
-            return proximos;
-        }, { replace: true });
-    }, [idVisualizar, ordens.carregando, ordens.abrirDetalhesPorId, setSearchParams]);
+    }, [idVisualizar, navigate]);
 
     const fonteAtual = ordens.mostrarInativas ? ordens.ordensInativas : ordens.ordens;
+    const inicioHoje = new Date();
+    inicioHoje.setHours(0, 0, 0, 0);
+    const ordensSlaEmRisco = fonteAtual.filter((item) => {
+        const prazo = parseDataOrdem(item.data_limite_sla);
+        return item.status !== "concluido" && !item.data_fim && prazo !== null && prazo.getTime() < inicioHoje.getTime();
+    }).length;
     const carregamentoAtual = ordens.carregando || (ordens.mostrarInativas && ordens.carregandoInativas);
 
     return (
         <div className="layout">
             <main className="main ordens-main">
-                <div className="container projetos-container ordens-container">
-                    <header className="projetos-page-header">
+                <div className="container projetos-container ordens-container gestec-page-content">
+                    <header className="projetos-page-header page-heading">
                         <div>
-                            <p className="projetos-eyebrow">GESTÃO DO SGOS</p>
-                            <h1>Ordens de Serviço</h1>
-                            <p className="projetos-subtitle">Acompanhe as ordens, prioridades, responsáveis e estados de atendimento.</p>
+                            <p className="projetos-eyebrow eyebrow">OPERAÇÃO</p>
+                            <h1>Ordens de serviço</h1>
+                            <p className="projetos-subtitle">Centralize solicitações, prioridades, responsáveis e prazos em um único lugar.</p>
                         </div>
-                        {ordens.podeCriar && (
-                            <button type="button" className="projeto-btn-primary" onClick={ordens.abrirCadastro}>
-                                + Nova ordem de serviço
-                            </button>
-                        )}
+                        <div className="heading-actions">{ordens.podeCriar && <button type="button" className="projeto-btn-primary btn btn-primary" onClick={ordens.abrirCadastro}>＋ Nova ordem de serviço</button>}</div>
                     </header>
 
                     {ordens.mensagem && (
@@ -150,34 +138,32 @@ function Ordens() {
                         </div>
                     )}
                     {ordens.erro && !ordens.formularioAberto && !ordens.detalhesAbertos && (
-                        <div className="projetos-feedback projetos-feedback--error" role="alert">
-                            {ordens.erro}
-                        </div>
+                        <div className="projetos-feedback projetos-feedback--error" role="alert">{ordens.erro}</div>
                     )}
+
+                    <section className="gestec-kpi-grid" aria-label="Indicadores de ordens de serviço">
+                        <article className="gestec-kpi-card"><span className="gestec-kpi-label">Total de ordens</span><strong>{fonteAtual.length}</strong><small>{ordens.mostrarInativas ? "Registros inativos" : "Ordens ativas"}</small><span className="gestec-kpi-icon">▤</span></article>
+                        <article className="gestec-kpi-card"><span className="gestec-kpi-label">Aguardando ação</span><strong>{fonteAtual.filter((item) => item.status === "aguardando").length}</strong><small>Conforme o status informado pela API</small><span className="gestec-kpi-icon gestec-kpi-icon--amber">◷</span></article>
+                        <article className="gestec-kpi-card"><span className="gestec-kpi-label">SLA em risco</span><strong>{ordensSlaEmRisco}</strong><small>Ordens abertas com prazo vencido</small><span className="gestec-kpi-icon gestec-kpi-icon--purple">⚑</span></article>
+                        <article className="gestec-kpi-card"><span className="gestec-kpi-label">Alta criticidade</span><strong>{fonteAtual.filter((item) => item.criticidade === "alto" || item.criticidade === "muito_alto" || item.criticidade === "urgente").length}</strong><small>Alta, muito alta ou urgente</small><span className="gestec-kpi-icon gestec-kpi-icon--purple">⚑</span></article>
+                    </section>
 
                     <OrdensToolbar
                         busca={ordens.busca}
-                        onBuscaChange={ordens.setBusca}
+                        onBuscaChange={(valor) => { ordens.setBusca(valor); paginacaoOrdens.setPage(1); }}
                         filtroStatus={ordens.filtroStatus}
-                        onFiltroStatusChange={ordens.setFiltroStatus}
+                        onFiltroStatusChange={(valor) => { ordens.setFiltroStatus(valor); paginacaoOrdens.setPage(1); }}
                         ordens={fonteAtual}
                         funcionarios={ordens.funcionariosConhecidos}
                         filtroResponsavelId={ordens.filtroResponsavelId}
-                        onFiltroResponsavelChange={ordens.setFiltroResponsavelId}
-                        onLimparFiltros={() => {
-                            ordens.setBusca("");
-                            ordens.setFiltroStatus("todos");
-                            ordens.setFiltroResponsavelId("todos");
-                        }}
-                        temFiltrosAplicados={Boolean(
-                            ordens.busca.trim() ||
-                            ordens.filtroStatus !== "todos" ||
-                            ordens.filtroResponsavelId !== "todos"
-                        )}
+                        onFiltroResponsavelChange={(valor) => { ordens.setFiltroResponsavelId(valor); paginacaoOrdens.setPage(1); }}
                         podeGerenciar={ordens.podeGerenciar}
                         mostrarInativas={ordens.mostrarInativas}
                         carregandoInativas={ordens.carregandoInativas}
+                        filtroPrazo={filtroPrazo}
+                        onFiltroPrazoChange={(valor) => { setFiltroPrazo(valor); paginacaoOrdens.setPage(1); }}
                         onAlternarInativas={() => {
+                            paginacaoOrdens.setPage(1);
                             if (ordens.mostrarInativas) {
                                 ordens.setMostrarInativas(false);
                             } else {
@@ -192,8 +178,9 @@ function Ordens() {
                                 status={ordens.filtroStatus}
                                 responsavelId={ordens.filtroResponsavelId}
                                 visualizacao={visualizacao}
-                                        onAplicar={(salva) => {
+                                onAplicar={(salva) => {
                                     ordens.setBusca(salva.busca);
+                                    paginacaoOrdens.setPage(1);
                                     ordens.setFiltroStatus(salva.status);
                                     ordens.setFiltroResponsavelId(salva.responsavelId);
                                     setVisualizacao(salva.visualizacao);
@@ -209,31 +196,8 @@ function Ordens() {
                             <p>{ordensExibidas.length} resultado(s)</p>
                         </div>
                         <div className="ordens-list-header-actions">
-                        <div className="ordens-prazo-filtro">
-                            <label htmlFor="filtro-prazo">Prazo:</label>
-
-                            <select
-                                id="filtro-prazo"
-                                value={filtroPrazo}
-                                onChange={(evento) =>
-                                    setFiltroPrazo(
-                                        evento.target.value as FiltroPrazo,
-                                    )
-                                }
-                            >
-                                <option value="todos">Todos os prazos</option>
-                                <option value="proximos3">
-                                    1 a 3 dias úteis
-                                </option>
-                                <option value="proximos5">
-                                    1 a 5 dias úteis
-                                </option>
-                                <option value="proximos7">
-                                    1 a 7 dias úteis
-                                </option>
-                            </select>
-                            </div>
                             <div className="ordens-view-switch" role="group" aria-label="Visualização das ordens de serviço">
+                                <button type="button" className={visualizacao === "tabela" ? "active" : ""} aria-pressed={visualizacao === "tabela"} onClick={() => setVisualizacao("tabela")}>Tabela</button>
                                 <button type="button" className={visualizacao === "cartoes" ? "active" : ""} aria-pressed={visualizacao === "cartoes"} onClick={() => setVisualizacao("cartoes")}>Cartões</button>
                                 <button type="button" className={visualizacao === "kanban" ? "active" : ""} aria-pressed={visualizacao === "kanban"} onClick={() => setVisualizacao("kanban")}>Kanban</button>
                             </div>
@@ -259,23 +223,53 @@ function Ordens() {
                                     ? "Tente selecionar outro intervalo de prazo para visualizar mais ordens."
                                     : "Altere a pesquisa ou os filtros para ver outros resultados."}</p>
                         </div>
+                    ) : visualizacao === "tabela" ? (
+                        <section className="card table-card gestec-data-card" aria-labelledby="ordens-table-heading">
+                            <div className="gestec-table-heading"><div><h2 id="ordens-table-heading">{ordens.mostrarInativas ? "Ordens inativas" : "Ordens de serviço"}</h2><p>Solicitação, responsável, status, prioridade e prazo da O.S.</p></div><span className="gestec-record-count">{ordensExibidas.length} registro(s)</span></div>
+                            <div className="table-scroll gestec-table-scroll"><table className="table gestec-data-table gestec-orders-table">
+                                <thead><tr><th>OS / identificação</th><th>Solicitação</th><th>Responsável</th><th>Status</th><th>Prioridade</th><th>Prazo / SLA</th><th className="gestec-actions-cell">Ações</th></tr></thead>
+                                <tbody>{paginacaoOrdens.pageItems.map((ordem) => {
+                                    const cliente = ordens.clientes.find((item) => item.id === ordem.cliente_id);
+                                    const responsavel = ordens.funcionariosConhecidos.find((item) => item.id === ordem.responsavel_id);
+                                    const prazo = parseDataOrdem(ordem.data_limite_sla);
+                                    const hoje = new Date();
+                                    hoje.setHours(0, 0, 0, 0);
+                                    const atrasada = Boolean(prazo && prazo.getTime() < hoje.getTime() && ordem.status !== "concluido");
+                                    const prioridade = ordem.criticidade ? CRITICIDADE_LABELS[ordem.criticidade] : "Não definida";
+                                    return <tr key={ordem.id}>
+                                        <td><div className="gestec-order-title"><span><Link className="gestec-table-link" to={`/ordens/${ordem.id}`}>OS #{ordem.id}</Link><small>{formatarDataOrdem(ordem.data_criacao)} · {ordem.tipo === "instalacao" ? "Instalação" : "Manutenção"}</small></span></div></td>
+                                        <td><strong className="gestec-dashboard-order-title">{ordem.titulo}</strong><small className="gestec-cell-subtitle">{cliente ? (cliente.nome || cliente.razao_social || `Cliente #${cliente.id}`) : ordem.cliente_id === null ? "Não associado" : `Cliente #${ordem.cliente_id}`}</small></td>
+                                        <td>{responsavel ? responsavel.nome || `Funcionário #${responsavel.id}` : ordem.responsavel_id === null ? "Não atribuído" : `Funcionário #${ordem.responsavel_id}`}</td>
+                                        <td><span className={`gestec-status-pill gestec-os-status status-${ordem.status}`}><i aria-hidden="true" />{STATUS_LABELS[ordem.status]}</span>{!ordem.ativo && <small className="gestec-inline-note">Inativa</small>}</td>
+                                        <td><span className={`gestec-priority-pill priority-${ordem.criticidade ?? "indefinida"}`}>{prioridade}</span></td>
+                                        <td><span className={atrasada ? "gestec-deadline is-late" : "gestec-deadline"}>{formatarDataOrdem(ordem.data_limite_sla)}{atrasada && <small>Vencida</small>}</span></td>
+                                        <td className="gestec-actions-cell"><div className="gestec-row-actions">
+                                            <button type="button" className="gestec-icon-action" onClick={() => navigate(`/ordens/${ordem.id}`)} aria-label={`Ver detalhes da O.S. ${ordem.id}`} title="Ver detalhes">◉</button>
+                                            {ordens.podeOperarDepartamento && ordem.ativo && ordem.status !== "concluido" && ordem.status !== "bloqueado" && <button type="button" className="gestec-icon-action" onClick={() => ordens.iniciarEdicao(ordem)} disabled={ordens.salvando} aria-label={`Editar O.S. ${ordem.id}`} title="Editar">✎</button>}
+                                            {ordens.podeGerenciar && <button type="button" className="gestec-icon-action is-danger" onClick={() => ordens.solicitarAlteracaoAtivo(ordem, ordem.ativo ? "inativar" : "reativar")} disabled={ordens.inativandoId !== null} aria-label={`${ordem.ativo ? "Inativar" : "Reativar"} O.S. ${ordem.id}`} title={ordem.ativo ? "Inativar" : "Reativar"}>{ordem.ativo ? "−" : "↻"}</button>}
+                                        </div></td>
+                                    </tr>;
+                                })}</tbody>
+                            </table></div>
+                            <footer className="gestec-table-footer"><span>Exibindo {paginacaoOrdens.pageItems.length} de {ordensExibidas.length} O.S.</span><span>Dados apresentados conforme o escopo e as permissões da sessão atual.</span></footer>
+                        </section>
                     ) : visualizacao === "kanban" ? (
                         <OrdemServicoKanban
-                            ordens={ordensExibidas}
+                            ordens={paginacaoOrdens.pageItems}
                             clientes={ordens.clientes}
                             departamentos={ordens.departamentos}
                             funcionarios={ordens.funcionariosConhecidos}
                             podeEditar={ordens.podeOperarDepartamento}
                             bloqueado={ordens.salvando || ordens.alterandoStatusId !== null}
                             podeMoverParaStatus={ordens.podeMoverOrdemParaStatus}
-                            onAbrir={(selecionada) => void ordens.abrirDetalhes(selecionada)}
+                            onAbrir={(selecionada) => navigate(`/ordens/${selecionada.id}`)}
                             onEditar={ordens.iniciarEdicao}
                             onAlterarAtivo={ordens.solicitarAlteracaoAtivo}
                             onMoverStatus={ordens.moverOrdemKanban}
                         />
                     ) : (
                         <div className="projetos-grid ordens-grid">
-                            {ordensExibidas.map((ordem) => (
+                            {paginacaoOrdens.pageItems.map((ordem) => (
                                 <OrdemServicoCard
                                     key={ordem.id}
                                     ordem={ordem}
@@ -285,11 +279,14 @@ function Ordens() {
                                     funcionarios={ordens.funcionariosConhecidos}
                                     podeEditar={ordens.podeOperarDepartamento}
                                     bloqueado={ordens.salvando || ordens.alterandoStatusId === ordem.id}
-                                    onAbrir={(selecionada) => void ordens.abrirDetalhes(selecionada)}
+                                    onAbrir={(selecionada) => navigate(`/ordens/${selecionada.id}`)}
                                     onEditar={ordens.iniciarEdicao}
                                 />
                             ))}
                         </div>
+                    )}
+                    {!carregamentoAtual && ordensExibidas.length > 0 && (
+                        <Pagination page={paginacaoOrdens.page} totalPages={paginacaoOrdens.totalPages} totalItems={ordensExibidas.length} pageSize={10} onPageChange={paginacaoOrdens.setPage} />
                     )}
                 </div>
             </main>

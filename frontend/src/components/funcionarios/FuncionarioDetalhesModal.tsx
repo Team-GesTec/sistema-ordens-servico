@@ -1,4 +1,5 @@
 import type { Departamento, Funcionario } from "../../types/api";
+import { getGestecAvatarTone, getGestecInitials } from "../../utils/gestecAvatar";
 
 interface FuncionarioDetalhesModalProps {
     funcionario: Funcionario | null;
@@ -44,7 +45,7 @@ export default function FuncionarioDetalhesModal({
                     {funcionario && !carregando && (
                         <>
                             <div className="funcionario-detail-identity">
-                                <span className="funcionario-avatar funcionario-avatar--large" aria-hidden="true">{funcionario.nome.trim().split(/\s+/).filter(Boolean).slice(0, 2).map((parte) => parte[0]).join("").toLocaleUpperCase("pt-BR") || "F"}</span>
+                                <span className={`funcionario-avatar funcionario-avatar--large gestec-avatar--${getGestecAvatarTone(Math.max(0, funcionario.id - 1))}`} aria-hidden="true">{getGestecInitials(funcionario.nome, "FU")}</span>
                                 <div>
                                     <strong>{funcionario.nome}</strong>
                                     <span>{funcionario.usuario}</span>

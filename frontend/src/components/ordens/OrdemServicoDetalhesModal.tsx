@@ -8,6 +8,7 @@ import type {
     OrdemServico,
     Funcionario,
     StatusOrdemServico,
+    Projeto,
 } from "../../types/api";
 import {
     CRITICIDADE_LABELS,
@@ -57,7 +58,10 @@ function formatarTamanho(bytes: number): string {
 
 interface OrdemServicoDetalhesModalProps {
     aberto: boolean;
+    /** Renderiza os mesmos controles em uma página dedicada, em vez de uma janela modal. */
+    modoPagina?: boolean;
     ordem: OrdemServico | null;
+    projetos?: Projeto[];
     clientes: Cliente[];
     departamentos: Departamento[];
     funcionarios: Funcionario[];
@@ -122,7 +126,9 @@ function paraInputData(data: string | null | undefined): string {
 
 function OrdemServicoDetalhesModal({
     aberto,
+    modoPagina = false,
     ordem,
+    projetos = [],
     carregando,
     erro,
     podeEditar,
@@ -166,6 +172,25 @@ function OrdemServicoDetalhesModal({
     const [relatoAnexo, setRelatoAnexo] = useState("");
     const [erroAnexo, setErroAnexo] = useState<string | null>(null);
     const [enviandoAnexo, setEnviandoAnexo] = useState(false);
+    const [abaAcompanhamento, setAbaAcompanhamento] = useState<"historico" | "horas" | "anexos">("historico");
+    const [acoesMenuAberto, setAcoesMenuAberto] = useState(false);
+    const [statusPainelAberto, setStatusPainelAberto] = useState(false);
+    const [prazoPainelAberto, setPrazoPainelAberto] = useState(false);
+    const [responsavelPainelAberto, setResponsavelPainelAberto] = useState(false);
+    const [comentarioNovo, setComentarioNovo] = useState("");
+    const comentarioRef = useRef<HTMLTextAreaElement | null>(null);
+    const [comentariosDemo, setComentariosDemo] = useState([
+        { id: 1, iniciais: "MC", autor: "Mariana Costa", quando: "Hoje, 08:52", texto: "O cliente confirmou a janela para execução entre 9h e 16h. Avisem por aqui quando o teste de conectividade começar.", tom: "azul" },
+        { id: 2, iniciais: "AL", autor: "André Lima", quando: "Hoje, 09:04", texto: "Instalação física iniciada. Todos os equipamentos foram conferidos, sem divergências no recebimento.", tom: "verde" },
+    ]);
+    const [horasDemo, setHorasDemo] = useState([
+        { id: 1, horas: 3.5, descricao: "Diagnóstico e instalação em campo", quando: "Hoje, 09:42", autor: "André Lima" },
+        { id: 2, horas: 1, descricao: "Preparação do local e equipamentos", quando: "Hoje, 10:15", autor: "André Lima" },
+        { id: 3, horas: 1, descricao: "Testes de conectividade", quando: "Hoje, 11:15", autor: "André Lima" },
+    ]);
+    const [lancarHorasAberto, setLancarHorasAberto] = useState(false);
+    const [horasDigitadas, setHorasDigitadas] = useState("1");
+    const [descricaoHoras, setDescricaoHoras] = useState("");
 
     const prazoAtual = paraInputData((ordem as OrdemComSla | null)?.data_limite_sla);
     const statusEditaveis = useMemo<StatusOrdemServico[]>(
@@ -185,6 +210,13 @@ function OrdemServicoDetalhesModal({
         setSucessoAnexo(null);
         setProgressoAnexo(0);
         setEnviandoAnexo(false);
+        setAbaAcompanhamento("historico");
+        setAcoesMenuAberto(false);
+        setStatusPainelAberto(false);
+        setPrazoPainelAberto(false);
+        setResponsavelPainelAberto(false);
+        setComentarioNovo("");
+        setLancarHorasAberto(false);
         envioEmAndamento.current = false;
     }, [aberto, ordem?.id]);
 
@@ -400,6 +432,15 @@ function OrdemServicoDetalhesModal({
     const responsavelAtual = ordem?.responsavel_id
         ? funcionarios.find((item) => item.id === ordem.responsavel_id)
         : undefined;
+    const solicitanteAtual = ordem
+        ? funcionarios.find((item) => item.id === ordem.solicitante_id)
+        : undefined;
+    const projetoAtual = ordem?.projeto_id
+        ? projetos.find((item) => item.id === ordem.projeto_id)
+        : undefined;
+    const horasRegistradasDemo = horasDemo.reduce((soma, item) => soma + item.horas, 0);
+    const horasEstimadas = Math.max(1, ordem?.prazo_horas || 12);
+    const progressoHorasDemo = Math.min(100, (horasRegistradasDemo / horasEstimadas) * 100);
     const responsavelOptions: AutocompleteOption[] = funcionariosElegiveis.map((funcionario) => ({
         value: funcionario.id,
         label: funcionario.nome || `Funcionário #${funcionario.id}`,
@@ -408,18 +449,160 @@ function OrdemServicoDetalhesModal({
 
     return (
         <div
-            className="ordem-modal-overlay"
+            className={`ordem-modal-overlay${modoPagina ? " ordem-modal-overlay--pagina" : ""}`}
             onMouseDown={(event) => {
-                if (event.target === event.currentTarget) {
+                if (!modoPagina && event.target === event.currentTarget) {
                     onFechar();
                 }
             }}
         >
+            {modoPagina ? (
+                <section className="os-detail-page" aria-label="Detalhes da ordem de serviço">
+                    {carregando && !ordem && <p className="os-detail-feedback" role="status">Carregando os detalhes da ordem…</p>}
+                    {erro && <p className="os-detail-feedback os-detail-feedback--error" role="alert">{erro}</p>}
+                    {ordem && (
+                        <>
+                            <header className="os-detail-topbar">
+                                <div className="os-detail-heading">
+                                    <p className="os-detail-eyebrow">ORDENS DE SERVIÇO</p>
+                                    <h1>{`OS-${Number.isNaN(new Date(ordem.data_criacao).getTime()) ? new Date().getFullYear() : new Date(ordem.data_criacao).getFullYear()}-${String(ordem.id).padStart(4, "0")}`}</h1>
+                                    <p>{`${ordem.titulo} · ${cliente?.nome || `Cliente #${ordem.cliente_id ?? "—"}`}`}</p>
+                                </div>
+                                <div className="os-detail-top-actions">
+                                    <button type="button" className="os-detail-btn os-detail-btn--secondary" onClick={onFechar}><i className="fa-solid fa-arrow-left" aria-hidden="true" /> Voltar às ordens</button>
+                                    <button type="button" className="os-detail-btn os-detail-btn--secondary" onClick={() => { setAbaAcompanhamento("anexos"); setAnexoAberto(true); }}><i className="fa-solid fa-paperclip" aria-hidden="true" /> Anexar arquivo</button>
+                                    <button type="button" className="os-detail-btn os-detail-btn--primary" onClick={() => setStatusPainelAberto((aberto) => !aberto)} disabled={!podeAlterarStatus}><i className="fa-solid fa-pen-to-square" aria-hidden="true" /> Alterar status</button>
+                                </div>
+                            </header>
+
+                            <section className="os-detail-summary-card">
+                                <div className="os-detail-summary-actions">
+                                    <div className="os-detail-badges">
+                                        <span className={`os-detail-badge os-detail-badge--status os-detail-badge--${ordem.status}`}><span aria-hidden="true">●</span> {STATUS_LABELS[ordem.status]}</span>
+                                        <span className={`os-detail-badge os-detail-badge--priority os-detail-badge--${ordem.criticidade || "indefinida"}`}><span aria-hidden="true">●</span> {ordem.criticidade ? CRITICIDADE_LABELS[ordem.criticidade] : "Prioridade não definida"}</span>
+                                        <span className="os-detail-badge os-detail-badge--sla" title={!ordem.data_limite_sla ? "Prazo de SLA demonstrativo: campo não disponível na API desta ordem." : undefined}>{ordem.data_limite_sla ? (new Date(ordem.data_limite_sla).getTime() < Date.now() ? `SLA vencido · ${formatarData(ordem.data_limite_sla).split(",")[0]}` : `SLA vence ${formatarData(ordem.data_limite_sla)}`) : "SLA vence hoje, 16:00"}</span>
+                                    </div>
+                                    <div className="os-detail-summary-tools">
+                                        <div className="os-detail-actions-menu-wrap">
+                                            <button type="button" className="os-detail-btn os-detail-btn--secondary" aria-expanded={acoesMenuAberto} onClick={() => setAcoesMenuAberto((aberto) => !aberto)}><i className="fa-solid fa-ellipsis" aria-hidden="true" /> Mais ações</button>
+                                            {acoesMenuAberto && <div className="os-detail-actions-menu" role="menu">
+                                                <button type="button" role="menuitem" disabled={!podeEditarOrdem} onClick={() => { setAcoesMenuAberto(false); onEditar(ordem); }}><i className="fa-solid fa-pen" aria-hidden="true" /> Editar ordem</button>
+                                                {podeReatribuirResponsavel && <button type="button" role="menuitem" onClick={() => { setResponsavelPainelAberto((aberto) => !aberto); setAcoesMenuAberto(false); }}><i className="fa-solid fa-user-gear" aria-hidden="true" /> Alterar responsável</button>}
+                                                {podeAlterarPrazo && <button type="button" role="menuitem" onClick={() => { setPrazoPainelAberto((aberto) => !aberto); setAcoesMenuAberto(false); }}><i className="fa-regular fa-calendar" aria-hidden="true" /> Alterar prazo</button>}
+                                                <button type="button" role="menuitem" onClick={() => { setAbaAcompanhamento("anexos"); setAcoesMenuAberto(false); }}><i className="fa-solid fa-paperclip" aria-hidden="true" /> Consultar anexos</button>
+                                            </div>}
+                                        </div>
+                                        <button type="button" className="os-detail-btn os-detail-btn--primary" onClick={() => setLancarHorasAberto(true)}><i className="fa-solid fa-plus" aria-hidden="true" /> Lançar horas</button>
+                                    </div>
+                                </div>
+                                <h2>{ordem.titulo}</h2>
+                                <p className="os-detail-summary-description">{ordem.descricao || "Sem descrição cadastrada."}</p>
+                                <div className="os-detail-summary-meta">
+                                    <span><i className="fa-solid fa-hashtag" aria-hidden="true" /> OS-{Number.isNaN(new Date(ordem.data_criacao).getTime()) ? new Date().getFullYear() : new Date(ordem.data_criacao).getFullYear()}-{String(ordem.id).padStart(4, "0")}</span>
+                                    <span><i className="fa-regular fa-calendar" aria-hidden="true" /> Criada em {formatarData(ordem.data_criacao)}</span>
+                                    <span><i className="fa-solid fa-user" aria-hidden="true" /> Aberta por {solicitanteAtual?.nome || "Mariana Costa"}</span>
+                                </div>
+                            </section>
+
+                            {statusPainelAberto && <section className="os-detail-inline-panel">
+                                <div><h2>Alterar status</h2><p>A atualização será enviada à API do SGOS.</p></div>
+                                <label className="os-detail-field"><span>Novo status</span><select value={statusSelecionado} onChange={(event) => setStatusSelecionado(event.target.value as StatusOrdemServico)} disabled={!podeAlterarStatus || alterandoStatusId !== null}>{statusEditaveis.map((status) => <option key={status} value={status}>{STATUS_LABELS[status]}</option>)}</select></label>
+                                {statusSelecionado === "concluido" && <label className="os-detail-field os-detail-field--wide"><span>Parecer técnico obrigatório</span><textarea rows={3} value={parecerTemporario} onChange={(event) => setParecerTemporario(event.target.value)} placeholder="Descreva o trabalho realizado e os testes concluídos…" /></label>}
+                                <div className="os-detail-inline-actions"><button type="button" className="os-detail-btn os-detail-btn--secondary" onClick={() => setStatusPainelAberto(false)}>Cancelar</button><button type="button" className="os-detail-btn os-detail-btn--primary" onClick={() => { onAlterarStatus(statusSelecionado, statusSelecionado === "concluido" ? parecerTemporario : undefined); setStatusPainelAberto(false); }} disabled={!podeAlterarStatus || alterandoStatusId !== null || statusSelecionado === ordem.status || (statusSelecionado === "concluido" && !parecerTemporario.trim())}>{alterandoStatusId === ordem.id ? "Atualizando…" : "Salvar status"}</button></div>
+                            </section>}
+
+                            {prazoPainelAberto && <section className="os-detail-inline-panel">
+                                <div><h2>Alterar prazo</h2><p>O motivo será solicitado antes de enviar a alteração.</p></div>
+                                <label className="os-detail-field"><span>Novo prazo final</span><input type="date" value={prazoSelecionado} onChange={(event) => setPrazoSelecionado(event.target.value)} disabled={alterandoPrazo} /></label>
+                                <div className="os-detail-inline-actions"><button type="button" className="os-detail-btn os-detail-btn--secondary" onClick={() => setPrazoPainelAberto(false)}>Cancelar</button><button type="button" className="os-detail-btn os-detail-btn--primary" onClick={() => { setPrazoPainelAberto(false); setJustificativaAberta(true); }} disabled={!podeAlterarPrazo || alterandoPrazo || !prazoSelecionado || prazoSelecionado === prazoAtual}>Continuar</button></div>
+                            </section>}
+
+                            {responsavelPainelAberto && <section className="os-detail-inline-panel">
+                                <div><h2>Alterar responsável</h2><p>Somente funcionários elegíveis são listados.</p></div>
+                                <label className="os-detail-field os-detail-field--wide"><span>Responsável técnico</span><Autocomplete id="ordem-responsavel-novo" options={responsavelOptions} value={responsavelNovoId} onChange={(value) => setResponsavelNovoId(value === null ? null : Number(value))} placeholder="Pesquisar funcionário ativo" clearable disabled={atribuindoResponsavel} emptyMessage="Nenhum funcionário ativo encontrado." /></label>
+                                <div className="os-detail-inline-actions"><button type="button" className="os-detail-btn os-detail-btn--secondary" onClick={() => setResponsavelPainelAberto(false)}>Cancelar</button><button type="button" className="os-detail-btn os-detail-btn--primary" onClick={() => { if (responsavelNovoId !== null) onAtribuirResponsavel(responsavelNovoId); setResponsavelPainelAberto(false); }} disabled={atribuindoResponsavel || responsavelNovoId === null || responsavelNovoId === ordem.responsavel_id}>{atribuindoResponsavel ? "Salvando…" : "Salvar responsável"}</button></div>
+                            </section>}
+
+                            <section className="os-detail-facts" aria-label="Resumo da ordem">
+                                <article><span>Cliente</span><strong>{cliente?.nome || (ordem.cliente_id ? `Cliente #${ordem.cliente_id}` : "Não associado")}</strong><small>{cliente?.razao_social || "contato@altave.com.br"}</small></article>
+                                <article><span>Responsável técnico</span><strong>{responsavelAtual?.nome || (ordem.responsavel_id ? `Funcionário #${ordem.responsavel_id}` : "André Lima")}</strong><small>{responsavelAtual ? `${responsavelAtual.tipo === "tecnico" ? "Operações" : responsavelAtual.tipo} · ${responsavelAtual.ativo ? "Ativo" : "Inativo"}` : "Operações · Técnico sênior (demo)"}</small></article>
+                                <article><span>Projeto</span><strong>{projetoAtual?.nome || (ordem.projeto_id ? `Projeto #${ordem.projeto_id}` : "Infraestrutura de rede")}</strong><small>{ordem.projeto_id ? `PRJ-${String(ordem.projeto_id).padStart(4, "0")}-008` : "Informação de demonstração"}</small></article>
+                                <article className="os-detail-time-fact"><span>Tempo registrado</span><strong>{Math.floor(horasRegistradasDemo)}h {Math.round((horasRegistradasDemo % 1) * 60)}min <small>/ {horasEstimadas}h estimadas</small></strong><div className="os-detail-progress"><span style={{ width: `${progressoHorasDemo}%` }} /></div></article>
+                            </section>
+
+                            {lancarHorasAberto && <div className="os-detail-demo-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setLancarHorasAberto(false); }}><section className="os-detail-demo-dialog" role="dialog" aria-modal="true" aria-labelledby="os-detail-hours-title"><header><div><span className="os-detail-eyebrow">REGISTRO DE EXEMPLO</span><h2 id="os-detail-hours-title">Lançar horas</h2></div><button type="button" aria-label="Fechar" onClick={() => setLancarHorasAberto(false)}>×</button></header><p>O backend do SGOS não possui lançamento de horas. Este registro é demonstrativo e ficará somente nesta tela.</p><label className="os-detail-field"><span>Horas trabalhadas</span><input type="number" min="0.25" max="24" step="0.25" value={horasDigitadas} onChange={(event) => setHorasDigitadas(event.target.value)} /></label><label className="os-detail-field"><span>Descrição</span><textarea rows={3} value={descricaoHoras} onChange={(event) => setDescricaoHoras(event.target.value)} placeholder="O que foi realizado?" /></label><footer><button type="button" className="os-detail-btn os-detail-btn--secondary" onClick={() => setLancarHorasAberto(false)}>Cancelar</button><button type="button" className="os-detail-btn os-detail-btn--primary" onClick={() => { const quantidade = Number(horasDigitadas); if (!Number.isFinite(quantidade) || quantidade <= 0 || quantidade > 24) return; setHorasDemo((atuais) => [...atuais, { id: Date.now(), horas: quantidade, descricao: descricaoHoras.trim() || "Atividade registrada (demo)", quando: "Agora", autor: "Você" }]); setAbaAcompanhamento("horas"); setLancarHorasAberto(false); setDescricaoHoras(""); }} disabled={!Number.isFinite(Number(horasDigitadas)) || Number(horasDigitadas) <= 0 || Number(horasDigitadas) > 24}>Registrar (local)</button></footer></section></div>}
+
+                            <div className="os-detail-content-grid">
+                                <div className="os-detail-primary-column">
+                                    <section className="os-detail-card os-detail-activity-card">
+                                        <header className="os-detail-card-heading"><div><h2>Acompanhamento da ordem</h2><p>Histórico de atividades e atualizações</p></div><button type="button" className="os-detail-btn os-detail-btn--secondary" onClick={() => { comentarioRef.current?.focus(); document.querySelector(".os-detail-comments-card")?.scrollIntoView({ block: "nearest", behavior: "smooth" }); }}><i className="fa-solid fa-plus" aria-hidden="true" /> Adicionar atualização</button></header>
+                                        <div className="os-detail-tabs" role="tablist" aria-label="Atividades da ordem">
+                                            <button type="button" role="tab" aria-selected={abaAcompanhamento === "historico"} className={abaAcompanhamento === "historico" ? "ativo" : ""} onClick={() => setAbaAcompanhamento("historico")}>Histórico <span>API</span></button>
+                                            <button type="button" role="tab" aria-selected={abaAcompanhamento === "horas"} className={abaAcompanhamento === "horas" ? "ativo" : ""} onClick={() => setAbaAcompanhamento("horas")}>Horas registradas <span>{horasDemo.length}</span></button>
+                                            <button type="button" role="tab" aria-selected={abaAcompanhamento === "anexos"} className={abaAcompanhamento === "anexos" ? "ativo" : ""} onClick={() => setAbaAcompanhamento("anexos")}>Anexos <span>{anexos.length}</span></button>
+                                        </div>
+                                        {abaAcompanhamento === "historico" && <div className="os-detail-history-content"><OrdemServicoHistorico osId={ordem.id} usarFallbackDemonstrativo /></div>}
+                                        {abaAcompanhamento === "horas" && <div className="os-detail-timeline-list">{horasDemo.slice().reverse().map((item) => <article key={item.id} className="os-detail-timeline-item"><span className="os-detail-timeline-icon os-detail-timeline-icon--violet"><i className="fa-regular fa-clock" aria-hidden="true" /></span><div><strong>{item.horas.toLocaleString("pt-BR")}h · {item.descricao}</strong><p>Registro demonstrativo local · {item.quando} · {item.autor}</p></div></article>)}<p className="os-detail-demo-note">Horas de demonstração; ainda não são persistidas no SGOS.</p></div>}
+                                        {abaAcompanhamento === "anexos" && <div className="os-detail-attachments-content">{carregandoAnexos ? <p role="status">Carregando anexos…</p> : erroAnexos ? <p role="alert">{erroAnexos}</p> : anexos.length === 0 ? <div className="os-detail-empty"><i className="fa-regular fa-file-lines" aria-hidden="true" /><strong>Nenhum anexo registrado</strong><span>Adicione arquivos para consultar nesta seção.</span></div> : <ul>{anexos.map((anexo) => <li key={anexo.id}><i className="fa-regular fa-file-lines" aria-hidden="true" /><span><strong>{anexo.nome}</strong><small>{anexo.autor || "Usuário"}{anexo.data_envio ? ` · ${formatarData(anexo.data_envio)}` : ""}</small></span><button type="button" className="os-detail-btn os-detail-btn--secondary" onClick={() => void baixarAnexo(anexo)}>Baixar</button></li>)}</ul>}<button type="button" className="os-detail-btn os-detail-btn--primary" onClick={() => setAnexoAberto(true)}><i className="fa-solid fa-paperclip" aria-hidden="true" /> Anexar arquivo</button></div>}
+                                    </section>
+
+                                    <section className="os-detail-card os-detail-technical-opinion-card">
+                                        <header className="os-detail-card-heading">
+                                            <div><h2>Parecer técnico</h2><p>Registro técnico da execução e conclusão da ordem</p></div>
+                                            <span className={`os-detail-count ${ordem.parecer_tecnico?.trim() ? "os-detail-count--success" : ""}`}>{ordem.parecer_tecnico?.trim() ? "Registrado" : "Pendente"}</span>
+                                        </header>
+                                        {ordem.parecer_tecnico?.trim() ? (
+                                            <div className="os-detail-opinion-content">
+                                                <span className="os-detail-opinion-icon"><i className="fa-solid fa-file-circle-check" aria-hidden="true" /></span>
+                                                <div><strong>Parecer registrado no SGOS</strong><p>{ordem.parecer_tecnico}</p></div>
+                                            </div>
+                                        ) : (
+                                            <div className="os-detail-opinion-empty">
+                                                <span className="os-detail-opinion-icon"><i className="fa-regular fa-file-lines" aria-hidden="true" /></span>
+                                                <div><strong>Nenhum parecer técnico registrado</strong><p>O parecer será salvo no SGOS quando a ordem for concluída.</p></div>
+                                            </div>
+                                        )}
+                                        {!ordem.parecer_tecnico?.trim() && podeConcluir && ordem.status !== "concluido" && (
+                                            <div className="os-detail-opinion-editor">
+                                                <label className="os-detail-field" htmlFor="os-detail-opinion-draft"><span>Preparar parecer técnico</span>
+                                                    <textarea id="os-detail-opinion-draft" rows={4} value={parecerTemporario} onChange={(event) => setParecerTemporario(event.target.value)} placeholder="Descreva o trabalho realizado, os testes executados e o resultado…" />
+                                                </label>
+                                                <button type="button" className="os-detail-btn os-detail-btn--primary" disabled={!parecerTemporario.trim() || alterandoStatusId !== null} onClick={() => { setStatusSelecionado("concluido"); setStatusPainelAberto(true); document.querySelector(".gestec-os-detail-main")?.scrollIntoView({ behavior: "smooth", block: "start" }); }}><i className="fa-solid fa-clipboard-check" aria-hidden="true" /> Revisar conclusão e salvar</button>
+                                                <small className="os-detail-demo-note">O parecer só será persistido após confirmar a conclusão na etapa seguinte.</small>
+                                            </div>
+                                        )}
+                                    </section>
+                                </div>
+
+                                <aside className="os-detail-aside-column">
+                                    <section className="os-detail-card os-detail-comments-card">
+                                        <header className="os-detail-card-heading"><div><h2>Comentários</h2><p>Troca de informações da equipe</p></div><span className="os-detail-count">{comentariosDemo.length} comentários</span></header>
+                                        <div className="os-detail-comments-list">{comentariosDemo.map((comentario) => <article key={comentario.id} className="os-detail-comment"><span className={`os-detail-avatar os-detail-avatar--${comentario.tom}`}>{comentario.iniciais}</span><div className="os-detail-comment-body"><div className="os-detail-comment-meta"><strong>{comentario.autor}</strong><time>{comentario.quando}</time></div><p>{comentario.texto}</p></div></article>)}</div>
+                                        <form className="os-detail-comment-form" onSubmit={(event) => { event.preventDefault(); const texto = comentarioNovo.trim(); if (!texto) return; const userText = "Você"; setComentariosDemo((atuais) => [...atuais, { id: Date.now(), iniciais: "VC", autor: userText, quando: "Agora", texto, tom: "azul" }]); setComentarioNovo(""); }}>
+                                            <textarea ref={comentarioRef} rows={2} value={comentarioNovo} onChange={(event) => setComentarioNovo(event.target.value)} placeholder="Escreva uma atualização para a equipe…" aria-label="Escrever comentário demonstrativo" />
+                                            <button type="submit" className="os-detail-btn os-detail-btn--primary" disabled={!comentarioNovo.trim()}><i className="fa-solid fa-check" aria-hidden="true" /> Enviar atualização</button>
+                                        </form>
+                                        <small className="os-detail-demo-note">Comentários demonstrativos: não são enviados nem salvos no backend.</small>
+                                    </section>
+
+                                    <section className="os-detail-card os-detail-people-card"><header className="os-detail-card-heading"><div><h2>Pessoas envolvidas</h2></div><button type="button" aria-label="Alterar pessoa responsável" onClick={() => setResponsavelPainelAberto((aberto) => !aberto)} disabled={!podeReatribuirResponsavel}><i className="fa-solid fa-plus" aria-hidden="true" /></button></header><div className="os-detail-people-list">
+                                        <article><span className="os-detail-avatar os-detail-avatar--blue">{(responsavelAtual?.nome || "André Lima").split(/\s+/).slice(0,2).map((parte) => parte[0]).join("").toUpperCase()}</span><div><strong>{responsavelAtual?.nome || "André Lima"}</strong><small>Responsável técnico{!responsavelAtual ? " · demonstração" : ""}</small></div><i className={`os-detail-presence${responsavelAtual?.ativo === false ? " inativo" : ""}`} aria-label={responsavelAtual?.ativo === false ? "Inativo" : "Ativo"} /></article>
+                                        <article><span className="os-detail-avatar os-detail-avatar--violet">JF</span><div><strong>Juliana Ferreira</strong><small>Apoio técnico · demonstração</small></div><i className="os-detail-presence" aria-label="Ativo (demonstração)" /></article>
+                                        <article><span className="os-detail-avatar os-detail-avatar--blue">MC</span><div><strong>Mariana Costa</strong><small>Gestora da ordem · demonstração</small></div><i className="os-detail-presence inativo" aria-label="Disponibilidade não informada" /></article>
+                                    </div></section>
+                                </aside>
+                            </div>
+                        </>
+                    )}
+                    {!ordem && !carregando && !erro && <div className="os-detail-empty"><strong>Ordem não encontrada</strong><span>Volte à lista e selecione uma ordem válida.</span><button type="button" className="os-detail-btn os-detail-btn--primary" onClick={onFechar}>Voltar às ordens</button></div>}
+                </section>
+            ) : (
             <section
-                className="ordem-modal ordem-modal--detalhes"
-                role="dialog"
-                aria-modal="true"
-                aria-labelledby="ordem-detalhes-titulo"
+                className={`ordem-modal ordem-modal--detalhes${modoPagina ? " ordem-modal--pagina" : ""}`}
+                role={modoPagina ? "region" : "dialog"}
+                aria-modal={modoPagina ? undefined : true}
+                aria-label={modoPagina ? "Detalhes da ordem de serviço" : undefined}
+                aria-labelledby={modoPagina ? undefined : "ordem-detalhes-titulo"}
             >
                 <header className="ordem-modal-header">
                     <div>
@@ -750,6 +933,8 @@ function OrdemServicoDetalhesModal({
                     )}
                 </footer>
             </section>
+            )}
+
 
             {anexoAberto && (
                 <div

@@ -1,5 +1,6 @@
 import type { Funcionario } from "../../types/api";
 import type { Departamento } from "../../types/api";
+import { getGestecAvatarTone, getGestecInitials } from "../../utils/gestecAvatar";
 
 interface FuncionarioCardProps {
     funcionario: Funcionario;
@@ -9,12 +10,6 @@ interface FuncionarioCardProps {
     onAbrir: (funcionario: Funcionario) => void;
     onEditar: (funcionario: Funcionario) => void;
     onAlterarStatus: (funcionario: Funcionario, acao: "inativar") => void;
-}
-
-function iniciais(nome: string): string {
-    const partes = nome.trim().split(/\s+/).filter(Boolean);
-    if (!partes.length) return "F";
-    return `${partes[0][0]}${partes.length > 1 ? partes[partes.length - 1][0] : ""}`.toLocaleUpperCase("pt-BR");
 }
 
 const PERFIL_LABELS = { gestor: "Gestor", analista: "Analista", tecnico: "Técnico" } as const;
@@ -30,9 +25,22 @@ export default function FuncionarioCard({
 }: FuncionarioCardProps) {
     return (
         <article className={`projeto-card funcionario-card${funcionario.ativo ? "" : " projeto-card--inativo funcionario-card--inativo"}`}>
-            <button type="button" className="funcionario-card-main" onClick={() => onAbrir(funcionario)} aria-label={`Ver detalhes de ${funcionario.nome}`}>
+            <div
+                className="funcionario-card-main"
+                role="button"
+                tabIndex={bloqueado ? -1 : 0}
+                aria-label={`Abrir detalhes de ${funcionario.nome}`}
+                aria-disabled={bloqueado}
+                onClick={() => { if (!bloqueado) onAbrir(funcionario); }}
+                onKeyDown={(event) => {
+                    if (!bloqueado && (event.key === "Enter" || event.key === " ")) {
+                        event.preventDefault();
+                        onAbrir(funcionario);
+                    }
+                }}
+            >
                 <header className="projeto-card-header funcionario-card-header">
-                    <span className="funcionario-avatar" aria-hidden="true">{iniciais(funcionario.nome)}</span>
+                    <span className={`funcionario-avatar gestec-avatar--${getGestecAvatarTone(Math.max(0, funcionario.id - 1))}`} aria-hidden="true">{getGestecInitials(funcionario.nome, "FU")}</span>
                     <div className="funcionario-identificacao">
                         <span className="cliente-id">FUNCIONÁRIO #{funcionario.id}</span>
                         <h2 className="projeto-card-title">{funcionario.nome || `Funcionário #${funcionario.id}`}</h2>
@@ -44,7 +52,7 @@ export default function FuncionarioCard({
                     <span>{departamento?.nome ?? `Departamento #${funcionario.departamento_id}`}</span>
                     <span className={`funcionario-perfil funcionario-perfil--${funcionario.tipo}`}>{PERFIL_LABELS[funcionario.tipo]}</span>
                 </div>
-            </button>
+            </div>
             {podeGerenciar && (
                 <div className="projeto-card-actions funcionario-card-actions">
                     {funcionario.ativo && <>

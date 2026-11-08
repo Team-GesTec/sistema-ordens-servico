@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent } from "react";
 import { createPortal } from "react-dom";
 import type { Cliente } from "../../types/api";
+import FilterDrawer from "../common/FilterDrawer";
 import { correspondeBusca, type FiltroSituacao } from "../../utils/clienteUtils";
 
 interface ClientesToolbarProps {
@@ -124,7 +125,8 @@ function ClientesToolbar({ busca, onBuscaChange, filtroSituacao, onFiltroChange,
 
     return (
         <section className="projetos-toolbar clientes-toolbar-modern" aria-label="Pesquisar e filtrar clientes">
-            <div className="projetos-search-wrap clientes-search-wrapper">
+            <div className="gestec-search-toolbar-row clientes-search-toolbar-row">
+                <div className="projetos-search-wrap clientes-search-wrapper">
                 <span aria-hidden="true">⌕</span>
                 <input
                     ref={inputRef}
@@ -149,6 +151,17 @@ function ClientesToolbar({ busca, onBuscaChange, filtroSituacao, onFiltroChange,
                     }}
                     onKeyDown={tratarTecla}
                 />
+                </div>
+                <FilterDrawer activeCount={filtroSituacao === "todos" ? 0 : 1} onClear={() => onFiltroChange("todos")}>
+                    <div className="gestec-filter-field">
+                        <label htmlFor="clientes-filtro-situacao">Situação do cadastro</label>
+                        <select id="clientes-filtro-situacao" value={filtroSituacao} onChange={(event) => onFiltroChange(event.target.value as FiltroSituacao)}>
+                            <option value="ativos">Somente ativos</option>
+                            <option value="inativos">Somente inativos</option>
+                            <option value="todos">Ativos e inativos</option>
+                        </select>
+                    </div>
+                </FilterDrawer>
             </div>
 
             {menuVisivel && posicao && createPortal(
@@ -184,14 +197,6 @@ function ClientesToolbar({ busca, onBuscaChange, filtroSituacao, onFiltroChange,
                 document.body,
             )}
 
-            <label className="projetos-filter-wrap clientes-filtro" htmlFor="clientes-filtro-situacao">
-                <span>Situação</span>
-                <select id="clientes-filtro-situacao" value={filtroSituacao} onChange={(event) => onFiltroChange(event.target.value as FiltroSituacao)}>
-                    <option value="ativos">Ativos</option>
-                    <option value="inativos">Inativos</option>
-                    <option value="todos">Todos</option>
-                </select>
-            </label>
         </section>
     );
 }

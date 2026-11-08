@@ -1,0 +1,192 @@
+/* Páginas de Análises — Relatórios e Auditoria. Escopo isolado para não alterar módulos existentes. */
+.gestec-app {
+    --analysis-surface: #ffffff;
+    --analysis-surface-soft: #f5faff;
+    --analysis-ink: #172b45;
+    --analysis-muted: #7589a2;
+    --analysis-border: #d4e6f2;
+    --analysis-grid: #e7eef5;
+    --analysis-blue: #2e7ce1;
+    --analysis-green: #168260;
+    --analysis-red: #c94a58;
+}
+
+.gestec-app.dark-mode {
+    --analysis-surface: #172638;
+    --analysis-surface-soft: #1d3045;
+    --analysis-ink: #edf6ff;
+    --analysis-muted: #a8bfd2;
+    --analysis-border: #38516a;
+    --analysis-grid: #31485e;
+    --analysis-blue: #75b5ff;
+    --analysis-green: #68d2ac;
+    --analysis-red: #ff9da8;
+}
+
+.gestec-app .analysis-page { min-height: 100vh; color: var(--analysis-ink); }
+.gestec-app .analysis-container { max-width: none; width: 100%; }
+.gestec-app .analysis-heading { align-items: center; }
+.gestec-app .analysis-heading .heading-actions { flex-wrap: wrap; }
+.gestec-app .analysis-heading .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 42px; padding: 10px 15px; }
+.gestec-app .analysis-heading h1 { color: var(--analysis-ink); }
+.gestec-app .analysis-heading > div > p:not(.eyebrow) { color: var(--analysis-muted); }
+
+.gestec-app .analysis-alert { margin: 0 0 16px; padding: 13px 16px; border: 1px solid var(--analysis-border); border-radius: 11px; font-size: 13px; line-height: 1.55; }
+.gestec-app .analysis-alert--error { background: #fff1f2; border-color: #f2c4ca; color: #a52e40; }
+.gestec-app .analysis-alert--warning { background: #fff8e9; border-color: #f0d9a8; color: #8f6116; }
+.gestec-app.dark-mode .analysis-alert--error { background: #432633; border-color: #79404e; color: #ffc0c7; }
+.gestec-app.dark-mode .analysis-alert--warning { background: #44391f; border-color: #736034; color: #f5d99a; }
+
+.gestec-app .analysis-filter-bar { display: grid; grid-template-columns: repeat(4, minmax(150px, 1fr)) auto; align-items: end; gap: 12px; margin: 0 0 18px; padding: 16px 18px; border: 1px solid var(--analysis-border); border-radius: 14px; background: var(--analysis-surface); box-shadow: 0 7px 24px rgba(15, 69, 114, .045); }
+.gestec-app .analysis-filter-bar label { display: grid; gap: 7px; min-width: 0; }
+.gestec-app .analysis-filter-bar label > span { color: var(--analysis-muted); font-size: 11px; font-weight: 800; letter-spacing: .035em; text-transform: uppercase; }
+.gestec-app .analysis-filter-bar input,
+.gestec-app .analysis-filter-bar select { width: 100%; min-width: 0; min-height: 42px; padding: 9px 11px; border: 1px solid var(--analysis-border); border-radius: 9px; background: var(--analysis-surface-soft); color: var(--analysis-ink); font: inherit; font-size: 13px; }
+.gestec-app .analysis-filter-bar input:focus,
+.gestec-app .analysis-filter-bar select:focus,
+.gestec-app .analysis-audit-toolbar input:focus,
+.gestec-app .analysis-audit-toolbar select:focus { outline: 3px solid rgba(46, 124, 225, .17); border-color: #5ca4e7; }
+.gestec-app .analysis-filter-bar .btn { min-height: 42px; display: inline-flex; justify-content: center; align-items: center; gap: 8px; white-space: nowrap; }
+
+.gestec-app .analysis-kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 15px; margin: 0 0 18px; }
+.gestec-app .analysis-kpi-card { position: relative; display: flex; min-width: 0; min-height: 138px; flex-direction: column; gap: 7px; padding: 19px 20px 16px; border: 1px solid var(--analysis-border); border-radius: 15px; background: var(--analysis-surface); box-shadow: 0 8px 25px rgba(15, 69, 114, .05); }
+.gestec-app .analysis-kpi-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; color: var(--analysis-muted); font-size: 12px; font-weight: 800; }
+.gestec-app .analysis-kpi-top > i { width: 38px; height: 38px; display: grid; flex: 0 0 38px; place-items: center; border-radius: 12px; background: #e1f3fd; color: #1689ca; font-size: 17px; }
+.gestec-app .analysis-kpi-top > i.analysis-icon-green { background: #e1f6ee; color: #168260; }
+.gestec-app .analysis-kpi-top > i.analysis-icon-purple { background: #eee9ff; color: #7258c7; }
+.gestec-app .analysis-kpi-top > i.analysis-icon-amber { background: #fff2d9; color: #a96a08; }
+.gestec-app .analysis-kpi-card > strong { color: var(--analysis-ink); font-size: clamp(25px, 2.1vw, 32px); font-weight: 850; line-height: 1.2; letter-spacing: -.7px; font-variant-numeric: tabular-nums; }
+.gestec-app .analysis-kpi-card > small { color: var(--analysis-muted); font-size: 11px; line-height: 1.45; }
+
+.gestec-app .analysis-grid { display: grid; gap: 16px; }
+.gestec-app .analysis-grid-two { grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: stretch; }
+.gestec-app .analysis-panel { display: flex; min-width: 0; min-height: 300px; flex-direction: column; padding: 20px 21px; border: 1px solid var(--analysis-border); border-radius: 15px; background: var(--analysis-surface); box-shadow: 0 8px 25px rgba(15, 69, 114, .045); }
+.gestec-app .analysis-panel-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; margin-bottom: 18px; }
+.gestec-app .analysis-panel-head h2 { margin: 0 0 5px; color: var(--analysis-ink); font-size: 16px; font-weight: 850; line-height: 1.35; }
+.gestec-app .analysis-panel-head p { margin: 0; color: var(--analysis-muted); font-size: 12px; line-height: 1.5; }
+.gestec-app .analysis-chip { display: inline-flex; align-items: center; flex: 0 0 auto; padding: 6px 9px; border-radius: 7px; background: var(--analysis-surface-soft); color: var(--analysis-muted); font-size: 10px; font-weight: 800; }
+.gestec-app .analysis-chip--success { background: #e3f7ef; color: #168260; }
+.gestec-app.dark-mode .analysis-chip--success { background: #21483f; color: #8ee0bf; }
+.gestec-app .analysis-chart { width: 100%; height: 260px; min-height: 220px; margin-top: auto; }
+.gestec-app .analysis-progress-list { display: grid; gap: 19px; margin: 12px 0 20px; }
+.gestec-app .analysis-progress-row { display: grid; grid-template-columns: minmax(82px, 105px) minmax(50px, 1fr) 42px; align-items: center; gap: 12px; }
+.gestec-app .analysis-progress-row > span { overflow: hidden; color: var(--analysis-muted); font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+.gestec-app .analysis-progress-track { height: 10px; overflow: hidden; border-radius: 99px; background: var(--analysis-grid); }
+.gestec-app .analysis-progress-track > span { display: block; height: 100%; min-width: 0; border-radius: inherit; background: linear-gradient(90deg, #2878dd, #64a5fb); transition: width .25s ease; }
+.gestec-app .analysis-progress-row > strong { color: var(--analysis-ink); font-size: 12px; font-weight: 850; text-align: right; font-variant-numeric: tabular-nums; }
+.gestec-app .analysis-panel-foot { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: auto; padding-top: 13px; border-top: 1px solid var(--analysis-border); color: var(--analysis-muted); font-size: 11px; }
+.gestec-app .analysis-empty { display: grid; min-height: 150px; align-content: center; justify-items: center; gap: 8px; padding: 22px; border-radius: 10px; background: var(--analysis-surface-soft); color: var(--analysis-muted); font-size: 12px; text-align: center; }
+.gestec-app .analysis-empty strong { color: var(--analysis-ink); font-size: 14px; }
+.gestec-app .analysis-empty > i { margin-bottom: 4px; color: var(--analysis-blue); font-size: 23px; }
+.gestec-app .analysis-client-panel { padding-bottom: 12px; }
+.gestec-app .analysis-table-scroll { width: 100%; min-width: 0; overflow-x: auto; }
+.gestec-app .analysis-table { width: 100%; border-collapse: separate; border-spacing: 0; color: var(--analysis-ink); font-size: 12px; }
+.gestec-app .analysis-table th { padding: 12px 13px; border-top: 1px solid var(--analysis-border); border-bottom: 1px solid var(--analysis-border); background: var(--analysis-surface-soft); color: var(--analysis-muted); font-size: 10px; font-weight: 850; letter-spacing: .045em; text-align: left; text-transform: uppercase; white-space: nowrap; }
+.gestec-app .analysis-table th:first-child { border-left: 1px solid var(--analysis-border); border-top-left-radius: 8px; }
+.gestec-app .analysis-table th:last-child { border-right: 1px solid var(--analysis-border); border-top-right-radius: 8px; }
+.gestec-app .analysis-table td { padding: 14px 13px; border-bottom: 1px solid var(--analysis-border); color: var(--analysis-ink); font-size: 12px; line-height: 1.45; }
+.gestec-app .analysis-sla-pill { display: inline-flex; padding: 5px 8px; border-radius: 7px; background: #fff2d9; color: #99620b; font-size: 11px; font-weight: 850; }
+.gestec-app .analysis-sla-pill.is-good { background: #e2f6ee; color: #168260; }
+.gestec-app .analysis-sla-pill.is-warning { background: #fff0f1; color: #bd3f50; }
+.gestec-app .analysis-data-note { margin: 13px 2px 0; color: var(--analysis-muted); font-size: 11px; line-height: 1.55; }
+.gestec-app .analysis-state { display: flex; min-height: 140px; align-items: center; justify-content: center; gap: 11px; color: var(--analysis-muted); font-size: 13px; }
+.gestec-app .analysis-state i { color: var(--analysis-blue); }
+
+/* Audit screen */
+.gestec-app .analysis-kpis--audit { margin-bottom: 18px; }
+.gestec-app .analysis-audit-panel { min-height: 0; padding: 0; overflow: hidden; }
+.gestec-app .analysis-audit-toolbar { display: grid; grid-template-columns: minmax(230px, 1fr) minmax(180px, 230px) auto; align-items: center; gap: 11px; padding: 17px 18px; border-bottom: 1px solid var(--analysis-border); }
+.gestec-app .analysis-audit-search { display: flex; min-width: 0; min-height: 42px; align-items: center; gap: 10px; padding: 0 12px; border: 1px solid var(--analysis-border); border-radius: 9px; background: var(--analysis-surface); color: var(--analysis-muted); }
+.gestec-app .analysis-audit-search > i { flex: 0 0 auto; }
+.gestec-app .analysis-audit-search input { width: 100%; min-width: 0; min-height: 40px; border: 0; outline: 0; background: transparent; color: var(--analysis-ink); font: inherit; font-size: 12px; }
+.gestec-app .analysis-audit-search input:focus { outline: 0; }
+.gestec-app .analysis-audit-toolbar select { min-width: 0; min-height: 42px; padding: 9px 11px; border: 1px solid var(--analysis-border); border-radius: 9px; background: var(--analysis-surface); color: var(--analysis-ink); font: inherit; font-size: 12px; }
+.gestec-app .analysis-audit-toolbar .btn { display: inline-flex; min-height: 42px; align-items: center; justify-content: center; gap: 7px; white-space: nowrap; }
+.gestec-app .analysis-audit-table { min-width: 1080px; }
+.gestec-app .analysis-audit-table th { padding: 14px 13px; }
+.gestec-app .analysis-audit-table td { padding: 15px 13px; vertical-align: middle; }
+.gestec-app .analysis-audit-os { color: #0783c4; font-size: 12px; font-weight: 850; text-decoration: none; white-space: nowrap; }
+.gestec-app .analysis-audit-os:hover { text-decoration: underline; text-underline-offset: 3px; }
+.gestec-app .analysis-audit-date { color: var(--analysis-muted) !important; white-space: nowrap; }
+.gestec-app .analysis-audit-action { color: var(--analysis-ink); font-size: 12px; }
+.gestec-app .analysis-field-chip { display: inline-flex; padding: 5px 8px; border-radius: 7px; background: var(--analysis-surface-soft); color: var(--analysis-muted); font-size: 10px; font-weight: 850; white-space: nowrap; }
+.gestec-app .analysis-old-value { color: #a66c79; font-size: 11px; }
+.gestec-app .analysis-new-value { color: var(--analysis-green); font-size: 11px; font-weight: 850; }
+.gestec-app .analysis-audit-user { display: inline-flex; align-items: center; gap: 8px; color: var(--analysis-ink); font-size: 11px; white-space: nowrap; }
+.gestec-app .analysis-audit-user > span { display: grid; width: 29px; height: 29px; flex: 0 0 29px; place-items: center; border-radius: 9px; background: #dceaff; color: #2864b8; font-size: 9px; font-weight: 850; }
+.gestec-app .analysis-audit-open { display: grid; width: 32px; height: 32px; place-items: center; border: 0; border-radius: 8px; background: transparent; color: var(--analysis-muted); cursor: pointer; }
+.gestec-app .analysis-audit-open:hover { background: var(--analysis-surface-soft); color: var(--analysis-blue); }
+.gestec-app .analysis-audit-empty { margin: 18px; }
+.gestec-app .analysis-table-footer { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 14px 18px; border-top: 1px solid var(--analysis-border); color: var(--analysis-muted); font-size: 11px; }
+.gestec-app .analysis-pagination { display: flex; align-items: center; gap: 5px; }
+.gestec-app .analysis-pagination button { display: grid; min-width: 30px; height: 30px; place-items: center; padding: 0 7px; border: 1px solid var(--analysis-border); border-radius: 7px; background: var(--analysis-surface); color: var(--analysis-muted); font-size: 11px; font-weight: 750; cursor: pointer; }
+.gestec-app .analysis-pagination button.active { border-color: #2e7ce1; background: #2e7ce1; color: #fff; }
+.gestec-app .analysis-pagination button:disabled { opacity: .45; cursor: not-allowed; }
+
+.gestec-app .analysis-modal-overlay { position: fixed; z-index: 3000; inset: 0; display: grid; place-items: center; padding: 22px; background: rgba(5, 22, 47, .58); backdrop-filter: blur(3px); }
+.gestec-app .analysis-audit-modal { display: flex; width: min(850px, 100%); max-height: min(86vh, 900px); flex-direction: column; overflow: hidden; border: 1px solid var(--analysis-border); border-radius: 17px; background: var(--analysis-surface); box-shadow: 0 24px 80px rgba(0, 0, 0, .3); }
+.gestec-app .analysis-audit-modal > header { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; padding: 21px 24px; border-bottom: 1px solid var(--analysis-border); }
+.gestec-app .analysis-modal-eyebrow { color: var(--analysis-blue); font-size: 10px; font-weight: 850; letter-spacing: .12em; }
+.gestec-app .analysis-audit-modal > header h2 { margin: 5px 0; color: var(--analysis-ink); font-size: 20px; }
+.gestec-app .analysis-audit-modal > header p { color: var(--analysis-muted); font-size: 12px; }
+.gestec-app .analysis-audit-modal > header > button { width: 34px; height: 34px; border: 0; border-radius: 8px; background: var(--analysis-surface-soft); color: var(--analysis-muted); font-size: 23px; cursor: pointer; }
+.gestec-app .analysis-audit-modal-body { min-height: 0; overflow-y: auto; padding: 19px 24px; }
+.gestec-app .analysis-audit-summary { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 20px; }
+.gestec-app .analysis-audit-summary a { color: var(--analysis-blue); font-size: 12px; font-weight: 850; text-decoration: none; }
+.gestec-app .analysis-audit-summary span { color: var(--analysis-muted); font-size: 11px; }
+.gestec-app .analysis-timeline { display: grid; gap: 0; }
+.gestec-app .analysis-timeline-item { position: relative; display: grid; grid-template-columns: 132px 14px minmax(0, 1fr); gap: 13px; padding-bottom: 18px; }
+.gestec-app .analysis-timeline-item > time { padding-top: 4px; color: var(--analysis-muted); font-size: 11px; }
+.gestec-app .analysis-timeline-marker { position: relative; display: flex; justify-content: center; }
+.gestec-app .analysis-timeline-marker::before { position: absolute; top: 9px; bottom: -18px; width: 1px; background: var(--analysis-border); content: ""; }
+.gestec-app .analysis-timeline-marker::after { position: relative; z-index: 1; width: 9px; height: 9px; margin-top: 4px; border: 2px solid var(--analysis-blue); border-radius: 50%; background: var(--analysis-surface); content: ""; }
+.gestec-app .analysis-timeline-item:last-child .analysis-timeline-marker::before { display: none; }
+.gestec-app .analysis-timeline-item > div { min-width: 0; padding: 12px 14px; border: 1px solid var(--analysis-border); border-radius: 10px; background: var(--analysis-surface-soft); }
+.gestec-app .analysis-timeline-item > div > strong { display: block; margin-bottom: 5px; color: var(--analysis-ink); font-size: 13px; }
+.gestec-app .analysis-timeline-item > div > p { color: var(--analysis-muted); font-size: 11px; }
+.gestec-app .analysis-timeline-values { display: flex; flex-wrap: wrap; align-items: center; gap: 9px; margin-top: 9px; font-size: 11px; }
+.gestec-app .analysis-timeline-values > span { color: var(--analysis-red); }
+.gestec-app .analysis-timeline-values > i { color: var(--analysis-muted); font-size: 10px; }
+.gestec-app .analysis-timeline-values > b { color: var(--analysis-green); }
+.gestec-app .analysis-timeline-item small { display: block; margin-top: 8px; color: var(--analysis-muted); font-size: 11px; line-height: 1.5; }
+.gestec-app .analysis-audit-modal > footer { display: flex; justify-content: flex-end; padding: 14px 24px; border-top: 1px solid var(--analysis-border); }
+
+@media (max-width: 1150px) {
+    .gestec-app .analysis-filter-bar { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .gestec-app .analysis-filter-bar .btn { justify-self: start; }
+    .gestec-app .analysis-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 850px) {
+    .gestec-app .analysis-grid-two { grid-template-columns: minmax(0, 1fr); }
+    .gestec-app .analysis-audit-toolbar { grid-template-columns: minmax(0, 1fr) minmax(170px, 220px); }
+    .gestec-app .analysis-audit-toolbar .btn { grid-column: 1 / -1; justify-self: start; }
+}
+@media (max-width: 600px) {
+    .gestec-app .analysis-heading { align-items: flex-start; }
+    .gestec-app .analysis-heading .heading-actions { width: 100%; justify-content: flex-start; }
+    .gestec-app .analysis-heading .heading-actions .btn { flex: 1 1 140px; }
+    .gestec-app .analysis-filter-bar { grid-template-columns: minmax(0, 1fr); padding: 13px; }
+    .gestec-app .analysis-filter-bar .btn { width: 100%; }
+    .gestec-app .analysis-kpis { gap: 9px; }
+    .gestec-app .analysis-kpi-card { min-height: 125px; padding: 13px; }
+    .gestec-app .analysis-kpi-top { align-items: flex-start; font-size: 10px; }
+    .gestec-app .analysis-kpi-top > i { width: 30px; height: 30px; flex-basis: 30px; font-size: 13px; }
+    .gestec-app .analysis-kpi-card > strong { font-size: 23px; }
+    .gestec-app .analysis-kpi-card > small { font-size: 10px; }
+    .gestec-app .analysis-panel { min-height: 260px; padding: 15px; }
+    .gestec-app .analysis-chart { height: 225px; }
+    .gestec-app .analysis-progress-row { grid-template-columns: minmax(70px, 90px) minmax(45px, 1fr) 35px; gap: 8px; }
+    .gestec-app .analysis-progress-row > span,
+    .gestec-app .analysis-progress-row > strong { font-size: 10px; }
+    .gestec-app .analysis-audit-toolbar { grid-template-columns: minmax(0, 1fr); padding: 13px; }
+    .gestec-app .analysis-audit-toolbar .btn { grid-column: auto; justify-self: stretch; }
+    .gestec-app .analysis-table-footer { align-items: flex-start; flex-direction: column; }
+    .gestec-app .analysis-modal-overlay { padding: 10px; }
+    .gestec-app .analysis-audit-modal { max-height: 92vh; }
+    .gestec-app .analysis-audit-modal > header,
+    .gestec-app .analysis-audit-modal-body { padding-right: 15px; padding-left: 15px; }
+    .gestec-app .analysis-timeline-item { grid-template-columns: minmax(0, 1fr); gap: 6px; padding-left: 16px; }
+    .gestec-app .analysis-timeline-item > time { grid-column: 1; }
+    .gestec-app .analysis-timeline-marker { position: absolute; top: 2px; bottom: 0; left: 0; }
+    .gestec-app .analysis-timeline-marker::before { bottom: -18px; }
+}

@@ -1,26 +1,23 @@
 import { useState } from "react";
 import { Outlet } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
-import logo from "../images/claro.png";
-import logoDark from "../images/dark.png";
+import NotificationCenter from "../components/notifications/NotificationCenter";
+import "../styles/filters.css";
+import ToastViewport from "../components/feedback/ToastViewport";
+import { useFeedback } from "../context/FeedbackContext";
 
 function MainLayout() {
     const [darkMode, setDarkMode] = useState(false);
+    const { toasts, dismissToast } = useFeedback();
 
     return (
-        <div
-            className={darkMode ? "dark-mode" : ""}
-            style={{
-                "--logo-gestec": `url(${logo})`,
-                "--logo-gestec-dark": `url(${logoDark})`,
-            } as React.CSSProperties}
-        >
-            <Sidebar
-                darkMode={darkMode}
-                setDarkMode={setDarkMode}
-            />
-
-            <Outlet />
+        <div className={`gestec-app${darkMode ? " dark-mode" : ""}`}>
+            <Sidebar darkMode={darkMode} setDarkMode={setDarkMode} />
+            <div className="app-workspace">
+                <Outlet />
+            </div>
+            <NotificationCenter />
+            <ToastViewport toasts={toasts} onDismiss={dismissToast} />
         </div>
     );
 }

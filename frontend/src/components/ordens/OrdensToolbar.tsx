@@ -1,5 +1,6 @@
 import { useMemo, useState, type ReactNode } from "react";
 import Autocomplete, { type AutocompleteOption } from "../common/Autocomplete";
+import FilterDrawer from "../common/FilterDrawer";
 import type { Funcionario, OrdemServico } from "../../types/api";
 import {
     correspondeBuscaOrdem,
@@ -17,13 +18,13 @@ interface OrdensToolbarProps {
     funcionarios?: Funcionario[];
     filtroResponsavelId?: FiltroResponsavelOrdem;
     onFiltroResponsavelChange?: (valor: FiltroResponsavelOrdem) => void;
-    onLimparFiltros?: () => void;
-    temFiltrosAplicados?: boolean;
     visualizacoesSalvas?: ReactNode;
     podeGerenciar?: boolean;
     mostrarInativas: boolean;
     carregandoInativas: boolean;
     onAlternarInativas: () => void;
+    filtroPrazo: "todos" | "proximos3" | "proximos5" | "proximos7";
+    onFiltroPrazoChange: (valor: "todos" | "proximos3" | "proximos5" | "proximos7") => void;
 }
 
 function OrdensToolbar({
@@ -35,13 +36,13 @@ function OrdensToolbar({
     funcionarios = [],
     filtroResponsavelId = "todos",
     onFiltroResponsavelChange,
-    onLimparFiltros,
-    temFiltrosAplicados = false,
     visualizacoesSalvas,
     podeGerenciar = true,
     mostrarInativas,
     carregandoInativas,
     onAlternarInativas,
+    filtroPrazo,
+    onFiltroPrazoChange,
 }: OrdensToolbarProps) {
     const [sugestoesAbertas, setSugestoesAbertas] = useState(false);
     const termoBusca = busca.trim();
@@ -124,7 +125,7 @@ function OrdensToolbar({
             className="projetos-toolbar ordens-toolbar-modern"
             aria-label="Busca e filtros de ordens de serviço"
         >
-            <div className="ordens-toolbar-top">
+            <div className="gestec-search-toolbar-row ordens-search-toolbar-row">
                 <div className="ordens-search-wrapper projetos-search-wrap ordens-search-field">
                     <label htmlFor="ordens-busca">Pesquisar ordens de serviço</label>
                     <input
@@ -181,68 +182,47 @@ function OrdensToolbar({
                     )}
                 </div>
 
-                {podeGerenciar && (
-                    <button
-                        type="button"
-                        className="projeto-btn-secondary ordens-inativos-toggle"
-                        onClick={onAlternarInativas}
-                        disabled={carregandoInativas}
-                        aria-pressed={mostrarInativas}
-                    >
-                        {carregandoInativas
-                            ? "Carregando..."
-                            : mostrarInativas
-                              ? "Ver OS ativas"
-                              : "Ver OS inativas"}
-                    </button>
-                )}
-            </div>
-
-            <div className="ordens-toolbar-filters">
-                <div
-                    className="ordens-status-filters"
-                    role="group"
-                    aria-label="Filtrar ordens por status"
+                <FilterDrawer
+                    activeCount={(filtroStatus !== "todos" ? 1 : 0) + (filtroResponsavelId !== "todos" ? 1 : 0) + (filtroPrazo !== "todos" ? 1 : 0) + (mostrarInativas ? 1 : 0)}
+                    onClear={() => {
+                        onFiltroStatusChange("todos");
+                        onFiltroResponsavelChange?.("todos");
+                        onFiltroPrazoChange("todos");
+                        if (mostrarInativas) onAlternarInativas();
+                    }}
                 >
-                    {filtros.map((filtro) => (
-                        <button
-                            key={filtro.value}
-                            type="button"
-                            className={filtroStatus === filtro.value ? "ordens-status-filter active" : "ordens-status-filter"}
-                            aria-pressed={filtroStatus === filtro.value}
-                            onClick={() => onFiltroStatusChange(filtro.value)}
-                        >
-                            {filtro.label}
-                            <span className="ordens-status-count">{contar(filtro.value)}</span>
-                        </button>
-                    ))}
-                </div>
-
-                {onFiltroResponsavelChange && (
-                    <div className="ordens-responsavel-filter">
-                        <label htmlFor="ordens-responsavel-filter">Responsável</label>
-                        <Autocomplete
-                            id="ordens-responsavel-filter"
-                            options={opcoesResponsavel}
-                            value={filtroResponsavelId}
-                            onChange={alterarFiltroResponsavel}
-                            placeholder="Todos os responsáveis"
-                            emptyMessage="Nenhum funcionário encontrado."
-                        />
+                    <div className="gestec-filter-field">
+                        <label htmlFor="ordens-status-filter">Status da ordem</label>
+                        <select id="ordens-status-filter" value={filtroStatus} onChange={(event) => onFiltroStatusChange(event.target.value as FiltroStatusOrdem)}>
+                            {filtros.map((filtro) => <option key={filtro.value} value={filtro.value}>{filtro.label}{filtro.value === "todos" ? ` (${contar(filtro.value)})` : ""}</option>)}
+                        </select>
                     </div>
-                )}
-
-                {temFiltrosAplicados && onLimparFiltros && (
-                    <button
-                        type="button"
-                        className="projeto-btn-secondary ordens-clear-filters"
-                        onClick={onLimparFiltros}
-                    >
-                        Limpar filtros
-                    </button>
-                )}
-                {visualizacoesSalvas}
+                    {onFiltroResponsavelChange && (
+                        <div className="gestec-filter-field">
+                            <label htmlFor="ordens-responsavel-filter">Responsável</label>
+                            <Autocomplete id="ordens-responsavel-filter" options={opcoesResponsavel} value={filtroResponsavelId} onChange={alterarFiltroResponsavel} placeholder="Todos os responsáveis" emptyMessage="Nenhum funcionário encontrado." />
+                        </div>
+                    )}
+                    <div className="gestec-filter-field">
+                        <label htmlFor="ordens-prazo-filter">Prazo / SLA</label>
+                        <select id="ordens-prazo-filter" value={filtroPrazo} onChange={(event) => onFiltroPrazoChange(event.target.value as "todos" | "proximos3" | "proximos5" | "proximos7")}>
+                            <option value="todos">Todos os prazos</option>
+                            <option value="proximos3">1 a 3 dias úteis</option>
+                            <option value="proximos5">1 a 5 dias úteis</option>
+                            <option value="proximos7">1 a 7 dias úteis</option>
+                        </select>
+                    </div>
+                    {podeGerenciar && (
+                        <label className="gestec-filter-toggle">
+                            <span><strong>Consultar ordens inativas</strong><small>{mostrarInativas ? "Exibindo registros inativos" : "Exibindo registros ativos"}</small></span>
+                            <input type="checkbox" checked={mostrarInativas} disabled={carregandoInativas} onChange={onAlternarInativas} />
+                            <span className="gestec-toggle-track" aria-hidden="true"><span /></span>
+                        </label>
+                    )}
+                    {visualizacoesSalvas && <div className="gestec-filter-drawer-extra">{visualizacoesSalvas}</div>}
+                </FilterDrawer>
             </div>
+            {carregandoInativas && <span className="projetos-loading ordens-inactive-loading" role="status">Carregando ordens inativas…</span>}
         </section>
     );
 }

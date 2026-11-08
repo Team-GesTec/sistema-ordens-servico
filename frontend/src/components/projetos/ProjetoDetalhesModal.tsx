@@ -35,7 +35,7 @@ export default function ProjetoDetalhesModal({ projeto, podeGerenciar, onClose, 
 
     function abrirOrdem(ordemId: number) {
         onClose();
-        navigate(`/ordens?visualizar=${ordemId}`);
+        navigate(`/ordens/${ordemId}`);
     }
 
     if (!projeto) return null;
