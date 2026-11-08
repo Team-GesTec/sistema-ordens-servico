@@ -12,6 +12,9 @@
 import { AppError } from '../errors/AppError';
 import { repositoryDepartamento, type RepositoryDepartamento } from '../repositories/repositoryDepartamento';
 import { repositoryFuncionario, type RepositoryFuncionario } from '../repositories/repositoryFuncionario';
+import { repositoryProjeto, type RepositoryProjeto } from '../repositories/repositoryProjeto';
+import { repositoryOrdemServico, type RepositoryOrdemServico } from '../repositories/repositoryOrdemServico';
+import type { PerfilFuncionario } from '../models/modelFuncionario';
 import type {
     DadosAtualizacaoDepartamento,
     DadosCriacaoDepartamento,
@@ -32,6 +35,8 @@ const NOME_MAXIMO = 100;
 export class ServiceDepartamento {
     private readonly departamentos: RepositoryDepartamento;
     private readonly funcionarios: RepositoryFuncionario;
+    private readonly projetos: RepositoryProjeto;
+    private readonly ordensServico: RepositoryOrdemServico;
 
     /**
      * @param departamentos Repository de departamentos (pode ser trocado em testes).
@@ -40,9 +45,13 @@ export class ServiceDepartamento {
     constructor(
         departamentos: RepositoryDepartamento = repositoryDepartamento,
         funcionarios: RepositoryFuncionario = repositoryFuncionario,
+        projetos: RepositoryProjeto = repositoryProjeto,
+        ordensServico: RepositoryOrdemServico = repositoryOrdemServico,
     ) {
         this.departamentos = departamentos;
         this.funcionarios = funcionarios;
+        this.projetos = projetos;
+        this.ordensServico = ordensServico;
     }
 
     /** Lista todos os departamentos. */
@@ -60,6 +69,33 @@ export class ServiceDepartamento {
             throw AppError.naoEncontrado('Departamento não encontrado');
         }
         return departamento;
+    }
+
+    async buscarEquipe(
+        id: number,
+        historico: boolean,
+        perfil: PerfilFuncionario,
+    ) {
+        if (historico && perfil !== 'gestor') {
+            throw AppError.acessoNegado(
+                'A consulta do histórico do departamento é permitida apenas ao Gestor.',
+            );
+        }
+
+        const departamento = await this.buscarPorId(id);
+
+        const [funcionarios, projetos, ordens_servico] = await Promise.all([
+            this.funcionarios.listarPorDepartamento(id, historico),
+            this.projetos.listarPorDepartamento(id, historico),
+            this.ordensServico.listarPorDepartamento(id, historico),
+        ]);
+
+        return {
+            departamento,
+            funcionarios,
+            projetos,
+            ordens_servico,
+        };
     }
 
     /**

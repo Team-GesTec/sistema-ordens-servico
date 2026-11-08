@@ -151,6 +151,20 @@ export default function DepartamentoDetalhesModal({
                             </section>
 
                             <section className="projeto-details-section departamento-accordion-section">
+                                <button type="button" className="projeto-section-header departamento-accordion-trigger" onClick={() => alternarSecao("funcionarios")} aria-expanded={secoesAbertas.funcionarios} aria-controls="departamento-funcionarios-vinculados">
+                                    <h3>Funcionários do departamento</h3><span className="projeto-count-badge">{funcionarios.length}</span><span className="departamento-accordion-chevron" aria-hidden="true">{secoesAbertas.funcionarios ? "−" : "+"}</span>
+                                </button>
+                                {secoesAbertas.funcionarios && <div id="departamento-funcionarios-vinculados" className="projeto-os-list">
+                                    {funcionarios.length === 0 ? <p className="projeto-empty-inline">Nenhum funcionário vinculado.</p> : funcionarios.map((funcionario) => (
+                                        <article key={funcionario.id} className={`departamento-vinculo-item${funcionario.ativo ? "" : " departamento-vinculo-item--inativo"}`}>
+                                            <div className="departamento-vinculo-main"><strong>{funcionario.nome} · #{funcionario.id}</strong><span>{funcionario.tipo} · {funcionario.usuario}</span></div>
+                                            <span className={`projeto-os-ativo ${funcionario.ativo ? "is-active" : "is-inactive"}`}>{funcionario.ativo ? "Ativo" : "Inativo"}</span>
+                                        </article>
+                                    ))}
+                                </div>}
+                            </section>
+
+                            <section className="projeto-details-section departamento-accordion-section">
                                 <button type="button" className="projeto-section-header departamento-accordion-trigger" onClick={() => alternarSecao("ordens")} aria-expanded={secoesAbertas.ordens} aria-controls="departamento-ordens-vinculadas">
                                     <h3>Ordens de serviço do departamento</h3><span className="projeto-count-badge">{ordens.length}</span><span className="departamento-accordion-chevron" aria-hidden="true">{secoesAbertas.ordens ? "−" : "+"}</span>
                                 </button>
@@ -161,20 +175,6 @@ export default function DepartamentoDetalhesModal({
                                             <span className={`projeto-os-status projeto-os-status--${ordem.status}`}>{statusOs(ordem.status)}</span>
                                             <span className={`projeto-os-ativo ${ordem.ativo ? "is-active" : "is-inactive"}`}>{ordem.ativo ? "Ativa" : "Inativa"}</span>
                                         </button>
-                                    ))}
-                                </div>}
-                            </section>
-
-                            <section className="projeto-details-section departamento-accordion-section">
-                                <button type="button" className="projeto-section-header departamento-accordion-trigger" onClick={() => alternarSecao("funcionarios")} aria-expanded={secoesAbertas.funcionarios} aria-controls="departamento-funcionarios-vinculados">
-                                    <h3>Funcionários do departamento</h3><span className="projeto-count-badge">{funcionarios.length}</span><span className="departamento-accordion-chevron" aria-hidden="true">{secoesAbertas.funcionarios ? "−" : "+"}</span>
-                                </button>
-                                {secoesAbertas.funcionarios && <div id="departamento-funcionarios-vinculados" className="projeto-os-list">
-                                    {funcionarios.length === 0 ? <p className="projeto-empty-inline">Nenhum funcionário vinculado.</p> : funcionarios.map((funcionario) => (
-                                        <article key={funcionario.id} className={`departamento-vinculo-item${funcionario.ativo ? "" : " departamento-vinculo-item--inativo"}`}>
-                                            <div className="departamento-vinculo-main"><strong>{funcionario.nome} · #{funcionario.id}</strong><span>{funcionario.tipo} · {funcionario.usuario}</span></div>
-                                            <span className={`projeto-os-ativo ${funcionario.ativo ? "is-active" : "is-inactive"}`}>{funcionario.ativo ? "Ativo" : "Inativo"}</span>
-                                        </article>
                                     ))}
                                 </div>}
                             </section>

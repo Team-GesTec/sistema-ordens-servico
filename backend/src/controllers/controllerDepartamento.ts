@@ -8,6 +8,7 @@
 import type { Request, Response } from 'express';
 import { serviceDepartamento } from '../services/serviceDepartamento';
 import { lerId } from '../utils/validacao';
+import { usuarioAutenticado } from '../middlewares/authMiddleware';
 
 export class ControllerDepartamento {
     /** GET /departamento — lista todos os departamentos. */
@@ -19,6 +20,16 @@ export class ControllerDepartamento {
     public async getById(req: Request, resp: Response): Promise<Response> {
         const id = lerId(req.params.id);
         return resp.status(200).json(await serviceDepartamento.buscarPorId(id));
+    }
+
+    public async getEquipe(req: Request, resp: Response): Promise<Response> {
+        const id = lerId(req.params.id);
+        const usuario = usuarioAutenticado(req);
+        const historico = req.query.historico === 'true';
+
+        return resp.status(200).json(
+            await serviceDepartamento.buscarEquipe(id, historico, usuario.tipo),
+        );
     }
 
     /** POST /departamento — cadastra o departamento (201 com o registro criado). */

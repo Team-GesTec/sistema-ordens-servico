@@ -22,6 +22,8 @@ const somenteGestor = autorizar('gestor');
 // GET ALL — qualquer usuário autenticado
 router.get('/', (req: Request, res: Response) => controller.getAll(req, res));
 
+router.get('/:id/equipe', (req: Request, res: Response) => controller.getEquipe(req, res));
+
 // GET BY ID — qualquer usuário autenticado
 router.get('/:id', (req: Request, res: Response) => controller.getById(req, res));
 
