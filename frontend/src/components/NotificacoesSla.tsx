@@ -16,7 +16,7 @@ export default function NotificacoesSla({ notificacoes, onDispensar }: Notificac
             if (notificacoesApresentadas.has(notificacao.id)) return;
             notificacoesApresentadas.add(notificacao.id);
 
-            const vencida = notificacao.tipo === "vencido" || notificacao.tipo === "bloqueado";
+            const vencida = notificacao.tipo === "vencido"
             publishToast({
                 title: vencida ? "SLA vencido" : "SLA em risco",
                 message: notificacao.mensagem,
