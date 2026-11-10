@@ -34,7 +34,8 @@ O SGOS resolve essa dor ao oferecer um agrupador central de projetos, ordens de 
 | 16 | EP04 - Auditoria de Ações e Documentação | Alta | **US#4.4** Como desenvolvedor ou avaliador, quero acessar a documentação interativa da API via Swagger e manuais do usuário, para validar as integrações, contratos das rotas e utilização do sistema. | 5 | 3 |
 | 17 | EP02 - Gestão do Ciclo de Vida da O.S. | Média | **US#2.9** Como gestor, quero exportar relatório de um cliente em PDF com os detalhes de quais O.S. foram feitas a ele, para encaminhar ao gestor.| 3 | 3 |
 | 18 | EP02 - Gestão do Ciclo de Vida da O.S. | Média | **US#2.10** Como gestor, quero acessar as atividades realizadas nas ordens de serviço, para analisar o que foi feito, acompanhar a execução do atendimento e verificar os registros e resultados do trabalho realizado. | 3 | 3 |
-| 19 | EP03 - Controle de SLA, Priorização e Alertas | Média | **US#3.3** Como envolvido na O.S., quero receber notificações no sistema (in-app) e por e-mail sobre alterações de status, SLA e nova atribuição, para acompanhar a evolução do atendimento em tempo real. | 5 | 3 |
+| 19 | EP02 - Gestão do Ciclo de Vida da O.S.| Média | **US#2.11** Como gestor e técnico, quero que as ordens de serviço sejam movidas automaticamente para um histórico após 14 dias de sua conclusão, para que a tela de "Concluídas" não fique acumulada e a visualização do dia a dia seja otimizada. | 3 | 3 |
+| 20 | EP03 - Controle de SLA, Priorização e Alertas | Média | **US#3.3** Como envolvido na O.S., quero receber notificações no sistema (in-app) e por e-mail sobre alterações de status, SLA e nova atribuição, para acompanhar a evolução do atendimento em tempo real. | 5 | 3 |
 
 ---
 
