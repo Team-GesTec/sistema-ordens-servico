@@ -50,6 +50,7 @@ import { repositoryFuncionario, type RepositoryFuncionario } from '../repositori
 import { serviceAuditoria } from './serviceAuditoria';
 import { calcularEstadoSla, type EstadoSla } from '../utils/estadoSla';
 import { serviceSla } from './serviceSla';
+import { serviceNotificacao } from './serviceNotificacao';
 import type { DadosRegistroAuditoria } from '../models/modelAuditoria';
 import { bloquearOrdemServico, bloquearProjetosRelacionados, validarProjetoDaOrdem } from '../utils/projetoOsInvariant';
 import type { PerfilFuncionario, Funcionario } from '../models/modelFuncionario';
@@ -487,6 +488,9 @@ export class ServiceOrdemServico {
 
         // 7. Atualiza o cache só depois que a transação terminou
         this.repositorio.atualizarCache(atualizada)
+        await serviceNotificacao.publicarEvento(atualizada, 'status_alterado', usuario.id, novoStatus).catch((erro) => {
+            console.error('[notificacoes] falha ao publicar alteração de status', erro);
+        });
         return atualizada;
     }
 
@@ -611,12 +615,16 @@ export class ServiceOrdemServico {
             throw AppError.conflito('Não é possível atribuir uma O.S. a um funcionário inativo');
         }
 
-        return this.repositorio.atribuirResponsavel({
+        const atualizada = await this.repositorio.atribuirResponsavel({
             osId,
             responsavelId,
             solicitanteId,
             permitirTroca: solicitante.tipo === 'gestor',
         });
+        await serviceNotificacao.publicarEvento(atualizada, 'responsavel_atribuido', solicitanteId).catch((erro) => {
+            console.error('[notificacoes] falha ao publicar atribuição', erro);
+        });
+        return atualizada;
     }
 
     /**
@@ -720,12 +728,16 @@ export class ServiceOrdemServico {
             );
         }
 
-        return this.repositorio.alterarSlaManual({
+        const atualizada = await this.repositorio.alterarSlaManual({
             osId: id,
             dataLimiteSla,
             justificativa,
             funcionarioId,
         });
+        await serviceNotificacao.gerarNotificacoesSla(new Date(), funcionarioId, id).catch((erro) => {
+            console.error('[notificacoes] falha ao publicar alteração de SLA', erro);
+        });
+        return atualizada;
     }
     /** Remove uma O.S. (bloqueada pelo banco se houver vínculos). */
     remover(id: number): Promise<void> {

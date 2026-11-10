@@ -75,6 +75,7 @@ model funcionarios {
   id                                                         Int                  @id @default(autoincrement())
   departamento_id                                            Int
   usuario                                                    String               @unique
+  email                                                      String?              @unique @db.VarChar(255)
   senha_hash                                                 String
   nome                                                       String
   tipo                                                       tipo_perfil         @default(tecnico)

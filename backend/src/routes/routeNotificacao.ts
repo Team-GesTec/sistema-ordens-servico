@@ -11,6 +11,8 @@ const router = Router();
 
 // GET — qualquer usuário autenticado; cada um só vê os próprios avisos (o id vem do token)
 router.get('/', (req: Request, res: Response) => controllerNotificacao.listarMinhas(req, res));
+router.patch('/ler-todas', (req: Request, res: Response) => controllerNotificacao.marcarTodasComoLidas(req, res));
+router.patch('/:id/lida', (req: Request, res: Response) => controllerNotificacao.marcarComoLida(req, res));
 
 router.delete('/:id', (req: Request, res: Response) =>
     controllerNotificacao.dispensar(req, res),

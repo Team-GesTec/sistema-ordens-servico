@@ -16,13 +16,14 @@ export default function NotificacoesSla({ notificacoes, onDispensar }: Notificac
             if (notificacoesApresentadas.has(notificacao.id)) return;
             notificacoesApresentadas.add(notificacao.id);
 
-            const vencida = notificacao.tipo === "vencido" || notificacao.tipo === "bloqueado";
+            const vencida = notificacao.tipo === "vencido";
             publishToast({
                 title: vencida ? "SLA vencido" : "SLA em risco",
                 message: notificacao.mensagem,
                 variant: vencida ? "error" : "warning",
-                persistent: true,
-                onDismiss: () => onDispensar(notificacao.id),
+                duration: 5000,
+                // Fechar o aviso visual não marca nem remove a notificação do sininho.
+                onDismiss: () => true,
             });
         });
     }, [notificacoes, onDispensar]);

@@ -10,7 +10,7 @@ import path from 'path';
 import type { Notificacao } from '../models/modelNotificacao.js';
 
 /** Pasta e arquivo onde as notificações ficam guardadas (backend/data/notificacoes.json). */
-const PASTA_DADOS = path.resolve(process.cwd(), 'data');
+const PASTA_DADOS = path.resolve(__dirname, '../../data');
 const ARQUIVO_NOTIFICACOES = path.join(PASTA_DADOS, 'notificacoes.json');
 const ARQUIVO_DISPENSADAS = path.join(PASTA_DADOS, 'notificacoes-dispensadas.json');
 
@@ -19,7 +19,7 @@ export class RepositoryNotificacao {
     async listarTodas(): Promise<Notificacao[]> {
         try {
             const conteudo = await readFile(ARQUIVO_NOTIFICACOES, 'utf-8');
-            return JSON.parse(conteudo) as Notificacao[];
+            return (JSON.parse(conteudo) as Notificacao[]).map((item) => ({ ...item, lida: item.lida ?? false }));
         } catch (erro) {
             if ((erro as NodeJS.ErrnoException).code === 'ENOENT') {
                 return [];
@@ -83,6 +83,25 @@ export class RepositoryNotificacao {
     async salvarTodas(notificacoes: Notificacao[]): Promise<void> {
         await mkdir(PASTA_DADOS, { recursive: true });
         await writeFile(ARQUIVO_NOTIFICACOES, JSON.stringify(notificacoes, null, 2), 'utf-8');
+    }
+
+    async marcarComoLida(funcionarioId: number, notificacaoId: string): Promise<boolean> {
+        const lista = await this.listarTodas();
+        const item = lista.find((n) => n.id === notificacaoId && n.funcionario_id === funcionarioId);
+        if (!item) return false;
+        item.lida = true;
+        await this.salvarTodas(lista);
+        return true;
+    }
+
+    async marcarTodasComoLidas(funcionarioId: number): Promise<number> {
+        const lista = await this.listarTodas();
+        let total = 0;
+        for (const item of lista) {
+            if (item.funcionario_id === funcionarioId && !item.lida) { item.lida = true; total += 1; }
+        }
+        if (total) await this.salvarTodas(lista);
+        return total;
     }
 }
 

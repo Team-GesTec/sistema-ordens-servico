@@ -1,12 +1,11 @@
 /**
  * models/modelNotificacao.ts
  *
- * Formato das notificações de SLA (MVP da Sprint 2).
- * Guardadas em arquivo JSON, não no banco. Sem controle de lida/não lida.
+ * Formato das notificações. O arquivo continua compatível com o MVP de SLA:
+ * campos novos são opcionais na leitura e recebem defaults no repositório.
  */
 
-/** O que aconteceu com o SLA da O.S. Só esses dois estados geram notificação. */
-export type TipoNotificacao = 'em_risco' | 'vencido';
+export type TipoNotificacao = 'em_risco' | 'vencido' | 'status_alterado' | 'responsavel_atribuido';
 
 /** Uma notificação, do jeito que fica guardada no arquivo JSON. */
 export interface Notificacao {
@@ -22,4 +21,7 @@ export interface Notificacao {
     mensagem: string;
     /** Quando o aviso foi criado, como texto (formato ISO). JSON não tem tipo de data. */
     data_criacao: string;
+    /** Chave idempotente: um evento só pode criar uma notificação por destinatário. */
+    evento_id?: string;
+    lida?: boolean;
 }

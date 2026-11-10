@@ -27,6 +27,7 @@ export interface Funcionario {
     id: number;
     departamento_id: number;
     usuario: string;
+    email?: string | null;
     nome: string;
     tipo: PerfilFuncionario;
     ativo: boolean;
@@ -82,6 +83,7 @@ export interface FuncionarioInput {
     usuario: string;
     senha: string;
     nome: string;
+    email?: string | null;
     tipo: PerfilFuncionario;
 }
 

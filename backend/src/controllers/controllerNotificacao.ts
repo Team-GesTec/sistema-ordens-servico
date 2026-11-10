@@ -32,6 +32,23 @@ export class ControllerNotificacao {
 
         return resp.status(204).send();
     }
+
+    public async marcarComoLida(req: Request, resp: Response): Promise<Response> {
+        const usuario = usuarioAutenticado(req);
+        const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+        if (!id) {
+            const { AppError } = await import('../errors/AppError.js');
+            throw AppError.requisicaoInvalida('ID da notificação é obrigatório.');
+        }
+        await serviceNotificacao.marcarComoLida(usuario.id, id);
+        return resp.status(204).send();
+    }
+
+    public async marcarTodasComoLidas(req: Request, resp: Response): Promise<Response> {
+        const usuario = usuarioAutenticado(req);
+        const total = await serviceNotificacao.marcarTodasComoLidas(usuario.id);
+        return resp.status(200).json({ marcadas: total });
+    }
 }
 
 /** Instância única usada pelas rotas. */
