@@ -699,6 +699,69 @@ export function useOrdens() {
         }
     }
 
+    async function salvarEdicaoDireta(
+        id: number,
+        dados: Partial<OrdemServicoInput> & { justificativa: string },
+    ): Promise<boolean> {
+        if (!podeGerenciar) {
+            setErro("Apenas Gestor/Admin pode editar ordens de serviço.");
+            return false;
+        }
+
+        const ordemAtual = ordemSelecionada;
+
+        if (!ordemAtual || ordemAtual.id !== id) {
+            setErro("A ordem de serviço selecionada não foi encontrada.");
+            return false;
+        }
+
+        if (ordemAtual.status === "concluido" || ordemAtual.status === "bloqueado") {
+            setErro("Esta ordem de serviço não pode ser editada no estado atual.");
+            return false;
+        }
+
+        if (!dados.justificativa.trim()) {
+            setErro("Descreva o motivo da atualização.");
+            return false;
+        }
+
+        setSalvando(true);
+        setErro(null);
+        setMensagem(null);
+
+        try {
+            const ordemSalva = await ordemServicoService.atualizar(id, dados);
+
+            setOrdens((anteriores) =>
+                anteriores.map((item) => item.id === id ? ordemSalva : item),
+            );
+
+            setOrdensInativas((anteriores) =>
+                anteriores.map((item) => item.id === id ? ordemSalva : item),
+            );
+
+            setOrdemSelecionada((atual) =>
+                atual?.id === id ? { ...atual, ...ordemSalva } : atual,
+            );
+
+            setMensagem(`Ordem de serviço #${id} atualizada com sucesso.`);
+
+            await recarregarDetalheAposMutacao(
+                ordemSalva,
+                { ...ordemAtual, ...ordemSalva },
+            );
+
+            return true;
+        } catch (error) {
+            setErro(
+                mensagemErro(error, "Não foi possível atualizar a ordem de serviço."),
+            );
+            return false;
+        } finally {
+            setSalvando(false);
+        }
+    }
+
     async function salvarOrdem(dados: OrdemServicoInput): Promise<void> {
         const autorizado = ordemEmEdicao
             ? podeGerenciar
@@ -865,6 +928,7 @@ export function useOrdens() {
         iniciarEdicao,
         fecharFormulario,
         salvarOrdem,
+        salvarEdicaoDireta,
 
         detalhesAbertos,
         statusSolicitadoDetalhes,

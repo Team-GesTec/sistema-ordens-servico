@@ -139,7 +139,7 @@ type OrdemServicoComSla = OrdemServico & { estado_sla: EstadoSla };
 
 /** Devolve uma cópia da O.S. com o estado do SLA. Não altera a O.S. original (que pode estar no cache). */
 function comEstadoSla(ordem: OrdemServico, agora: Date): OrdemServicoComSla {
-    return {...ordem, estado_sla: calcularEstadoSla(ordem,agora)}
+    return { ...ordem, estado_sla: calcularEstadoSla(ordem, agora) }
 }
 
 export class ServiceOrdemServico {
@@ -152,10 +152,11 @@ export class ServiceOrdemServico {
     }
 
     /** Lista somente as O.S. ativas, cada uma com o estado do SLA. */
-    async listar(): Promise<OrdemServicoComSla[]> {       const ordens = await this.repositorio.listar();
+    async listar(): Promise<OrdemServicoComSla[]> {
+        const ordens = await this.repositorio.listar();
         const ativas = ordens.filter((ordem) => ordem.ativo);
         const agora = new Date();
-        return ativas.map((ordem) => comEstadoSla(ordem,agora));
+        return ativas.map((ordem) => comEstadoSla(ordem, agora));
     }
 
     /** Lista somente as O.S. inativas, para consulta do histórico. */
@@ -169,7 +170,7 @@ export class ServiceOrdemServico {
      */
     async buscarPorId(id: number): Promise<OrdemServicoComSla> {
         const ordem = await this.repositorio.buscarPorId(id);
-        if(!ordem) {
+        if (!ordem) {
             throw AppError.naoEncontrado('OS não encontrada');
         }
         return comEstadoSla(ordem, new Date());
@@ -515,6 +516,11 @@ export class ServiceOrdemServico {
             }
 
             const dados = lerCorpo(corpo);
+            const justificativa = textoOpcional(
+                dados.justificativa,
+                'justificativa',
+                { maximo: TEXTO_MAXIMO_DESCRICAO },
+            );
             const proibidos = CAMPOS_PROIBIDOS_NA_EDICAO.filter((campo) => campoPresente(dados, campo));
             if (proibidos.length > 0) {
                 throw AppError.requisicaoInvalida(
@@ -548,6 +554,7 @@ export class ServiceOrdemServico {
                         campo_alterado: campo,
                         dado_antigo: paraTextoAuditoria(ordemAtual[campo]),
                         dado_novo: paraTextoAuditoria(alteracoes[campo]),
+                        justificativa,
                     },
                     conexao,
                 );

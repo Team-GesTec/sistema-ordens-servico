@@ -56,6 +56,8 @@ function OrdemServicoDetalhes() {
                         onAtribuirResponsavel={(funcionarioId) => void ordens.atribuirResponsavelOrdem(funcionarioId)}
                         onFechar={voltarParaOrdens}
                         onEditar={ordens.iniciarEdicao}
+                        salvandoEdicaoDireta={ordens.salvando}
+                        onSalvarEdicaoDireta={ordens.salvarEdicaoDireta}
                         podeAlterarStatus={ordens.podeAlterarStatus}
                         podeConcluir={ordens.podeConcluir}
                         alterandoStatusId={ordens.alterandoStatusId}
@@ -73,7 +75,6 @@ function OrdemServicoDetalhes() {
                     />
                 </div>
             </main>
-
             <OrdemServicoFormModal
                 aberto={ordens.formularioAberto}
                 ordem={ordens.ordemEmEdicao}
