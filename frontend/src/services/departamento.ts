@@ -8,7 +8,7 @@ export const departamentoService = {
 
     buscarEquipe(id: number, incluirHistorico = false): Promise<VisaoEquipe> {
         const historico = incluirHistorico ? "?historico=true" : "";
-        return apiRequest<VisaoEquipe>(`/departamento/${id}/equipe${historico}`);
+        return apiRequest<VisaoEquipe>(`/departamento/${id}/equipe${historico}`, {}, true, false);
     },
 
     criar(payload: DepartamentoInput): Promise<Departamento> {

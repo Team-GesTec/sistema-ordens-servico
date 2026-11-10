@@ -62,6 +62,12 @@ export class ServiceDepartamento {
         return departamento;
     }
 
+    async buscarEquipe(id: number, incluirHistorico = false) {
+        const visao = await this.departamentos.buscarEquipe(id, incluirHistorico);
+        if (!visao) throw AppError.naoEncontrado('Departamento não encontrado');
+        return visao;
+    }
+
     /**
      * Valida o corpo e cria um departamento.
      * @param corpo O `req.body` recebido (`nome`, `responsavel_id?`).

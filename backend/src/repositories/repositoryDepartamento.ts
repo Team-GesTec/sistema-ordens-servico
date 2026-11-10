@@ -29,6 +29,44 @@ export class RepositoryDepartamento {
         return departamentoCache.obterPorId(id, () => prisma.departamentos.findUnique({ where: { id } }));
     }
 
+    async buscarEquipe(id: number, incluirHistorico = false) {
+        const departamento = await this.buscarPorId(id);
+        if (!departamento) return null;
+
+        const filtroAtivo = incluirHistorico ? {} : { ativo: true };
+        const [projetos, ordens_servico, funcionarios] = await Promise.all([
+            prisma.projetos.findMany({
+                where: {
+                    ...filtroAtivo,
+                    projetos_departamentos: { some: { departamento_id: id } },
+                },
+                select: { id: true, nome: true, ativo: true, status: true, cliente_id: true },
+                orderBy: [{ nome: 'asc' }, { id: 'asc' }],
+            }),
+            prisma.ordens_servico.findMany({
+                where: { departamento_id: id, ...filtroAtivo },
+                select: {
+                    id: true,
+                    titulo: true,
+                    status: true,
+                    ativo: true,
+                    data_criacao: true,
+                    data_limite_sla: true,
+                    responsavel_id: true,
+                    solicitante_id: true,
+                },
+                orderBy: { id: 'desc' },
+            }),
+            prisma.funcionarios.findMany({
+                where: { departamento_id: id, ...filtroAtivo },
+                select: { id: true, nome: true, usuario: true, tipo: true, ativo: true, departamento_id: true },
+                orderBy: [{ nome: 'asc' }, { id: 'asc' }],
+            }),
+        ]);
+
+        return { departamento, projetos, ordens_servico, funcionarios };
+    }
+
     /** Cria um departamento; um novo responsável deve continuar ativo até o commit. */
     async criar(dados: DadosCriacaoDepartamento): Promise<Departamento> {
         try {

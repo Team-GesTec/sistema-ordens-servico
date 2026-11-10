@@ -142,11 +142,12 @@ export async function apiRequest<T>(
     path: string,
     options: RequestInit = {},
     requireAuth = true,
+    notificarFalha = true,
 ): Promise<T> {
     const headers = new Headers(options.headers);
     const method = (options.method ?? "GET").toUpperCase();
     const notifyMutation = ehMutacao(method, path);
-    const notifyFailure = notifyMutation || (method === "GET" && !/^\/auth(?:\/|$)/i.test(path));
+    const notifyFailure = notificarFalha && (notifyMutation || (method === "GET" && !/^\/auth(?:\/|$)/i.test(path)));
 
     // Com FormData o navegador define o Content-Type multipart (com o boundary) sozinho
     if (options.body && !(options.body instanceof FormData) && !headers.has("Content-Type")) {
