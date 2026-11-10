@@ -67,4 +67,9 @@ router.patch('/:id/status', gestorOuTecnico, (req: Request, res: Response) =>
     controllerOrdemServico.alterarStatus(req, res),
 );
 
+// POST horas — só técnico; o service confere se ele é o responsável pela O.S.
+router.post('/:id/horas', autorizar('tecnico'), (req: Request, res: Response) =>
+    controllerOrdemServico.registrarHoras(req, res),
+);
+
 export default router;

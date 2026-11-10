@@ -43,6 +43,7 @@
  */
 
 import { prisma } from '../prisma/client';
+import { serviceLancamentoHoras } from './serviceLancamentoHoras';
 import type { Prisma } from '../prisma/generated/client';
 import { AppError } from '../errors/AppError';
 import { repositoryOrdemServico, type RepositoryOrdemServico } from '../repositories/repositoryOrdemServico';
@@ -468,6 +469,12 @@ export class ServiceOrdemServico {
 
             const projetosBloqueados = await bloquearProjetosRelacionados(conexao, [ordemAtual.projeto_id]);
             validarProjetoDaOrdem(ordemAtual.projeto_id, ordemAtual.ativo, novoStatus, projetosBloqueados);
+
+            // O técnico informa as horas sempre que muda o status
+            if (usuario.tipo === 'tecnico') {
+                await serviceLancamentoHoras.gravarNaTransacao(ordemAtual, usuario.id, dados, conexao);
+            }
+
             const ordemAtualizada = await this.repositorio.atualizarStatus(idOS, dadosStatus, conexao);
 
             await serviceAuditoria.registrar(

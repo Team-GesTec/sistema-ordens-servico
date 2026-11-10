@@ -8,6 +8,7 @@ import { serviceOrdemServico } from '../services/serviceOrdemServico';
 import { usuarioAutenticado } from '../middlewares/authMiddleware';
 import { lerId } from '../utils/validacao';
 import { serviceAuditoria } from '../services/serviceAuditoria';
+import { serviceLancamentoHoras } from '../services/serviceLancamentoHoras';
 
 export class ControllerOrdemServico {
     /** GET /ordens-servico — lista todas as O.S. cadastradas. */
@@ -118,6 +119,16 @@ export class ControllerOrdemServico {
         return resp.status(200).json({ mensagem: 'Ordem excluída com sucesso' });
     }
 
+    /** POST /ordens-servico/:id/horas — registra horas trabalhadas (US#2.7). */
+    public async registrarHoras(req: Request, resp: Response): Promise<Response> {
+        const usuario = usuarioAutenticado(req);
+        const id = lerId(req.params.id);
+
+        return resp.status(201).json(
+            await serviceLancamentoHoras.registrar(id, req.body, usuario.id),
+        );
+    }    
+    
     public async listarHistorico(req: Request, resp: Response): Promise<Response> {
         const id = lerId(req.params.id);
         const historico = await serviceAuditoria.listarPorOrdemServico(id);
