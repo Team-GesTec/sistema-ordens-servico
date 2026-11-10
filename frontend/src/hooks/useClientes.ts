@@ -230,6 +230,37 @@ export function useClientes() {
         }
     }
 
+    async function salvarEdicaoDireta(
+        clienteId: number,
+        dados: Pick<ClienteInput, "nome" | "razao_social" | "ramo_atuacao">
+    ): Promise<Cliente | null> {
+        if (!podeGerenciar || salvando) return null;
+
+        setSalvando(true);
+        setErro(null);
+        setMensagem(null);
+
+        try {
+            const atualizado = await clienteService.atualizar(clienteId, dados);
+
+            setClientes((anteriores) =>
+                anteriores.map((cliente) =>
+                    cliente.id === atualizado.id
+                        ? { ...cliente, ...atualizado }
+                        : cliente
+                )
+            );
+
+            setMensagem(`Cliente "${atualizado.nome}" atualizado com sucesso.`);
+            return atualizado;
+        } catch (error) {
+            setErro(mensagemErro(error, "Não foi possível atualizar o cliente."));
+            return null;
+        } finally {
+            setSalvando(false);
+        }
+    }
+
     function solicitarAlteracaoStatus(
         cliente: Cliente,
         acao: AcaoStatus
@@ -352,6 +383,7 @@ export function useClientes() {
         fecharModal,
         iniciarEdicao,
         salvarCliente,
+        salvarEdicaoDireta,
 
         clienteConfirmacao,
         acaoConfirmacao,

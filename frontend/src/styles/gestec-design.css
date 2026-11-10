@@ -3076,3 +3076,64 @@ body { font-size: 16px; line-height: 1.55; }
 .gestec-app.dark-mode .projeto-modal-actions--editing {
     border-top-color: #304a60;
 }
+
+
+/* Espaçamento dos botões dos modais de clientes */
+.gestec-app .cliente-form-modal .cliente-modal-actions,
+.gestec-app .cliente-details-modal > .projeto-modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 12px;
+    margin-top: 26px;
+    padding-top: 20px;
+    border-top: 1px solid #dceaf2;
+}
+
+.gestec-app.dark-mode .cliente-form-modal .cliente-modal-actions,
+.gestec-app.dark-mode .cliente-details-modal > .projeto-modal-actions {
+    border-top-color: #304a60;
+}
+
+/* Espaçamento do cabeçalho dos detalhes */
+.gestec-app .cliente-details-modal .projeto-modal-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 10px;
+    flex-shrink: 0;
+}
+
+@media (max-width: 480px) {
+    .gestec-app .cliente-form-modal .cliente-modal-actions,
+    .gestec-app .cliente-details-modal > .projeto-modal-actions {
+        flex-direction: column-reverse;
+    }
+
+    .gestec-app .cliente-form-modal .cliente-modal-actions > button,
+    .gestec-app .cliente-details-modal > .projeto-modal-actions > button {
+        width: 100%;
+    }
+}
+
+/* Modal de confirmação de alterações não salvas do cliente */
+.gestec-app .projeto-modal:has(#cliente-confirmar-saida) {
+    padding: 28px;
+}
+
+.gestec-app .projeto-modal:has(#cliente-confirmar-saida) #cliente-confirmar-saida {
+    margin: 0 0 16px;
+}
+
+.gestec-app .projeto-modal:has(#cliente-confirmar-saida) > p {
+    margin: 0 0 24px;
+    line-height: 1.5;
+}
+
+.gestec-app .projeto-modal:has(#cliente-confirmar-saida) .projeto-modal-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 12px;
+    margin-top: 0;
+}
