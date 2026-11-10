@@ -195,7 +195,7 @@
 .gestec-app .modal-header { padding: 20px 22px; border-bottom: 1px solid #e1edf5; }
 .gestec-app .projeto-modal-header h2,
 .gestec-app .modal-header h2 { color: #153451; font-size: 19px; font-weight: 800; }
-.gestec-app .projeto-modal-actions,
+.gestec-app .projeto-modal-toolbar,
 .gestec-app .modal-actions,
 .gestec-app .modal-footer { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 9px; padding: 15px 22px; border-top: 1px solid #e1edf5; }
 .gestec-app .projeto-field input,
@@ -297,7 +297,7 @@
 .gestec-app.dark-mode .modal-content { border-color: #28475e; background: #10263b; color: #e5f0fa; }
 .gestec-app.dark-mode .projeto-modal-header,
 .gestec-app.dark-mode .modal-header,
-.gestec-app.dark-mode .projeto-modal-actions,
+.gestec-app.dark-mode .projeto-modal-toolbar,
 .gestec-app.dark-mode .modal-actions,
 .gestec-app.dark-mode .modal-footer { border-color: #28475e; }
 .gestec-app.dark-mode .projeto-modal-header h2,

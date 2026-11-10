@@ -564,27 +564,34 @@ function OrdemServicoDetalhesModal({
                                                 >
                                                     <i className="fa-solid fa-pen" aria-hidden="true" /> Editar ordem
                                                 </button>
-
-                                                {modoPagina && (
-                                                    <button
-                                                        type="button"
-                                                        role="menuitem"
-                                                        disabled={!podeEditarOrdem}
-                                                        onClick={() => {
-                                                            setAcoesMenuAberto(false);
-                                                            setEdicaoDiretaAberta(true);
-                                                        }}
-                                                    >
-                                                        <i className="fa-solid fa-pen-to-square" aria-hidden="true" /> Editar diretamente
-                                                    </button>
-                                                )}
                                                 {podeReatribuirResponsavel && <button type="button" role="menuitem" onClick={() => { setResponsavelPainelAberto((aberto) => !aberto); setAcoesMenuAberto(false); }}><i className="fa-solid fa-user-gear" aria-hidden="true" /> Alterar responsável</button>}
                                                 {podeAlterarPrazo && <button type="button" role="menuitem" onClick={() => { setPrazoPainelAberto((aberto) => !aberto); setAcoesMenuAberto(false); }}><i className="fa-regular fa-calendar" aria-hidden="true" /> Alterar prazo</button>}
                                                 <button type="button" role="menuitem" onClick={() => { setAbaAcompanhamento("anexos"); setAcoesMenuAberto(false); }}><i className="fa-solid fa-paperclip" aria-hidden="true" /> Consultar anexos</button>
                                             </div>}
                                         </div>
-                                        <button type="button" className="os-detail-btn os-detail-btn--primary" onClick={() => setLancarHorasAberto(true)}><i className="fa-solid fa-plus" aria-hidden="true" /> Lançar horas</button>
-                                    </div>
+
+                                        {modoPagina && podeEditarOrdem && (
+                                            <button
+                                                type="button"
+                                                className="os-detail-btn os-detail-btn--secondary"
+                                                aria-pressed={edicaoDiretaAberta}
+                                                onClick={() =>
+                                                    setEdicaoDiretaAberta((aberto) => !aberto)
+                                                }
+                                            >
+                                                <i className="fa-solid fa-pen-to-square" aria-hidden="true" />
+                                                {edicaoDiretaAberta ? "Modo edição" : "Editar O.S."}
+                                            </button>
+                                        )}
+
+                                        <button
+                                            type="button"
+                                            className="os-detail-btn os-detail-btn--primary"
+                                            onClick={() => setLancarHorasAberto(true)}
+                                        >
+                                            <i className="fa-solid fa-plus" aria-hidden="true" />
+                                            Lançar horas
+                                        </button></div>
                                 </div>
                                 <h2>{ordem.titulo}</h2>
                                 <p className="os-detail-summary-description">{ordem.descricao || "Sem descrição cadastrada."}</p>
@@ -721,66 +728,70 @@ function OrdemServicoDetalhesModal({
                                         </select>
                                     </label>
 
-                                    <label className="os-detail-field">
-                                        <span>Criticidade</span>
-                                        <select
-                                            value={dadosEdicao.criticidade ?? ""}
-                                            onChange={(event) =>
-                                                setDadosEdicao((atual) => ({
-                                                    ...atual,
-                                                    criticidade: event.target.value || null,
-                                                }))
-                                            }
-                                        >
-                                            <option value="">Não definida</option>
-                                            {Object.entries(CRITICIDADE_LABELS).map(
-                                                ([valor, rotulo]) => (
-                                                    <option key={valor} value={valor}>
-                                                        {rotulo}
-                                                    </option>
-                                                ),
-                                            )}
-                                        </select>
-                                    </label>
+                                    <div className="os-detail-edit-layout">
+                                        <label className="os-detail-field">
+                                            <span>Motivo da atualização (obrigatório)</span>
+                                            <textarea
+                                                rows={3}
+                                                value={justificativaEdicao}
+                                                onChange={(event) =>
+                                                    setJustificativaEdicao(event.target.value)
+                                                }
+                                                placeholder="Descreva o que foi alterado e o motivo."
+                                            />
+                                        </label>
 
-                                    <label className="os-detail-field os-detail-field--wide">
-                                        <span>Motivo da atualização (obrigatório)</span>
-                                        <textarea
-                                            rows={3}
-                                            value={justificativaEdicao}
-                                            onChange={(event) =>
-                                                setJustificativaEdicao(event.target.value)
-                                            }
-                                            placeholder="Descreva o que foi alterado e o motivo."
-                                        />
-                                    </label>
+                                        <div className="os-detail-edit-side">
+                                            <label className="os-detail-field">
+                                                <span>Criticidade</span>
+                                                <select
+                                                    value={dadosEdicao.criticidade ?? ""}
+                                                    onChange={(event) =>
+                                                        setDadosEdicao((atual) => ({
+                                                            ...atual,
+                                                            criticidade: event.target.value || null,
+                                                        }))
+                                                    }
+                                                >
+                                                    <option value="">Não definida</option>
+                                                    {Object.entries(CRITICIDADE_LABELS).map(
+                                                        ([valor, rotulo]) => (
+                                                            <option key={valor} value={valor}>
+                                                                {rotulo}
+                                                            </option>
+                                                        ),
+                                                    )}
+                                                </select>
+                                            </label>
 
-                                    <div className="os-detail-inline-actions">
-                                        <button
-                                            type="button"
-                                            className="os-detail-btn os-detail-btn--secondary"
-                                            onClick={() => {
-                                                setEdicaoDiretaAberta(false);
-                                                setJustificativaEdicao("");
-                                            }}
-                                            disabled={salvandoEdicaoDireta}
-                                        >
-                                            Cancelar
-                                        </button>
+                                            <div className="os-detail-inline-actions">
+                                                <button
+                                                    type="button"
+                                                    className="os-detail-btn os-detail-btn--secondary"
+                                                    onClick={() => {
+                                                        setEdicaoDiretaAberta(false);
+                                                        setJustificativaEdicao("");
+                                                    }}
+                                                    disabled={salvandoEdicaoDireta}
+                                                >
+                                                    Cancelar
+                                                </button>
 
-                                        <button
-                                            type="button"
-                                            className="os-detail-btn os-detail-btn--primary"
-                                            onClick={salvarEdicaoDireta}
-                                            disabled={
-                                                salvandoEdicaoDireta ||
-                                                !justificativaEdicao.trim()
-                                            }
-                                        >
-                                            {salvandoEdicaoDireta
-                                                ? "Salvando..."
-                                                : "Salvar alterações"}
-                                        </button>
+                                                <button
+                                                    type="button"
+                                                    className="os-detail-btn os-detail-btn--primary"
+                                                    onClick={salvarEdicaoDireta}
+                                                    disabled={
+                                                        salvandoEdicaoDireta ||
+                                                        !justificativaEdicao.trim()
+                                                    }
+                                                >
+                                                    {salvandoEdicaoDireta
+                                                        ? "Salvando..."
+                                                        : "Salvar alterações"}
+                                                </button>
+                                            </div>
+                                        </div>
                                     </div>
                                 </section>
                             )}
