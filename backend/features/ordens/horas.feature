@@ -60,3 +60,28 @@ Funcionalidade: Registro de horas gastas na O.S. (US#2.7)
         Quando muda o status para "aguardando" informando "1h"
         Então o registro de horas responde 200
         E existe lançamento de 60 minutos com status "em_andamento" e auditoria
+
+    Cenário: Lista traz o total e começa pelo trabalho mais recente
+        Dado que existe um técnico autenticado
+        E que existe uma O.S. com responsável atribuído
+        Quando registra a duração "1h" na data "2026-11-01"
+        E registra a duração "30m" na data "2026-11-03"
+        E consulta as horas da O.S.
+        Então o registro de horas responde 200
+        E a lista de horas tem total de 90 minutos e começa em "2026-11-03"
+
+    Cenário: O.S. sem lançamentos devolve lista vazia
+        Dado que existe um gestor autenticado
+        E que existe uma O.S. não concluída sem responsável
+        Quando consulta as horas da O.S.
+        Então o registro de horas responde 200
+        E a lista de horas está vazia
+
+    Cenário: Consulta de O.S. inexistente retorna 404
+        Dado que existe um gestor autenticado
+        Quando consulta as horas de uma O.S. inexistente
+        Então o registro de horas responde 404
+
+    Cenário: Consulta sem token retorna 401
+        Quando consulta as horas sem estar autenticado
+        Então o registro de horas responde 401

@@ -72,4 +72,7 @@ router.post('/:id/horas', autorizar('tecnico'), (req: Request, res: Response) =>
     controllerOrdemServico.registrarHoras(req, res),
 );
 
+// GET horas — qualquer usuário autenticado
+router.get('/:id/horas', (req: Request, res: Response) => controllerOrdemServico.listarHoras(req, res));
+
 export default router;

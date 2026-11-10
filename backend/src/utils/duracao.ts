@@ -1,6 +1,6 @@
 /**
  * utils/duracao.ts
- * Converte a duração no formato Jira ("2w 4d 6h 45m") em minutos (1d = 8h, 1w = 5d).
+ * Converte a duração no formato Jira ("2w 4d 6h 45m") em minutos e vice-versa (1d = 8h, 1w = 5d).
  */
 import { AppError } from '../errors/AppError';
 import { INTEIRO_MAXIMO_POSTGRES } from './validacao';
@@ -29,4 +29,25 @@ export function duracaoParaMinutos(valor: unknown): number {
         throw new AppError('duracao é grande demais para ser registrada', 422);
     }
     return total;
+}
+
+/** Converte minutos no formato Jira: 7125 vira "2w 4d 6h 45m". */
+export function minutosParaDuracao(totalMinutos: number): string {
+    const semanas = Math.floor(totalMinutos / MINUTOS_POR_SEMANA);
+    const restoSemana = totalMinutos % MINUTOS_POR_SEMANA;
+    const dias = Math.floor(restoSemana / MINUTOS_POR_DIA);
+    const restoDia = restoSemana % MINUTOS_POR_DIA;
+    const horas = Math.floor(restoDia / 60);
+    const minutos = restoDia % 60;
+
+    const partes = [
+        { valor: semanas, unidade: 'w' },
+        { valor: dias, unidade: 'd' },
+        { valor: horas, unidade: 'h' },
+        { valor: minutos, unidade: 'm' },
+    ]
+        .filter((parte) => parte.valor > 0)
+        .map((parte) => `${parte.valor}${parte.unidade}`);
+
+    return partes.length > 0 ? partes.join(' ') : '0m';
 }

@@ -129,6 +129,12 @@ export class ControllerOrdemServico {
         );
     }    
     
+    /** GET /ordens-servico/:id/horas — lista as horas da O.S. com o total (US#2.7). */
+    public async listarHoras(req: Request, resp: Response): Promise<Response> {
+        const id = lerId(req.params.id);
+        return resp.status(200).json(await serviceLancamentoHoras.listarPorOrdem(id));
+    }
+
     public async listarHistorico(req: Request, resp: Response): Promise<Response> {
         const id = lerId(req.params.id);
         const historico = await serviceAuditoria.listarPorOrdemServico(id);

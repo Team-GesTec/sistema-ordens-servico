@@ -1,12 +1,13 @@
 /**
  * services/serviceLancamentoHoras.ts
  * Registro de horas gastas na O.S. (US#2.7): valida, grava o lançamento e a auditoria na mesma transação.
+ * Também lista os lançamentos com o total calculado no banco (reaproveitado pelas US#2.8 e 2.10).
  */
 import { prisma } from '../prisma/client';
 import type { ordens_servico, Prisma } from '../prisma/generated/client';
 import { AppError } from '../errors/AppError';
 import { bloquearOrdemServico } from '../utils/projetoOsInvariant';
-import { duracaoParaMinutos } from '../utils/duracao';
+import { duracaoParaMinutos, minutosParaDuracao } from '../utils/duracao';
 import { lerCorpo, type CorpoRequisicao } from '../utils/validacao';
 import { serviceAuditoria } from './serviceAuditoria';
 
@@ -85,6 +86,45 @@ export class ServiceLancamentoHoras {
 
             return this.gravarNaTransacao(ordem, usuarioId, lerCorpo(corpo), conexao);
         });
+    }
+
+    /** Lista os lançamentos da O.S. com o total, do mais recente ao mais antigo. */
+    async listarPorOrdem(osId: number) {
+        const ordem = await prisma.ordens_servico.findUnique({
+            where: { id: osId },
+            select: { id: true },
+        });
+        if (!ordem) {
+            throw AppError.naoEncontrado(`O.S. ${osId} não encontrada`);
+        }
+
+        const [lancamentos, soma] = await prisma.$transaction([
+            prisma.lancamentos_horas.findMany({
+                where: { os_id: osId },
+                orderBy: [{ data_trabalho: 'desc' }, { id: 'desc' }],
+                include: { funcionarios: { select: { id: true, nome: true } } },
+            }),
+            prisma.lancamentos_horas.aggregate({
+                where: { os_id: osId },
+                _sum: { minutos: true },
+            }),
+        ]);
+
+        const totalMinutos = soma._sum.minutos ?? 0;
+
+        return {
+            total_minutos: totalMinutos,
+            total_duracao: minutosParaDuracao(totalMinutos),
+            lancamentos: lancamentos.map((lancamento) => ({
+                id: lancamento.id,
+                data_trabalho: lancamento.data_trabalho.toISOString().slice(0, 10),
+                minutos: lancamento.minutos,
+                duracao: minutosParaDuracao(lancamento.minutos),
+                status_os: lancamento.status_os,
+                autor: lancamento.funcionarios,
+                registrado_em: lancamento.criado_em,
+            })),
+        };
     }
 }
 

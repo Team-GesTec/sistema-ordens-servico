@@ -67,3 +67,34 @@ Then(
         assert.equal(auditoria.dado_novo, String(minutos));
     },
 );
+
+async function consultar(world: CustomWorld, osId: number) {
+    world.response = await api
+        .get(`/ordens-servico/${osId}/horas`)
+        .set("Authorization", `Bearer ${world.data.token}`);
+}
+
+When("consulta as horas da O.S.", async function (this: CustomWorld) {
+    await consultar(this, this.data.osId);
+});
+
+When("consulta as horas de uma O.S. inexistente", async function (this: CustomWorld) {
+    await consultar(this, OS_INEXISTENTE);
+});
+
+When("consulta as horas sem estar autenticado", async function (this: CustomWorld) {
+    this.response = await api.get("/ordens-servico/1/horas");
+});
+
+Then(
+    "a lista de horas tem total de {int} minutos e começa em {string}",
+    function (this: CustomWorld, total: number, data: string) {
+        assert.equal(this.response?.body.total_minutos, total);
+        assert.equal(this.response?.body.lancamentos[0].data_trabalho, data);
+    },
+);
+
+Then("a lista de horas está vazia", function (this: CustomWorld) {
+    assert.equal(this.response?.body.total_minutos, 0);
+    assert.deepEqual(this.response?.body.lancamentos, []);
+});
