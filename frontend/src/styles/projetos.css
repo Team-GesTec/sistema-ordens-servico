@@ -525,3 +525,365 @@
 .dark-mode .projeto-card-main:focus-visible {
     outline-color: rgba(126, 197, 237, 0.9);
 }
+
+
+/* ===== GesTec referência consolidado: The remaining real pages keep their data-rich cards, but use the reference card geometry. ===== */
+/* The remaining real pages keep their data-rich cards, but use the reference card geometry. */
+.gestec-app .projetos-grid { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); align-items: stretch; gap: 15px; }
+.gestec-app .projeto-card { min-width: 0; padding: 18px; border: 1px solid #c8e2f1; border-radius: 14px; background: rgba(255,255,255,.96); box-shadow: 0 7px 22px rgba(15,69,114,.055); color: #29445d; transition: border-color .16s ease, box-shadow .16s ease, transform .16s ease; }
+.gestec-app .projeto-card:hover { border-color: #a7d4ec; box-shadow: 0 12px 26px rgba(15,69,114,.09); transform: translateY(-1px); }
+.gestec-app .projeto-card-header { gap: 10px; margin-bottom: 14px; }
+.gestec-app .projeto-card-title { color: #203750; font-size: 16px; line-height: 1.4; font-weight: 800; }
+.gestec-app .projeto-card-client,
+.gestec-app .projeto-card-metadata { color: #70859a; font-size: 11px; line-height: 1.55; }
+.gestec-app .projeto-id { color: #5c7690; font-size: 9px; font-weight: 850; letter-spacing: .6px; }
+.gestec-app .projeto-status { display: inline-flex; align-items: center; padding: 5px 8px; border-radius: 6px; background: #e6f3ff; color: #2c6eb4; font-size: 9px; font-weight: 850; white-space: nowrap; }
+.gestec-app .projeto-status--concluido { background: #e2f6ed; color: #158260; }
+.gestec-app .projeto-status--pausado { background: #fff2d9; color: #9b680f; }
+.gestec-app .projeto-card-actions { gap: 8px; padding-top: 13px; border-top: 1px solid #e4eef5; }
+.gestec-app .projetos-grid .projeto-card button:not(.projeto-btn-primary):not(.projeto-btn-secondary):not(.projeto-btn-danger) { color: inherit; }
+.gestec-app .gestec-department-card { display: flex; flex-direction: column; gap: 13px; }
+.gestec-app .gestec-department-identity { display: flex; align-items: center; gap: 12px; }
+.gestec-app .gestec-department-mark { width: 43px; height: 43px; flex: 0 0 43px; display: grid; place-items: center; border-radius: 12px; background: #e1f4fd; color: #0b80bc; font-size: 13px; font-weight: 850; }
+.gestec-app .gestec-department-title { display: block; padding: 0; border: 0; background: transparent; color: #203750; text-align: left; font-size: 16px; font-weight: 800; cursor: pointer; }
+.gestec-app .gestec-department-title:hover { color: #0b83c1; }
+.gestec-app .gestec-department-meta { display: grid; grid-template-columns: 1fr; gap: 8px; margin-top: 4px; padding-top: 13px; border-top: 1px solid #e3eef5; }
+.gestec-app .gestec-department-meta span { color: #6d8297; font-size: 11px; line-height: 1.45; }
+
+
+
+/* ===== GesTec design consolidado: Project tiles follow the supplied Gestec reference: icon, identity, progress, metrics and affiliation footer. ===== */
+/* Project tiles follow the supplied Gestec reference: icon, identity, progress, metrics and affiliation footer. */
+.gestec-app .projetos-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: stretch;
+  gap: 18px;
+}
+
+.gestec-app .gestec-project-tile {
+  position: relative;
+  min-height: 300px;
+  padding: 20px;
+  border: 1px solid #c9e0ed !important;
+  border-top: 1px solid #c9e0ed !important;
+  border-radius: 17px;
+  background: #fff !important;
+}
+
+.gestec-app .gestec-project-main {
+  gap: 0;
+  padding: 0;
+  text-decoration: none;
+}
+
+.gestec-app .gestec-project-main:focus-visible {
+  outline-offset: 4px;
+}
+
+.gestec-app .gestec-project-topline {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 13px;
+  min-height: 74px;
+}
+
+.gestec-app .gestec-project-icon {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 13px;
+  background: #e7f1ff;
+  color: #2679e9;
+  font-size: 17px;
+}
+
+.gestec-app .gestec-project-id {
+  color: #2475dc;
+  font-size: 10px;
+  font-weight: 850;
+  letter-spacing: .35px;
+}
+
+.gestec-app .gestec-project-title {
+  margin: 4px 0 7px;
+  color: #1a2e49;
+  font-size: 18px;
+  font-weight: 850;
+  line-height: 1.35;
+}
+
+.gestec-app .gestec-project-client {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 0;
+  color: #71869c;
+  font-size: 11px;
+}
+
+.gestec-app .gestec-project-client i {
+  color: #9aaec0;
+  font-size: 10px;
+}
+
+.gestec-app .gestec-project-status-line {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 17px;
+}
+
+.gestec-app .gestec-project-status-line>strong {
+  color: #617b94;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.gestec-app .gestec-project-status-line .projeto-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 9px;
+  border: 0;
+  border-radius: 8px;
+  background: #eaf2ff;
+  color: #2473d5;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.gestec-app .gestec-project-status-line .projeto-status::before {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  content: "";
+}
+
+.gestec-app .gestec-project-status-line .projeto-status--em_planejamento {
+  background: #fff2d8;
+  color: #a66a08;
+}
+
+.gestec-app .gestec-project-status-line .projeto-status--pausado {
+  background: #f0eaff;
+  color: #7650c7;
+}
+
+.gestec-app .gestec-project-status-line .projeto-status--concluido {
+  background: #e0f7ec;
+  color: #16825a;
+}
+
+.gestec-app .gestec-project-progress {
+  height: 7px;
+  margin-top: 9px;
+  background: #eaf0f5;
+}
+
+.gestec-app .gestec-project-progress>span {
+  background: linear-gradient(90deg, #087cc1, #4ab9e6);
+}
+
+.gestec-app .gestec-project-no-progress {
+  margin: 9px 0 0;
+  color: #778da2;
+  font-size: 10px;
+}
+
+.gestec-app .gestec-project-metadata {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 9px;
+  margin-top: 15px;
+  padding-bottom: 14px;
+  color: #667e94;
+  font-size: 10px;
+}
+
+.gestec-app .gestec-project-metadata span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.gestec-app .gestec-project-metadata i {
+  color: #8299ad;
+  font-size: 9px;
+}
+
+.gestec-app .gestec-project-footer {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
+  margin-top: auto;
+  padding-top: 13px;
+  border-top: 1px solid #e8eff4;
+}
+
+.gestec-app .gestec-project-affiliation-avatar {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  flex: 0 0 38px;
+  border-radius: 11px;
+  font-size: 10px;
+  font-weight: 850;
+}
+
+.gestec-app .gestec-project-affiliation-text {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.gestec-app .gestec-project-affiliation-text small {
+  color: #8a9bad;
+  font-size: 9px;
+}
+
+.gestec-app .gestec-project-affiliation-text strong {
+  overflow: hidden;
+  color: #526d85;
+  font-size: 10px;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gestec-app .gestec-project-open-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  flex: 0 0 auto;
+  color: #0785c8;
+  font-size: 10px;
+  font-weight: 850;
+}
+
+.gestec-app .gestec-project-open-link i {
+  font-size: 9px;
+  transition: transform .15s ease;
+}
+
+.gestec-app .gestec-project-main:hover .gestec-project-open-link i {
+  transform: translateX(3px);
+}
+
+.gestec-app .gestec-project-admin-actions {
+  position: absolute;
+  top: 22px;
+  right: 20px;
+  z-index: 2;
+  display: flex;
+  gap: 6px;
+}
+
+.gestec-app .gestec-project-admin-actions .gestec-icon-action {
+  width: 30px;
+  height: 30px;
+}
+
+.gestec-app .gestec-project-admin-actions .gestec-icon-action i {
+  font-size: 11px;
+}
+
+.gestec-app.dark-mode .gestec-project-tile {
+  border-color: #304a60 !important;
+  background: #142638 !important;
+}
+
+.gestec-app.dark-mode .gestec-project-icon {
+  background: #173f63;
+  color: #7dcaff;
+}
+
+.gestec-app.dark-mode .gestec-project-id {
+  color: #78bfff;
+}
+
+.gestec-app.dark-mode .gestec-project-title {
+  color: #edf6ff;
+}
+
+.gestec-app.dark-mode .gestec-project-client,
+.gestec-app.dark-mode .gestec-project-no-progress {
+  color: #aec4d5;
+}
+
+.gestec-app.dark-mode .gestec-project-status-line>strong {
+  color: #c0d3e3;
+}
+
+.gestec-app.dark-mode .gestec-project-status-line .projeto-status {
+  background: #193d62;
+  color: #9dccff;
+}
+
+.gestec-app.dark-mode .gestec-project-status-line .projeto-status--em_planejamento {
+  background: #4b3718;
+  color: #ffdc91;
+}
+
+.gestec-app.dark-mode .gestec-project-status-line .projeto-status--pausado {
+  background: #372850;
+  color: #d0b6ff;
+}
+
+.gestec-app.dark-mode .gestec-project-status-line .projeto-status--concluido {
+  background: #123f32;
+  color: #8aebbd;
+}
+
+.gestec-app.dark-mode .gestec-project-progress {
+  background: #243b4e;
+}
+
+.gestec-app.dark-mode .gestec-project-metadata {
+  color: #aec3d3;
+}
+
+.gestec-app.dark-mode .gestec-project-footer {
+  border-color: #304a60;
+}
+
+.gestec-app.dark-mode .gestec-project-affiliation-text small {
+  color: #91a9bc;
+}
+
+.gestec-app.dark-mode .gestec-project-affiliation-text strong {
+  color: #d7e7f2;
+}
+
+.gestec-app.dark-mode .gestec-project-open-link {
+  color: #62d5ff;
+}
+
+@media (max-width: 760px) {
+  .gestec-app .projetos-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .gestec-app .gestec-project-tile {
+    min-height: 285px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gestec-app .gestec-project-open-link i {
+    transition: none;
+  }
+}
+
+.gestec-app .funcionarios-container .gestec-data-table {
+  min-width: 900px;
+}
