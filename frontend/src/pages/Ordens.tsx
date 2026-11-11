@@ -229,7 +229,7 @@ function Ordens() {
                         <section className="card table-card gestec-data-card" aria-labelledby="ordens-table-heading">
                             <div className="gestec-table-heading"><div><h2 id="ordens-table-heading">{ordens.mostrarInativas ? "Ordens inativas" : "Ordens de serviço"}</h2><p>Solicitação, responsável, status, prioridade e prazo da O.S.</p></div><span className="gestec-record-count">{ordensExibidas.length} registro(s)</span></div>
                             <div className="table-scroll gestec-table-scroll"><table className="table gestec-data-table gestec-orders-table">
-                                <thead><tr><th>OS / identificação</th><th>Solicitação</th><th>Responsável</th><th>Status</th><th>Prioridade</th><th>Prazo / SLA</th><th className="gestec-actions-cell">Ações</th></tr></thead>
+                                <thead><tr><th>OS / identificação</th><th>Solicitação</th><th>Responsável</th><th>Status</th><th>Prioridade</th><th>Prazo / SLA</th><th className="gestec-actions-cell">Ativa</th></tr></thead>
                                 <tbody>{paginacaoOrdens.pageItems.map((ordem) => {
                                     const cliente = ordens.clientes.find((item) => item.id === ordem.cliente_id);
                                     const responsavel = ordens.funcionariosConhecidos.find((item) => item.id === ordem.responsavel_id);
@@ -238,7 +238,25 @@ function Ordens() {
                                     hoje.setHours(0, 0, 0, 0);
                                     const atrasada = Boolean(prazo && prazo.getTime() < hoje.getTime() && ordem.status !== "concluido");
                                     const prioridade = ordem.criticidade ? CRITICIDADE_LABELS[ordem.criticidade] : "Não definida";
-                                    return <tr key={ordem.id}>
+                                    return <tr
+                                        key={ordem.id}
+                                        className="gestec-order-clickable-row"
+                                        tabIndex={0}
+                                        onClick={(event) => {
+                                            if ((event.target as HTMLElement).closest("a, button, input, select, textarea")) {
+                                                return;
+                                            }
+                                            navigate(`/ordens/${ordem.id}`);
+                                        }}
+                                        onKeyDown={(event) => {
+                                            if (event.target !== event.currentTarget) return;
+
+                                            if (event.key === "Enter" || event.key === " ") {
+                                                event.preventDefault();
+                                                navigate(`/ordens/${ordem.id}`);
+                                            }
+                                        }}
+                                    >
                                         <td><div className="gestec-order-title"><span><Link className="gestec-table-link" to={`/ordens/${ordem.id}`}>OS #{ordem.id}</Link><small>{formatarDataOrdem(ordem.data_criacao)} · {ordem.tipo === "instalacao" ? "Instalação" : "Manutenção"}</small></span></div></td>
                                         <td><strong className="gestec-dashboard-order-title">{ordem.titulo}</strong><small className="gestec-cell-subtitle">{cliente ? (cliente.nome || cliente.razao_social || `Cliente #${cliente.id}`) : ordem.cliente_id === null ? "Não associado" : `Cliente #${ordem.cliente_id}`}</small></td>
                                         <td>{responsavel ? responsavel.nome || `Funcionário #${responsavel.id}` : ordem.responsavel_id === null ? "Não atribuído" : `Funcionário #${ordem.responsavel_id}`}</td>
@@ -246,7 +264,6 @@ function Ordens() {
                                         <td><span className={`gestec-priority-pill priority-${ordem.criticidade ?? "indefinida"}`}>{prioridade}</span></td>
                                         <td><span className={atrasada ? "gestec-deadline is-late" : "gestec-deadline"}>{formatarDataOrdem(ordem.data_limite_sla)}{atrasada && <small>Vencida</small>}</span></td>
                                         <td className="gestec-actions-cell"><div className="gestec-row-actions">
-                                            <button type="button" className="gestec-icon-action" onClick={() => navigate(`/ordens/${ordem.id}`)} aria-label={`Ver detalhes da O.S. ${ordem.id}`} title="Ver detalhes">◉</button>
                                             {ordens.podeGerenciar && <button type="button" className="gestec-icon-action is-danger" onClick={() => ordens.solicitarAlteracaoAtivo(ordem, ordem.ativo ? "inativar" : "reativar")} disabled={ordens.inativandoId !== null} aria-label={`${ordem.ativo ? "Inativar" : "Reativar"} O.S. ${ordem.id}`} title={ordem.ativo ? "Inativar" : "Reativar"}>{ordem.ativo ? "−" : "↻"}</button>}
                                         </div></td>
                                     </tr>;
