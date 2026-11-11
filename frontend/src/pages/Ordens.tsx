@@ -309,6 +309,9 @@ function Ordens() {
 
             <OrdemServicoDetalhesModal
                 aberto={ordens.detalhesAbertos}
+                podeGerenciar={ordens.podeGerenciar}
+                inativandoId={ordens.inativandoId}
+                onAlterarAtivo={ordens.solicitarAlteracaoAtivo}
                 ordem={ordens.ordemSelecionada}
                 carregando={ordens.carregandoDetalhes}
                 erro={ordens.detalhesAbertos ? ordens.erro : null}

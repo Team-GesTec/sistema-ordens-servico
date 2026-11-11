@@ -71,6 +71,12 @@ interface OrdemServicoDetalhesModalProps {
     carregando: boolean;
     erro: string | null;
     podeEditar: boolean;
+    podeGerenciar?: boolean;
+    inativandoId?: number | null;
+    onAlterarAtivo?: (
+        ordem: OrdemServico,
+        acao: "inativar" | "reativar",
+    ) => void;
     podeAlterarStatus: boolean;
     podeConcluir: boolean;
     podeAlterarPrazo?: boolean;
@@ -138,6 +144,9 @@ function OrdemServicoDetalhesModal({
     carregando,
     erro,
     podeEditar,
+    podeGerenciar = false,
+    inativandoId = null,
+    onAlterarAtivo,
     podeAlterarStatus,
     salvandoEdicaoDireta = false,
     onSalvarEdicaoDireta,
@@ -486,10 +495,10 @@ function OrdemServicoDetalhesModal({
             setProgressoAnexo(0);
         }
     }
-
     const podeEditarOrdem =
         podeEditar &&
         ordem !== null &&
+        ordem.ativo &&
         ordem.status !== "bloqueado" &&
         ordem.status !== "concluido";
 
@@ -610,8 +619,21 @@ function OrdemServicoDetalhesModal({
                                 </div>
                                 <div className="os-detail-top-actions">
                                     <button type="button" className="os-detail-btn os-detail-btn--secondary" onClick={onFechar}><i className="fa-solid fa-arrow-left" aria-hidden="true" /> Voltar às ordens</button>
+                                    {podeGerenciar && onAlterarAtivo && (
+                                        <button
+                                            type="button"
+                                            className="os-detail-btn os-detail-btn--secondary"
+                                            onClick={() =>
+                                                onAlterarAtivo(ordem, ordem.ativo ? "inativar" : "reativar")
+                                            }
+                                            disabled={inativandoId !== null && inativandoId !== undefined}
+                                        >
+                                            <i className="fa-solid fa-power-off" aria-hidden="true" />
+                                            {ordem.ativo ? "Inativar O.S." : "Reativar O.S."}
+                                        </button>
+                                    )}
                                     <button type="button" className="os-detail-btn os-detail-btn--secondary" onClick={() => { setAbaAcompanhamento("anexos"); setAnexoAberto(true); }}><i className="fa-solid fa-paperclip" aria-hidden="true" /> Anexar arquivo</button>
-                                    <button type="button" className="os-detail-btn os-detail-btn--primary" onClick={() => setStatusPainelAberto((aberto) => !aberto)} disabled={!podeAlterarStatus}><i className="fa-solid fa-pen-to-square" aria-hidden="true" /> Alterar status</button>
+                                    <button type="button" className="os-detail-btn os-detail-btn--primary" onClick={() => setStatusPainelAberto((aberto) => !aberto)} disabled={!ordem.ativo || !podeAlterarStatus}><i className="fa-solid fa-pen-to-square" aria-hidden="true" /> Alterar status</button>
                                 </div>
                             </header>
 
@@ -626,8 +648,8 @@ function OrdemServicoDetalhesModal({
                                         <div className="os-detail-actions-menu-wrap">
                                             <button type="button" className="os-detail-btn os-detail-btn--secondary" aria-expanded={acoesMenuAberto} onClick={() => setAcoesMenuAberto((aberto) => !aberto)}><i className="fa-solid fa-ellipsis" aria-hidden="true" /> Mais ações</button>
                                             {acoesMenuAberto && <div className="os-detail-actions-menu" role="menu">
-                                                {podeReatribuirResponsavel && !podeEditar && <button type="button" role="menuitem" onClick={() => { setResponsavelPainelAberto((aberto) => !aberto); setAcoesMenuAberto(false); }}><i className="fa-solid fa-user-gear" aria-hidden="true" /> Alterar responsável</button>}
-                                                {podeAlterarPrazo && !podeEditar && <button type="button" role="menuitem" onClick={() => { setPrazoPainelAberto((aberto) => !aberto); setAcoesMenuAberto(false); }}><i className="fa-regular fa-calendar" aria-hidden="true" /> Alterar prazo</button>}
+                                                {ordem.ativo && podeReatribuirResponsavel && !podeEditar && <button type="button" role="menuitem" onClick={() => { setResponsavelPainelAberto((aberto) => !aberto); setAcoesMenuAberto(false); }}><i className="fa-solid fa-user-gear" aria-hidden="true" /> Alterar responsável</button>}
+                                                {ordem.ativo && podeAlterarPrazo && !podeEditar && <button type="button" role="menuitem" onClick={() => { setPrazoPainelAberto((aberto) => !aberto); setAcoesMenuAberto(false); }}><i className="fa-regular fa-calendar" aria-hidden="true" /> Alterar prazo</button>}
                                                 <button type="button" role="menuitem" onClick={() => { setAbaAcompanhamento("anexos"); setAcoesMenuAberto(false); }}><i className="fa-solid fa-paperclip" aria-hidden="true" /> Consultar anexos</button>
                                             </div>}
                                         </div>
@@ -885,20 +907,20 @@ function OrdemServicoDetalhesModal({
                                 </section>
                             )}
 
-                            {statusPainelAberto && <section className="os-detail-inline-panel">
+                            {statusPainelAberto && ordem.ativo && <section className="os-detail-inline-panel">
                                 <div><h2>Alterar status</h2><p>A atualização será enviada à API do SGOS.</p></div>
-                                <label className="os-detail-field"><span>Novo status</span><select value={statusSelecionado} onChange={(event) => setStatusSelecionado(event.target.value as StatusOrdemServico)} disabled={!podeAlterarStatus || alterandoStatusId !== null}>{statusEditaveis.map((status) => <option key={status} value={status}>{STATUS_LABELS[status]}</option>)}</select></label>
+                                <label className="os-detail-field"><span>Novo status</span><select value={statusSelecionado} onChange={(event) => setStatusSelecionado(event.target.value as StatusOrdemServico)} disabled={!ordem.ativo || !podeAlterarStatus || alterandoStatusId !== null}>{statusEditaveis.map((status) => <option key={status} value={status}>{STATUS_LABELS[status]}</option>)}</select></label>
                                 {statusSelecionado === "concluido" && <label className="os-detail-field os-detail-field--wide"><span>Parecer técnico obrigatório</span><textarea rows={3} value={parecerTemporario} onChange={(event) => setParecerTemporario(event.target.value)} placeholder="Descreva o trabalho realizado e os testes concluídos…" /></label>}
-                                <div className="os-detail-inline-actions"><button type="button" className="os-detail-btn os-detail-btn--secondary" onClick={() => setStatusPainelAberto(false)}>Cancelar</button><button type="button" className="os-detail-btn os-detail-btn--primary" onClick={() => { onAlterarStatus(statusSelecionado, statusSelecionado === "concluido" ? parecerTemporario : undefined); setStatusPainelAberto(false); }} disabled={!podeAlterarStatus || alterandoStatusId !== null || statusSelecionado === ordem.status || (statusSelecionado === "concluido" && !parecerTemporario.trim())}>{alterandoStatusId === ordem.id ? "Atualizando…" : "Salvar status"}</button></div>
+                                <div className="os-detail-inline-actions"><button type="button" className="os-detail-btn os-detail-btn--secondary" onClick={() => setStatusPainelAberto(false)}>Cancelar</button><button type="button" className="os-detail-btn os-detail-btn--primary" onClick={() => { onAlterarStatus(statusSelecionado, statusSelecionado === "concluido" ? parecerTemporario : undefined); setStatusPainelAberto(false); }} disabled={!ordem.ativo || !podeAlterarStatus || alterandoStatusId !== null || statusSelecionado === ordem.status || (statusSelecionado === "concluido" && !parecerTemporario.trim())}>{alterandoStatusId === ordem.id ? "Atualizando…" : "Salvar status"}</button></div>
                             </section>}
 
-                            {prazoPainelAberto && !podeEditar && <section className="os-detail-inline-panel">
+                            {prazoPainelAberto && ordem.ativo && !podeEditar && <section className="os-detail-inline-panel">
                                 <div><h2>Alterar prazo</h2><p>O motivo será solicitado antes de enviar a alteração.</p></div>
                                 <label className="os-detail-field"><span>Novo prazo final</span><input type="date" value={prazoSelecionado} onChange={(event) => setPrazoSelecionado(event.target.value)} disabled={alterandoPrazo} /></label>
-                                <div className="os-detail-inline-actions"><button type="button" className="os-detail-btn os-detail-btn--secondary" onClick={() => setPrazoPainelAberto(false)}>Cancelar</button><button type="button" className="os-detail-btn os-detail-btn--primary" onClick={() => { setPrazoPainelAberto(false); setJustificativaAberta(true); }} disabled={!podeAlterarPrazo || alterandoPrazo || !prazoSelecionado || prazoSelecionado === prazoAtual}>Continuar</button></div>
+                                <div className="os-detail-inline-actions"><button type="button" className="os-detail-btn os-detail-btn--secondary" onClick={() => setPrazoPainelAberto(false)}>Cancelar</button><button type="button" className="os-detail-btn os-detail-btn--primary" onClick={() => { setPrazoPainelAberto(false); setJustificativaAberta(true); }} disabled={!ordem.ativo || !podeAlterarPrazo || alterandoPrazo || !prazoSelecionado || prazoSelecionado === prazoAtual}>Continuar</button></div>
                             </section>}
 
-                            {responsavelPainelAberto && !podeEditar && <section className="os-detail-inline-panel">
+                            {responsavelPainelAberto && ordem.ativo && !podeEditar && <section className="os-detail-inline-panel">
                                 <div><h2>Alterar responsável</h2><p>Somente funcionários elegíveis são listados.</p></div>
                                 <label className="os-detail-field os-detail-field--wide"><span>Responsável técnico</span><Autocomplete id="ordem-responsavel-novo" options={responsavelOptions} value={responsavelNovoId} onChange={(value) => setResponsavelNovoId(value === null ? null : Number(value))} placeholder="Pesquisar funcionário ativo" clearable disabled={atribuindoResponsavel} emptyMessage="Nenhum funcionário ativo encontrado." /></label>
                                 <div className="os-detail-inline-actions"><button type="button" className="os-detail-btn os-detail-btn--secondary" onClick={() => setResponsavelPainelAberto(false)}>Cancelar</button><button type="button" className="os-detail-btn os-detail-btn--primary" onClick={() => { if (responsavelNovoId !== null) onAtribuirResponsavel(responsavelNovoId); setResponsavelPainelAberto(false); }} disabled={atribuindoResponsavel || responsavelNovoId === null || responsavelNovoId === ordem.responsavel_id}>{atribuindoResponsavel ? "Salvando…" : "Salvar responsável"}</button></div>
@@ -943,7 +965,7 @@ function OrdemServicoDetalhesModal({
                                                 <div><strong>Nenhum parecer técnico registrado</strong><p>O parecer será salvo no SGOS quando a ordem for concluída.</p></div>
                                             </div>
                                         )}
-                                        {!ordem.parecer_tecnico?.trim() && podeConcluir && ordem.status !== "concluido" && (
+                                        {ordem.ativo && !ordem.parecer_tecnico?.trim() && podeConcluir && ordem.status !== "concluido" && (
                                             <div className="os-detail-opinion-editor">
                                                 <label className="os-detail-field" htmlFor="os-detail-opinion-draft"><span>Preparar parecer técnico</span>
                                                     <textarea id="os-detail-opinion-draft" rows={4} value={parecerTemporario} onChange={(event) => setParecerTemporario(event.target.value)} placeholder="Descreva o trabalho realizado, os testes executados e o resultado…" />
@@ -966,7 +988,7 @@ function OrdemServicoDetalhesModal({
                                         <small className="os-detail-demo-note">Comentários demonstrativos: não são enviados nem salvos no backend.</small>
                                     </section>
 
-                                    <section className="os-detail-card os-detail-people-card"><header className="os-detail-card-heading"><div><h2>Pessoas envolvidas</h2></div><button type="button" aria-label="Alterar pessoa responsável" onClick={() => setResponsavelPainelAberto((aberto) => !aberto)} disabled={!podeReatribuirResponsavel || podeEditar}><i className="fa-solid fa-plus" aria-hidden="true" /></button></header><div className="os-detail-people-list">
+                                    <section className="os-detail-card os-detail-people-card"><header className="os-detail-card-heading"><div><h2>Pessoas envolvidas</h2></div><button type="button" aria-label="Alterar pessoa responsável" onClick={() => setResponsavelPainelAberto((aberto) => !aberto)} disabled={!ordem.ativo || !podeReatribuirResponsavel || podeEditar}><i className="fa-solid fa-plus" aria-hidden="true" /></button></header><div className="os-detail-people-list">
                                         <article><span className="os-detail-avatar os-detail-avatar--blue">{(responsavelAtual?.nome || "André Lima").split(/\s+/).slice(0, 2).map((parte) => parte[0]).join("").toUpperCase()}</span><div><strong>{responsavelAtual?.nome || "André Lima"}</strong><small>Responsável técnico{!responsavelAtual ? " · demonstração" : ""}</small></div><i className={`os-detail-presence${responsavelAtual?.ativo === false ? " inativo" : ""}`} aria-label={responsavelAtual?.ativo === false ? "Inativo" : "Ativo"} /></article>
                                         <article><span className="os-detail-avatar os-detail-avatar--violet">JF</span><div><strong>Juliana Ferreira</strong><small>Apoio técnico · demonstração</small></div><i className="os-detail-presence" aria-label="Ativo (demonstração)" /></article>
                                         <article><span className="os-detail-avatar os-detail-avatar--blue">MC</span><div><strong>Mariana Costa</strong><small>Gestora da ordem · demonstração</small></div><i className="os-detail-presence inativo" aria-label="Disponibilidade não informada" /></article>
@@ -1153,7 +1175,7 @@ function OrdemServicoDetalhesModal({
                                     )}
                                 </section>
 
-                                {podeAlterarStatus && (
+                                {ordem.ativo && podeAlterarStatus && (
                                     <section className="ordem-detalhes-descricao ordem-status-edicao">
                                         <h3>Alterar status</h3>
 
@@ -1202,7 +1224,7 @@ function OrdemServicoDetalhesModal({
                                     </section>
                                 )}
 
-                                {podeAlterarPrazo && !podeEditar && (
+                                {prazoPainelAberto && ordem.ativo && !podeEditar && (
                                     <section className="ordem-detalhes-descricao ordem-status-edicao">
                                         <h3>Alterar prazo final</h3>
 

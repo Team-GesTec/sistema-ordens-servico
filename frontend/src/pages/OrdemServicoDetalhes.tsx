@@ -3,6 +3,7 @@ import { useBlocker, useNavigate, useParams } from "react-router-dom";
 import OrdemServicoDetalhesModal from "../components/ordens/OrdemServicoDetalhesModal";
 import OrdemServicoFormModal from "../components/ordens/OrdemServicoFormModal";
 import { useAnexosOrdem } from "../hooks/useAnexosOrdem";
+import OrdemServicoAtivoModal from "../components/ordens/OrdemServicoAtivoModal";
 import { useOrdens } from "../hooks/useOrdens";
 /** Página de detalhes da O.S.; usa os mesmos serviços e controles já existentes na listagem. */
 function OrdemServicoDetalhes() {
@@ -61,6 +62,9 @@ function OrdemServicoDetalhes() {
                 <div className="container projetos-container ordens-container gestec-page-content gestec-os-detail-container">
                     <OrdemServicoDetalhesModal
                         aberto={true}
+                        podeGerenciar={ordens.podeGerenciar}
+                        inativandoId={ordens.inativandoId}
+                        onAlterarAtivo={ordens.solicitarAlteracaoAtivo}
                         modoPagina={true}
                         ordem={ordem}
                         projetos={ordens.projetos}
@@ -102,6 +106,16 @@ function OrdemServicoDetalhes() {
                     />
                 </div>
             </main>
+
+            <OrdemServicoAtivoModal
+                ordem={ordens.confirmacaoAtivo?.ordem ?? null}
+                acao={ordens.confirmacaoAtivo?.acao ?? null}
+                processando={ordens.inativandoId !== null}
+                erro={ordens.confirmacaoAtivo ? ordens.erro : null}
+                onFechar={ordens.fecharConfirmacaoAtivo}
+                onConfirmar={ordens.confirmarAlteracaoAtivo}
+            />
+
             <OrdemServicoFormModal
                 aberto={ordens.formularioAberto}
                 ordem={null}

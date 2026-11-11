@@ -454,6 +454,14 @@ export function useOrdens() {
         funcionarioId: number,
     ): Promise<boolean> {
         if (!ordemSelecionada || atribuindoResponsavel) return false;
+        if (!ordemSelecionada.ativo) {
+            setErro("Não é possível alterar o responsável de uma O.S. inativa.");
+            return false;
+        }
+        if (!ordemSelecionada.ativo) {
+            setErro("Não é possível alterar o responsável de uma O.S. inativa.");
+            return false;
+        }
 
         const funcionarioDestino = funcionariosAtivos.find(
             (funcionario) => funcionario.id === funcionarioId && funcionario.ativo,
@@ -712,6 +720,11 @@ export function useOrdens() {
 
         if (!ordemAtual || ordemAtual.id !== id) {
             setErro("A ordem de serviço selecionada não foi encontrada.");
+            return false;
+        }
+
+        if (!ordemAtual.ativo) {
+            setErro("Não é possível editar uma O.S. inativa.");
             return false;
         }
 
