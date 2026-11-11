@@ -1,3 +1,4 @@
+
 import { useEffect, useMemo, useRef, useState } from "react";
 import { calcularDiasUteisRestantes } from "../utils/filtroPrazo";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
@@ -48,10 +49,10 @@ function Ordens() {
             filtroPrazo === "todos"
                 ? null
                 : {
-                      proximos3: 3,
-                      proximos5: 5,
-                      proximos7: 7,
-                  }[filtroPrazo];
+                    proximos3: 3,
+                    proximos5: 5,
+                    proximos7: 7,
+                }[filtroPrazo];
 
         // Calcula os dias úteis restantes para cada O.S.
         const resultado = ordens.ordensFiltradas
@@ -69,7 +70,7 @@ function Ordens() {
                 return (
                     diasA - diasB ||
                     pesoCriticidade(b.ordem.criticidade) -
-                        pesoCriticidade(a.ordem.criticidade) ||
+                    pesoCriticidade(a.ordem.criticidade) ||
                     a.ordem.id - b.ordem.id
                 );
             });
@@ -91,6 +92,7 @@ function Ordens() {
             )
             .map((item) => item.ordem);
     }, [ordens.ordensFiltradas, filtroPrazo]);
+
     const paginacaoOrdens = usePaginatedList(ordensExibidas, 10);
 
     const [searchParams] = useSearchParams();
@@ -245,7 +247,6 @@ function Ordens() {
                                         <td><span className={atrasada ? "gestec-deadline is-late" : "gestec-deadline"}>{formatarDataOrdem(ordem.data_limite_sla)}{atrasada && <small>Vencida</small>}</span></td>
                                         <td className="gestec-actions-cell"><div className="gestec-row-actions">
                                             <button type="button" className="gestec-icon-action" onClick={() => navigate(`/ordens/${ordem.id}`)} aria-label={`Ver detalhes da O.S. ${ordem.id}`} title="Ver detalhes">◉</button>
-                                            {ordens.podeOperarDepartamento && ordem.ativo && ordem.status !== "concluido" && ordem.status !== "bloqueado" && <button type="button" className="gestec-icon-action" onClick={() => ordens.iniciarEdicao(ordem)} disabled={ordens.salvando} aria-label={`Editar O.S. ${ordem.id}`} title="Editar">✎</button>}
                                             {ordens.podeGerenciar && <button type="button" className="gestec-icon-action is-danger" onClick={() => ordens.solicitarAlteracaoAtivo(ordem, ordem.ativo ? "inativar" : "reativar")} disabled={ordens.inativandoId !== null} aria-label={`${ordem.ativo ? "Inativar" : "Reativar"} O.S. ${ordem.id}`} title={ordem.ativo ? "Inativar" : "Reativar"}>{ordem.ativo ? "−" : "↻"}</button>}
                                         </div></td>
                                     </tr>;
@@ -263,7 +264,6 @@ function Ordens() {
                             bloqueado={ordens.salvando || ordens.alterandoStatusId !== null}
                             podeMoverParaStatus={ordens.podeMoverOrdemParaStatus}
                             onAbrir={(selecionada) => navigate(`/ordens/${selecionada.id}`)}
-                            onEditar={ordens.iniciarEdicao}
                             onAlterarAtivo={ordens.solicitarAlteracaoAtivo}
                             onMoverStatus={ordens.moverOrdemKanban}
                         />
@@ -280,7 +280,6 @@ function Ordens() {
                                     podeEditar={ordens.podeOperarDepartamento}
                                     bloqueado={ordens.salvando || ordens.alterandoStatusId === ordem.id}
                                     onAbrir={(selecionada) => navigate(`/ordens/${selecionada.id}`)}
-                                    onEditar={ordens.iniciarEdicao}
                                 />
                             ))}
                         </div>
@@ -308,9 +307,10 @@ function Ordens() {
                     )}
                 atribuindoResponsavel={ordens.atribuindoResponsavel}
                 podeReatribuirResponsavel={ordens.podeAtribuirResponsavel}
-                onAtribuirResponsavel={(funcionarioId) => void ordens.atribuirResponsavelOrdem(funcionarioId)}
+                onAtribuirResponsavel={(funcionarioId) =>
+                    ordens.atribuirResponsavelOrdem(funcionarioId)
+                }
                 onFechar={ordens.fecharDetalhes}
-                onEditar={ordens.iniciarEdicao}
                 podeAlterarStatus={ordens.podeAlterarStatus}
                 podeConcluir={ordens.podeConcluir}
                 alterandoStatusId={ordens.alterandoStatusId}
@@ -338,7 +338,7 @@ function Ordens() {
 
             <OrdemServicoFormModal
                 aberto={ordens.formularioAberto}
-                ordem={ordens.ordemEmEdicao}
+                ordem={null}
                 clientes={ordens.clientes}
                 departamentos={ordens.departamentos}
                 projetos={ordens.projetos}

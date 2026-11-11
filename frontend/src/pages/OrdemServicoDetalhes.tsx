@@ -53,9 +53,10 @@ function OrdemServicoDetalhes() {
                             )}
                         atribuindoResponsavel={ordens.atribuindoResponsavel}
                         podeReatribuirResponsavel={ordens.podeAtribuirResponsavel}
-                        onAtribuirResponsavel={(funcionarioId) => void ordens.atribuirResponsavelOrdem(funcionarioId)}
+                        onAtribuirResponsavel={(funcionarioId) =>
+                            ordens.atribuirResponsavelOrdem(funcionarioId)
+                        }
                         onFechar={voltarParaOrdens}
-                        onEditar={ordens.iniciarEdicao}
                         salvandoEdicaoDireta={ordens.salvando}
                         onSalvarEdicaoDireta={ordens.salvarEdicaoDireta}
                         podeAlterarStatus={ordens.podeAlterarStatus}
@@ -77,7 +78,7 @@ function OrdemServicoDetalhes() {
             </main>
             <OrdemServicoFormModal
                 aberto={ordens.formularioAberto}
-                ordem={ordens.ordemEmEdicao}
+                ordem={null}
                 clientes={ordens.clientes}
                 departamentos={ordens.departamentos}
                 projetos={ordens.projetos}

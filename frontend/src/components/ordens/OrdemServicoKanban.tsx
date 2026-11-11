@@ -21,7 +21,6 @@ interface OrdemServicoKanbanProps {
     bloqueado: boolean;
     podeMoverParaStatus: (ordem: OrdemServico, status: StatusOrdemServico) => boolean;
     onAbrir: (ordem: OrdemServico) => void;
-    onEditar: (ordem: OrdemServico) => void;
     onAlterarAtivo: (ordem: OrdemServico, acao: AcaoAtivoOrdem) => void;
     onMoverStatus: (ordem: OrdemServico, status: StatusOrdemServico) => void | Promise<void>;
 }
@@ -35,7 +34,6 @@ function OrdemServicoKanban({
     bloqueado,
     podeMoverParaStatus,
     onAbrir,
-    onEditar,
     onAlterarAtivo,
     onMoverStatus,
 }: OrdemServicoKanbanProps) {
@@ -131,7 +129,6 @@ function OrdemServicoKanban({
                                             setStatusAlvo(null);
                                         }}
                                         onAbrir={onAbrir}
-                                        onEditar={onEditar}
                                         onAlterarAtivo={onAlterarAtivo}
                                     />
                                 );

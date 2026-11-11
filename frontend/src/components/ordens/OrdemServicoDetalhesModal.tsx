@@ -77,12 +77,11 @@ interface OrdemServicoDetalhesModalProps {
     alterandoStatusId: number | null;
     alterandoPrazo?: boolean;
     podeReatribuirResponsavel: boolean;
-    onAtribuirResponsavel: (funcionarioId: number) => void;
+    onAtribuirResponsavel: (funcionarioId: number) => Promise<boolean>;
     onFechar: () => void;
-    onEditar: (ordem: OrdemServico) => void;
     onAlterarStatus: (status: StatusOrdemServico, parecerTecnico?: string) => void;
     // Recebe a data (AAAA-MM-DD) e o motivo da alteração
-    onAlterarPrazo?: (dataLimite: string, justificativa: string) => void;
+    onAlterarPrazo?: (dataLimite: string, justificativa: string) => Promise<boolean>;
     statusSugerido?: StatusOrdemServico | null;
     // Lista de anexos da O.S. vinda da API.
     anexos?: AnexoOrdem[];
@@ -153,7 +152,6 @@ function OrdemServicoDetalhesModal({
     podeReatribuirResponsavel,
     onAtribuirResponsavel,
     onFechar,
-    onEditar,
     onAlterarStatus,
     onAlterarPrazo,
     statusSugerido = null,
@@ -168,6 +166,22 @@ function OrdemServicoDetalhesModal({
     const [edicaoDiretaAberta, setEdicaoDiretaAberta] = useState(false);
     const [justificativaEdicao, setJustificativaEdicao] = useState("");
     const [dadosEdicao, setDadosEdicao] = useState<Partial<OrdemServicoInput>>({});
+    function possuiAlteracoesNaoSalvas() {
+        if (!ordem) return false;
+
+        return (
+            dadosEdicao.titulo !== ordem.titulo ||
+            dadosEdicao.tipo !== ordem.tipo ||
+            dadosEdicao.descricao !== ordem.descricao ||
+            dadosEdicao.cliente_id !== (ordem.cliente_id ?? undefined) ||
+            dadosEdicao.departamento_id !== ordem.departamento_id ||
+            dadosEdicao.projeto_id !== ordem.projeto_id ||
+            dadosEdicao.criticidade !== ordem.criticidade ||
+            responsavelNovoId !== (ordem.responsavel_id ?? null) ||
+            prazoSelecionado !== prazoAtual ||
+            justificativaEdicao.trim() !== ""
+        );
+    }
     const [responsavelNovoId, setResponsavelNovoId] = useState<number | null>(null);
     const [statusSelecionado, setStatusSelecionado] =
         useState<StatusOrdemServico>("em_andamento");
@@ -269,8 +283,7 @@ function OrdemServicoDetalhesModal({
     }, [prazoAtual]);
 
     useEffect(() => {
-        // Trocar a OS exige uma nova selecao explicita para evitar reenvio acidental.
-        setResponsavelNovoId(null);
+        setResponsavelNovoId(ordem?.responsavel_id ?? null);
     }, [aberto, ordem?.id, ordem?.responsavel_id]);
 
     // Permite fechar o modal com a tecla Escape.
@@ -298,6 +311,10 @@ function OrdemServicoDetalhesModal({
                     return;
                 }
 
+                if (edicaoDiretaAberta && !confirmarSaidaEdicao()) {
+                    return;
+                }
+
                 onFechar();
             }
         }
@@ -307,7 +324,14 @@ function OrdemServicoDetalhesModal({
         return () => {
             document.removeEventListener("keydown", handleKeyDown);
         };
-    }, [aberto, onFechar, justificativaAberta, anexoAberto, enviandoAnexo]);
+    }, [
+        aberto,
+        onFechar,
+        justificativaAberta,
+        anexoAberto,
+        enviandoAnexo,
+        edicaoDiretaAberta,
+    ]);
 
     if (!aberto) return null;
 
@@ -479,7 +503,20 @@ function OrdemServicoDetalhesModal({
         description: `${funcionario.usuario} · ${funcionario.ativo ? "Ativo" : "Inativo"}`,
     }));
 
-    // NOVA FUNÇÃO: salvar os campos editados diretamente na página.
+    function confirmarSaidaEdicao() {
+        if (
+            possuiAlteracoesNaoSalvas() &&
+            !window.confirm("Existem alterações não salvas. Deseja descartá-las?")
+        ) {
+            return false;
+        }
+
+        setEdicaoDiretaAberta(false);
+        setJustificativaEdicao("");
+        return true;
+    }
+
+    // Slvar os campos editados diretamente na página.
     async function salvarEdicaoDireta() {
         if (!ordem || !onSalvarEdicaoDireta) return;
 
@@ -503,15 +540,36 @@ function OrdemServicoDetalhesModal({
             return;
         }
 
+        const prazoFoiAlterado = prazoSelecionado !== prazoAtual;
+        const responsavelFoiAlterado =
+            responsavelNovoId !== null &&
+            responsavelNovoId !== ordem.responsavel_id;
+
         const sucesso = await onSalvarEdicaoDireta(ordem.id, {
             ...dadosEdicao,
             justificativa: justificativaEdicao.trim(),
         });
 
-        if (sucesso) {
-            setEdicaoDiretaAberta(false);
-            setJustificativaEdicao("");
+        if (!sucesso) return;
+
+        if (responsavelFoiAlterado && responsavelNovoId !== null) {
+            const responsavelSalvo = await onAtribuirResponsavel(responsavelNovoId);
+            if (!responsavelSalvo) return;
         }
+
+        if (prazoFoiAlterado) {
+            if (!onAlterarPrazo) return;
+
+            const prazoSalvo = await onAlterarPrazo(
+                prazoSelecionado,
+                justificativaEdicao.trim(),
+            );
+
+            if (!prazoSalvo) return;
+        }
+
+        setEdicaoDiretaAberta(false);
+        setJustificativaEdicao("");
     }
 
     return (
@@ -553,19 +611,8 @@ function OrdemServicoDetalhesModal({
                                         <div className="os-detail-actions-menu-wrap">
                                             <button type="button" className="os-detail-btn os-detail-btn--secondary" aria-expanded={acoesMenuAberto} onClick={() => setAcoesMenuAberto((aberto) => !aberto)}><i className="fa-solid fa-ellipsis" aria-hidden="true" /> Mais ações</button>
                                             {acoesMenuAberto && <div className="os-detail-actions-menu" role="menu">
-                                                <button
-                                                    type="button"
-                                                    role="menuitem"
-                                                    disabled={!podeEditarOrdem}
-                                                    onClick={() => {
-                                                        setAcoesMenuAberto(false);
-                                                        onEditar(ordem);
-                                                    }}
-                                                >
-                                                    <i className="fa-solid fa-pen" aria-hidden="true" /> Editar ordem
-                                                </button>
-                                                {podeReatribuirResponsavel && <button type="button" role="menuitem" onClick={() => { setResponsavelPainelAberto((aberto) => !aberto); setAcoesMenuAberto(false); }}><i className="fa-solid fa-user-gear" aria-hidden="true" /> Alterar responsável</button>}
-                                                {podeAlterarPrazo && <button type="button" role="menuitem" onClick={() => { setPrazoPainelAberto((aberto) => !aberto); setAcoesMenuAberto(false); }}><i className="fa-regular fa-calendar" aria-hidden="true" /> Alterar prazo</button>}
+                                                {podeReatribuirResponsavel && !podeEditar && <button type="button" role="menuitem" onClick={() => { setResponsavelPainelAberto((aberto) => !aberto); setAcoesMenuAberto(false); }}><i className="fa-solid fa-user-gear" aria-hidden="true" /> Alterar responsável</button>}
+                                                {podeAlterarPrazo && !podeEditar && <button type="button" role="menuitem" onClick={() => { setPrazoPainelAberto((aberto) => !aberto); setAcoesMenuAberto(false); }}><i className="fa-regular fa-calendar" aria-hidden="true" /> Alterar prazo</button>}
                                                 <button type="button" role="menuitem" onClick={() => { setAbaAcompanhamento("anexos"); setAcoesMenuAberto(false); }}><i className="fa-solid fa-paperclip" aria-hidden="true" /> Consultar anexos</button>
                                             </div>}
                                         </div>
@@ -575,9 +622,13 @@ function OrdemServicoDetalhesModal({
                                                 type="button"
                                                 className="os-detail-btn os-detail-btn--secondary"
                                                 aria-pressed={edicaoDiretaAberta}
-                                                onClick={() =>
-                                                    setEdicaoDiretaAberta((aberto) => !aberto)
-                                                }
+                                                onClick={() => {
+                                                    if (edicaoDiretaAberta) {
+                                                        confirmarSaidaEdicao();
+                                                    } else {
+                                                        setEdicaoDiretaAberta(true);
+                                                    }
+                                                }}
                                             >
                                                 <i className="fa-solid fa-pen-to-square" aria-hidden="true" />
                                                 {edicaoDiretaAberta ? "Modo edição" : "Editar O.S."}
@@ -728,6 +779,32 @@ function OrdemServicoDetalhesModal({
                                         </select>
                                     </label>
 
+                                    <label className="os-detail-field">
+                                        <span>Responsável</span>
+                                        <Autocomplete
+                                            id="ordem-responsavel-edicao-direta"
+                                            options={responsavelOptions}
+                                            value={responsavelNovoId ?? ordem.responsavel_id}
+                                            onChange={(value) =>
+                                                setResponsavelNovoId(
+                                                    value === null || value === "" ? null : Number(value),
+                                                )
+                                            }
+                                            placeholder="Selecione um responsável"
+                                        />
+                                    </label>
+
+                                    <label className="os-detail-field">
+                                        <span>Prazo final</span>
+                                        <input
+                                            type="date"
+                                            value={prazoSelecionado}
+                                            onChange={(event) =>
+                                                setPrazoSelecionado(event.target.value)
+                                            }
+                                        />
+                                    </label>
+
                                     <div className="os-detail-edit-layout">
                                         <label className="os-detail-field">
                                             <span>Motivo da atualização (obrigatório)</span>
@@ -768,10 +845,7 @@ function OrdemServicoDetalhesModal({
                                                 <button
                                                     type="button"
                                                     className="os-detail-btn os-detail-btn--secondary"
-                                                    onClick={() => {
-                                                        setEdicaoDiretaAberta(false);
-                                                        setJustificativaEdicao("");
-                                                    }}
+                                                    onClick={confirmarSaidaEdicao}
                                                     disabled={salvandoEdicaoDireta}
                                                 >
                                                     Cancelar
@@ -803,13 +877,13 @@ function OrdemServicoDetalhesModal({
                                 <div className="os-detail-inline-actions"><button type="button" className="os-detail-btn os-detail-btn--secondary" onClick={() => setStatusPainelAberto(false)}>Cancelar</button><button type="button" className="os-detail-btn os-detail-btn--primary" onClick={() => { onAlterarStatus(statusSelecionado, statusSelecionado === "concluido" ? parecerTemporario : undefined); setStatusPainelAberto(false); }} disabled={!podeAlterarStatus || alterandoStatusId !== null || statusSelecionado === ordem.status || (statusSelecionado === "concluido" && !parecerTemporario.trim())}>{alterandoStatusId === ordem.id ? "Atualizando…" : "Salvar status"}</button></div>
                             </section>}
 
-                            {prazoPainelAberto && <section className="os-detail-inline-panel">
+                            {prazoPainelAberto && !podeEditar && <section className="os-detail-inline-panel">
                                 <div><h2>Alterar prazo</h2><p>O motivo será solicitado antes de enviar a alteração.</p></div>
                                 <label className="os-detail-field"><span>Novo prazo final</span><input type="date" value={prazoSelecionado} onChange={(event) => setPrazoSelecionado(event.target.value)} disabled={alterandoPrazo} /></label>
                                 <div className="os-detail-inline-actions"><button type="button" className="os-detail-btn os-detail-btn--secondary" onClick={() => setPrazoPainelAberto(false)}>Cancelar</button><button type="button" className="os-detail-btn os-detail-btn--primary" onClick={() => { setPrazoPainelAberto(false); setJustificativaAberta(true); }} disabled={!podeAlterarPrazo || alterandoPrazo || !prazoSelecionado || prazoSelecionado === prazoAtual}>Continuar</button></div>
                             </section>}
 
-                            {responsavelPainelAberto && <section className="os-detail-inline-panel">
+                            {responsavelPainelAberto && !podeEditar && <section className="os-detail-inline-panel">
                                 <div><h2>Alterar responsável</h2><p>Somente funcionários elegíveis são listados.</p></div>
                                 <label className="os-detail-field os-detail-field--wide"><span>Responsável técnico</span><Autocomplete id="ordem-responsavel-novo" options={responsavelOptions} value={responsavelNovoId} onChange={(value) => setResponsavelNovoId(value === null ? null : Number(value))} placeholder="Pesquisar funcionário ativo" clearable disabled={atribuindoResponsavel} emptyMessage="Nenhum funcionário ativo encontrado." /></label>
                                 <div className="os-detail-inline-actions"><button type="button" className="os-detail-btn os-detail-btn--secondary" onClick={() => setResponsavelPainelAberto(false)}>Cancelar</button><button type="button" className="os-detail-btn os-detail-btn--primary" onClick={() => { if (responsavelNovoId !== null) onAtribuirResponsavel(responsavelNovoId); setResponsavelPainelAberto(false); }} disabled={atribuindoResponsavel || responsavelNovoId === null || responsavelNovoId === ordem.responsavel_id}>{atribuindoResponsavel ? "Salvando…" : "Salvar responsável"}</button></div>
@@ -877,7 +951,7 @@ function OrdemServicoDetalhesModal({
                                         <small className="os-detail-demo-note">Comentários demonstrativos: não são enviados nem salvos no backend.</small>
                                     </section>
 
-                                    <section className="os-detail-card os-detail-people-card"><header className="os-detail-card-heading"><div><h2>Pessoas envolvidas</h2></div><button type="button" aria-label="Alterar pessoa responsável" onClick={() => setResponsavelPainelAberto((aberto) => !aberto)} disabled={!podeReatribuirResponsavel}><i className="fa-solid fa-plus" aria-hidden="true" /></button></header><div className="os-detail-people-list">
+                                    <section className="os-detail-card os-detail-people-card"><header className="os-detail-card-heading"><div><h2>Pessoas envolvidas</h2></div><button type="button" aria-label="Alterar pessoa responsável" onClick={() => setResponsavelPainelAberto((aberto) => !aberto)} disabled={!podeReatribuirResponsavel || podeEditar}><i className="fa-solid fa-plus" aria-hidden="true" /></button></header><div className="os-detail-people-list">
                                         <article><span className="os-detail-avatar os-detail-avatar--blue">{(responsavelAtual?.nome || "André Lima").split(/\s+/).slice(0, 2).map((parte) => parte[0]).join("").toUpperCase()}</span><div><strong>{responsavelAtual?.nome || "André Lima"}</strong><small>Responsável técnico{!responsavelAtual ? " · demonstração" : ""}</small></div><i className={`os-detail-presence${responsavelAtual?.ativo === false ? " inativo" : ""}`} aria-label={responsavelAtual?.ativo === false ? "Inativo" : "Ativo"} /></article>
                                         <article><span className="os-detail-avatar os-detail-avatar--violet">JF</span><div><strong>Juliana Ferreira</strong><small>Apoio técnico · demonstração</small></div><i className="os-detail-presence" aria-label="Ativo (demonstração)" /></article>
                                         <article><span className="os-detail-avatar os-detail-avatar--blue">MC</span><div><strong>Mariana Costa</strong><small>Gestora da ordem · demonstração</small></div><i className="os-detail-presence inativo" aria-label="Disponibilidade não informada" /></article>
@@ -1113,7 +1187,7 @@ function OrdemServicoDetalhesModal({
                                     </section>
                                 )}
 
-                                {podeAlterarPrazo && (
+                                {podeAlterarPrazo && !podeEditar && (
                                     <section className="ordem-detalhes-descricao ordem-status-edicao">
                                         <h3>Alterar prazo final</h3>
 
@@ -1211,16 +1285,6 @@ function OrdemServicoDetalhesModal({
                                 onClick={() => setAnexoAberto(true)}
                             >
                                 Anexar arquivos
-                            </button>
-                        )}
-
-                        {podeEditarOrdem && ordem && (
-                            <button
-                                type="button"
-                                className="ordens-btn-primary"
-                                onClick={() => onEditar(ordem)}
-                            >
-                                Editar ordem
                             </button>
                         )}
                     </footer>
