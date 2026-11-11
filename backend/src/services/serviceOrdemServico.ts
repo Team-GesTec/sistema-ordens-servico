@@ -40,6 +40,12 @@
  *  - AJ-06-BE: `criar` passa a receber o perfil do usuário logado e trata o cadastro de O.S. antiga.
  *  - 3.1-BE01: `criar` define o SLA pelo serviceSla e audita a definição inicial;
  *    `criarMigracao` virou `criarComAuditoria`, usado por qualquer cadastro que gere auditoria.
+ *
+ * ALTERAÇÕES (05/11/2026):
+ *  - 2.10-BE01: todo cadastro grava o evento `criacao` na auditoria, na mesma transação;
+ *    cada registro informa o `tipo_evento`; a mudança de status grava o parecer na coluna `parecer`
+ *    (e continua em `justificativa`, por compatibilidade); o desbloqueio passa a ser transacional e
+ *    auditado. Se a gravação da auditoria falhar, a operação inteira é desfeita.
  */
 
 import { prisma } from '../prisma/client';
@@ -299,6 +305,7 @@ export class ServiceOrdemServico {
             justificativa_sla_manual: sla.sla_manual ? sla.descricao : null,
         };
 
+<<<<<<< Updated upstream
         const registros: RegistroAuditoriaCriacao[] = [{
             funcionario_id: solicitanteId,
             acao: 'insercao',
@@ -307,12 +314,27 @@ export class ServiceOrdemServico {
             dado_novo: null,
             justificativa: 'Criação da O.S.',
         }];
+=======
+        // 2.10-BE01: o evento de criação é sempre o primeiro registro da O.S.
+        const registros: RegistroAuditoriaCriacao[] = [
+            {
+                funcionario_id: solicitanteId,
+                acao: 'insercao',
+                tipo_evento: 'criacao',
+                campo_alterado: null,
+                dado_antigo: null,
+                dado_novo: novaOS.status,
+                descricao: `O.S. "${novaOS.titulo}" criada`,
+            },
+        ];
+>>>>>>> Stashed changes
 
         if (migracao) {
             // AJ-06: a data_criacao informada (no passado) é mantida como data de abertura
             registros.push({
                 funcionario_id: solicitanteId,
                 acao: 'insercao',
+                tipo_evento: 'criacao',
                 campo_alterado: 'origem',
                 dado_antigo: null,
                 dado_novo: ORIGEM_MIGRACAO_MANUAL,
@@ -327,6 +349,7 @@ export class ServiceOrdemServico {
             registros.push({
                 funcionario_id: solicitanteId,
                 acao: 'insercao',
+                tipo_evento: 'criacao',
                 campo_alterado: 'data_limite_sla',
                 dado_antigo: null,
                 dado_novo: sla.data_limite_sla.toISOString(),
@@ -339,7 +362,8 @@ export class ServiceOrdemServico {
 
     /**
      * Grava a O.S. e os registros de auditoria do cadastro na mesma transação
-     * (origem da migração manual — AJ-06 — e definição inicial do SLA — 3.1-BE01).
+     * (criação — 2.10-BE01 —, origem da migração manual — AJ-06 — e definição inicial do SLA — 3.1-BE01).
+     * Se algum registro de auditoria falhar, a O.S. não é criada.
      *
      * Criação e validação do projeto compartilham a transação: o lock da linha do projeto
      * serializa este caminho com a inativação do projeto, e a checagem do responsável fecha
@@ -475,10 +499,12 @@ export class ServiceOrdemServico {
                     os_id: idOS,
                     funcionario_id: usuario.id,
                     acao: 'atualizacao',
+                    tipo_evento: 'mudanca_status',
                     campo_alterado: 'status',
                     dado_antigo: ordemAtual.status,
                     dado_novo: novoStatus,
                     justificativa: parecer ?? null,
+                    parecer: parecer ?? null,
                 },
                 conexao,
             );
@@ -545,6 +571,7 @@ export class ServiceOrdemServico {
                         os_id: idOS,
                         funcionario_id: usuarioId,
                         acao: 'atualizacao',
+                        tipo_evento: 'edicao',
                         campo_alterado: campo,
                         dado_antigo: paraTextoAuditoria(ordemAtual[campo]),
                         dado_novo: paraTextoAuditoria(alteracoes[campo]),
@@ -666,6 +693,7 @@ export class ServiceOrdemServico {
                     os_id: idOS,
                     funcionario_id: usuarioId,
                     acao: "atualizacao",
+                    tipo_evento: "mudanca_status",
                     campo_alterado: "status",
                     dado_antigo: ordemAtual.status,
                     dado_novo: "bloqueado",
@@ -685,14 +713,41 @@ export class ServiceOrdemServico {
     /**
      * Remove o bloqueio e retorna a O.S. ao status padrão de andamento.
      * A autorização de gestor é aplicada pelo middleware da rota.
+     * 2.10-BE01: a alteração e a auditoria são gravadas na mesma transação.
      */
-    async desbloquear(id: number): Promise<OrdemServico> {
+    async desbloquear(id: number, usuarioId: number): Promise<OrdemServico> {
         const ordem = await this.buscarPorId(id);
         if (ordem.status !== 'bloqueado') {
             throw AppError.requisicaoInvalida('A O.S. já está desbloqueada');
         }
 
-        return this.repositorio.atualizar(id, { status: STATUS_PADRAO });
+        const atualizada = await prisma.$transaction(async (conexao) => {
+            await bloquearOrdemServico(conexao, id);
+            const ordemAtual = await conexao.ordens_servico.findUnique({ where: { id } });
+            if (!ordemAtual) throw AppError.naoEncontrado(`O.S. ${id} não encontrada`);
+            if (ordemAtual.status !== 'bloqueado') {
+                throw AppError.requisicaoInvalida('A O.S. já está desbloqueada');
+            }
+
+            const resultado = await this.repositorio.atualizarNaTransacao(id, { status: STATUS_PADRAO }, conexao);
+            await serviceAuditoria.registrar(
+                {
+                    os_id: id,
+                    funcionario_id: usuarioId,
+                    acao: 'atualizacao',
+                    tipo_evento: 'mudanca_status',
+                    campo_alterado: 'status',
+                    dado_antigo: ordemAtual.status,
+                    dado_novo: STATUS_PADRAO,
+                    justificativa: 'Desbloqueio da ordem de serviço',
+                },
+                conexao,
+            );
+            return resultado;
+        });
+
+        this.repositorio.atualizarCache(atualizada);
+        return atualizada;
     }
 
     /**
@@ -764,6 +819,7 @@ export class ServiceOrdemServico {
                     os_id: idOS,
                     funcionario_id: usuarioId,
                     acao: "atualizacao",
+                    tipo_evento: "ativacao",
                     campo_alterado: "ativo",
                     dado_antigo: String(ordemAtual.ativo),
                     dado_novo: String(ativo),

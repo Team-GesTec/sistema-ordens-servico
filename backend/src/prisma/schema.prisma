@@ -35,10 +35,17 @@ model auditoria {
   dado_novo        String?
   justificativa    String?
   tipo_entidade    String         @default("ordem_servico")
+  tipo_evento      tipo_evento_auditoria @default(edicao)
+  descricao        String?
+  parecer          String?
+  apontamento_id   Int?
   funcionarios     funcionarios   @relation(fields: [funcionario_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   ordens_servico   ordens_servico @relation(fields: [os_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  apontamento_horas apontamento_horas? @relation(fields: [apontamento_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
   @@index([os_id, data_modificacao], map: "idx_auditoria_os_data")
+  @@index([data_modificacao(sort: Desc), id(sort: Desc)], map: "idx_auditoria_data_id")
+  @@index([tipo_evento], map: "idx_auditoria_tipo_evento")
 }
 
 model clientes {
@@ -192,6 +199,7 @@ model apontamento_horas {
   duracao_minutos Int
   descricao       String?
   data_criacao    DateTime       @default(now()) @db.Timestamptz(6)
+  auditoria       auditoria[]
   funcionarios    funcionarios   @relation(fields: [funcionario_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   ordens_servico  ordens_servico @relation(fields: [os_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
@@ -237,6 +245,18 @@ enum tipo_auditoria {
   insercao
   atualizacao
   exclusao
+}
+
+/// US#2.10: tipo do evento exibido no histórico de atividades e nos logs de auditoria.
+enum tipo_evento_auditoria {
+  criacao
+  edicao
+  mudanca_status
+  atribuicao_responsavel
+  alteracao_sla
+  anexo
+  registro_horas
+  ativacao
 }
 
 enum tipo_local_operacional {

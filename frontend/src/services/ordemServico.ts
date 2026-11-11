@@ -1,5 +1,5 @@
 import { apiRequest } from "./api";
-import type { HistoricoOrdemServico, OrdemServico, OrdemServicoInput } from "../types/api";
+import type { OrdemServico, OrdemServicoInput, RespostaHistoricoOrdemServico } from "../types/api";
 
 export const ordemServicoService = {
     /** GET /ordens-servico — o backend não lê filtros de prazo; eles são aplicados no cliente. */
@@ -31,8 +31,11 @@ export const ordemServicoService = {
         return apiRequest<OrdemServico>(`/ordens-servico/${id}`);
     },
 
-    listarHistorico(id: number): Promise<HistoricoOrdemServico[]> {
-        return apiRequest<HistoricoOrdemServico[]>(`/ordens-servico/${id}/historico`);
+    /** GET /ordens-servico/:id/historico — somente gestor; mais recentes primeiro, paginado. */
+    listarHistorico(id: number, pagina = 1, limite = 20): Promise<RespostaHistoricoOrdemServico> {
+        return apiRequest<RespostaHistoricoOrdemServico>(
+            `/ordens-servico/${id}/historico?pagina=${pagina}&limite=${limite}`,
+        );
     },
 
     criar(payload: OrdemServicoInput): Promise<OrdemServico> {

@@ -22,6 +22,10 @@
  *
  * ALTERAÇÕES (23/10/2026):
  *   - integração com o frontend: `/anexos/configuracao` (regras dos anexos para a tela).
+ *
+ * ALTERAÇÕES (05/11/2026):
+ *   - 2.10-BE03: nova rota `/auditoria` (logs de auditoria, somente gestor — checado no router), com
+ *     `autenticar`; documentação OpenAPI pública em `/docs` (interface) e `/docs/openapi.json`.
  */
 
 import notificacaoRoutes from './routes/routeNotificacao';
@@ -38,6 +42,9 @@ import projetoRoutes from './routes/routeProjeto';
 import ordensServicoRoutes from './routes/routeOrdemServico';
 import { ControllerAnexo, controllerAnexo as controllerAnexoPadrao } from './controllers/controllerAnexo';
 import { criarRotasAnexo, criarRotasConfiguracaoAnexo } from './routes/routeAnexo';
+import auditoriaRoutes from './routes/routeAuditoria';
+import swaggerUi from 'swagger-ui-express';
+import { documentoOpenApi } from './docs/swagger';
 
 /** Tamanho máximo aceito para o corpo JSON das requisições. */
 const LIMITE_JSON = '100kb';
@@ -69,6 +76,12 @@ export function criarApp(controllerAnexo: ControllerAnexo = controllerAnexoPadra
         res.status(200).json({ status: 'ok' });
     });
 
+    // Documentação da API (pública).
+    app.get('/docs/openapi.json', (_req: Request, res: Response) => {
+        res.status(200).json(documentoOpenApi);
+    });
+    app.use('/docs', swaggerUi.serve, swaggerUi.setup(documentoOpenApi));
+
     // Autenticação: /auth/login é público; /auth/me exige token (tratado no próprio router).
     app.use('/auth', authRoutes);
 
@@ -81,6 +94,7 @@ export function criarApp(controllerAnexo: ControllerAnexo = controllerAnexoPadra
     app.use('/anexos', autenticar, criarRotasConfiguracaoAnexo(controllerAnexo));
     app.use('/ordens-servico', autenticar, ordensServicoRoutes);
     app.use('/notificacoes', autenticar, notificacaoRoutes);
+    app.use('/auditoria', autenticar, auditoriaRoutes);
     // Precisam ser os últimos: 404 para rotas inexistentes e tratamento central de erros.
     app.use(rotaNaoEncontrada);
     app.use(tratarErros);

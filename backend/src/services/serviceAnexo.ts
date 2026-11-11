@@ -157,6 +157,7 @@ export class ServiceAnexo {
                         os_id: osId,
                         funcionario_id: usuario.id,
                         acao: 'insercao',
+                        tipo_evento: 'anexo',
                         campo_alterado: CAMPO_AUDITORIA_ANEXO,
                         dado_antigo: null,
                         dado_novo: JSON.stringify({

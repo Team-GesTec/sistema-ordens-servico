@@ -205,16 +205,66 @@ export interface ConfiguracaoAnexos {
     tamanho_maximo_relato: number;
 }
 
+/** Tipo do evento registrado na auditoria (US#2.10). */
+export type TipoEventoAuditoria =
+    | "criacao"
+    | "edicao"
+    | "mudanca_status"
+    | "atribuicao_responsavel"
+    | "alteracao_sla"
+    | "anexo"
+    | "registro_horas"
+    | "ativacao";
+
 /** Registro real e imutável da auditoria de uma O.S. */
 export interface HistoricoOrdemServico {
     id: number;
     os_id: number;
     funcionario_id: number;
     data_modificacao: string;
+    /** Data e hora já formatadas pelo backend: "dd/mm/aaaa hh:mm". */
+    data_hora: string;
     acao: "insercao" | "atualizacao" | "exclusao";
+    tipo_evento: TipoEventoAuditoria;
+    descricao: string;
     campo_alterado: string | null;
     dado_antigo: string | null;
     dado_novo: string | null;
     justificativa: string | null;
+    /** Parecer técnico informado na mudança de status. */
+    parecer: string | null;
+    /** Lançamento de horas (US#2.7) que gerou o registro. */
+    apontamento_id: number | null;
     funcionarios: Pick<Funcionario, "id" | "nome" | "usuario">;
+    ordem_servico: Pick<OrdemServico, "id" | "titulo">;
+}
+
+/** Metadados de paginação; sem registros, total e total_paginas vêm zerados. */
+export interface Paginacao {
+    pagina: number;
+    limite: number;
+    total: number;
+    total_paginas: number;
+}
+
+/** GET /ordens-servico/:id/historico */
+export interface RespostaHistoricoOrdemServico {
+    dados: HistoricoOrdemServico[];
+    paginacao: Paginacao;
+}
+
+/** Cartões da tela "Logs de auditoria", calculados pelo backend sobre o filtro aplicado. */
+export interface IndicadoresAuditoria {
+    total_eventos: number;
+    eventos_hoje: number;
+    ordens_impactadas: number;
+    ultimo_evento: string | null;
+    ultimo_evento_formatado: string | null;
+}
+
+/** GET /auditoria */
+export interface RespostaLogsAuditoria {
+    dados: HistoricoOrdemServico[];
+    paginacao: Paginacao;
+    indicadores: IndicadoresAuditoria;
 }

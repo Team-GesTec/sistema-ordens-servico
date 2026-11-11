@@ -1,6 +1,10 @@
 /**
  * Recebe a requisicao, pega o usuário logado e chama o service.
  * Não possui regra de negócio
+ *
+ * ALTERAÇÕES (05/11/2026):
+ *  - 2.10-BE01: o desbloqueio repassa o usuário logado (para a auditoria).
+ *  - 2.10-BE02: `listarHistorico` repassa a paginação da query string e devolve `{ dados, paginacao }`.
  */
 
 import type { Request, Response } from 'express';
@@ -86,8 +90,9 @@ export class ControllerOrdemServico {
 
     /** PATCH /ordens-servico/desbloquear/:id — desbloqueia uma O.S. */
     public async desbloquearOrdem(req: Request, resp: Response): Promise<Response> {
+        const usuario = usuarioAutenticado(req);
         const id = lerId(req.params.id);
-        return resp.status(200).json(await serviceOrdemServico.desbloquear(id));
+        return resp.status(200).json(await serviceOrdemServico.desbloquear(id, usuario.id));
     }
 
     /** PUT /ordens-servico/:id — substitui os dados da O.S. */
@@ -118,10 +123,10 @@ export class ControllerOrdemServico {
         return resp.status(200).json({ mensagem: 'Ordem excluída com sucesso' });
     }
 
+    /** GET /ordens-servico/:id/historico — atividades da O.S., mais recentes primeiro (somente gestor). */
     public async listarHistorico(req: Request, resp: Response): Promise<Response> {
         const id = lerId(req.params.id);
-        const historico = await serviceAuditoria.listarPorOrdemServico(id);
-        return resp.status(200).json(historico);
+        const historico = await serviceAuditoria.listarPorOrdemServico(id, req.query);
         return resp.status(200).json(historico);
     }
 }
