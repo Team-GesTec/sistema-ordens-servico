@@ -175,6 +175,7 @@ function OrdemServicoDetalhesModal({
 }: OrdemServicoDetalhesModalProps) {
     const [parecerTemporario, setParecerTemporario] = useState("");
     const [edicaoDiretaAberta, setEdicaoDiretaAberta] = useState(false);
+    const [confirmacaoSaidaAberta, setConfirmacaoSaidaAberta] = useState(false);
     const [justificativaEdicao, setJustificativaEdicao] = useState("");
     const [dadosEdicao, setDadosEdicao] = useState<Partial<OrdemServicoInput>>({});
     function possuiAlteracoesNaoSalvas() {
@@ -332,6 +333,11 @@ function OrdemServicoDetalhesModal({
                 if (justificativaAberta) {
                     setJustificativaAberta(false);
                     setJustificativaPrazo("");
+                    return;
+                }
+
+                if (confirmacaoSaidaAberta) {
+                    setConfirmacaoSaidaAberta(false);
                     return;
                 }
 
@@ -528,16 +534,20 @@ function OrdemServicoDetalhesModal({
     }));
 
     function confirmarSaidaEdicao() {
-        if (
-            possuiAlteracoesNaoSalvas() &&
-            !window.confirm("Existem alterações não salvas. Deseja descartá-las?")
-        ) {
+        if (possuiAlteracoesNaoSalvas()) {
+            setConfirmacaoSaidaAberta(true);
             return false;
         }
 
         setEdicaoDiretaAberta(false);
         setJustificativaEdicao("");
         return true;
+    }
+
+    function descartarEdicaoDireta() {
+        setConfirmacaoSaidaAberta(false);
+        setEdicaoDiretaAberta(false);
+        setJustificativaEdicao("");
     }
 
     // Slvar os campos editados diretamente na página.
@@ -1585,6 +1595,43 @@ function OrdemServicoDetalhesModal({
                                 onClick={confirmarJustificativa}
                             >
                                 Confirmar alteração
+                            </button>
+                        </footer>
+                    </section>
+                </div>
+            )}
+
+            {confirmacaoSaidaAberta && (
+                <div className="projeto-modal-overlay" role="presentation">
+                    <section
+                        className="projeto-modal"
+                        role="alertdialog"
+                        aria-modal="true"
+                        aria-labelledby="ordem-confirmar-saida"
+                    >
+                        <h2 id="ordem-confirmar-saida">
+                            Alterações não salvas
+                        </h2>
+                        <p>
+                            Você tem alterações que ainda não foram salvas.
+                            Deseja descartá-las?
+                        </p>
+
+                        <footer className="projeto-modal-actions">
+                            <button
+                                type="button"
+                                className="projeto-btn-secondary"
+                                onClick={() => setConfirmacaoSaidaAberta(false)}
+                            >
+                                Continuar editando
+                            </button>
+
+                            <button
+                                type="button"
+                                className="projeto-btn-primary"
+                                onClick={descartarEdicaoDireta}
+                            >
+                                Descartar alterações
                             </button>
                         </footer>
                     </section>
