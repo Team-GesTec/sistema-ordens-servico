@@ -102,6 +102,7 @@ interface OrdemServicoDetalhesModalProps {
         id: number,
         dados: Partial<OrdemServicoInput> & { justificativa: string },
     ) => Promise<boolean>;
+    onAlteracoesNaoSalvasChange?: (temAlteracoes: boolean) => void;
 }
 
 const STATUS_EDITAVEIS: StatusOrdemServico[] = [
@@ -140,6 +141,7 @@ function OrdemServicoDetalhesModal({
     podeAlterarStatus,
     salvandoEdicaoDireta = false,
     onSalvarEdicaoDireta,
+    onAlteracoesNaoSalvasChange,
     podeConcluir,
     podeAlterarPrazo = false,
     alterandoStatusId,
@@ -216,8 +218,21 @@ function OrdemServicoDetalhesModal({
     const [lancarHorasAberto, setLancarHorasAberto] = useState(false);
     const [horasDigitadas, setHorasDigitadas] = useState("1");
     const [descricaoHoras, setDescricaoHoras] = useState("");
-
     const prazoAtual = paraInputData((ordem as OrdemComSla | null)?.data_limite_sla);
+    useEffect(() => {
+        onAlteracoesNaoSalvasChange?.(
+            edicaoDiretaAberta && possuiAlteracoesNaoSalvas()
+        );
+    }, [
+        edicaoDiretaAberta,
+        dadosEdicao,
+        responsavelNovoId,
+        prazoSelecionado,
+        prazoAtual,
+        justificativaEdicao,
+        ordem,
+        onAlteracoesNaoSalvasChange,
+    ]);
     const statusEditaveis = useMemo<StatusOrdemServico[]>(
         () => podeConcluir ? [...STATUS_EDITAVEIS, "concluido"] : STATUS_EDITAVEIS,
         [podeConcluir],

@@ -1,5 +1,5 @@
-import { useEffect, useRef } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useEffect, useRef, useState } from "react";
+import { useBlocker, useNavigate, useParams } from "react-router-dom";
 import OrdemServicoDetalhesModal from "../components/ordens/OrdemServicoDetalhesModal";
 import OrdemServicoFormModal from "../components/ordens/OrdemServicoFormModal";
 import { useAnexosOrdem } from "../hooks/useAnexosOrdem";
@@ -13,6 +13,31 @@ function OrdemServicoDetalhes() {
     const id = Number(idParam);
     const idValido = Number.isSafeInteger(id) && id > 0;
     const anexosOrdem = useAnexosOrdem(ordens.ordemSelecionada);
+    const [temAlteracoesNaoSalvas, setTemAlteracoesNaoSalvas] = useState(false);
+    const [confirmacaoSaidaAberta, setConfirmacaoSaidaAberta] = useState(false);
+
+    const blocker = useBlocker(temAlteracoesNaoSalvas);
+
+    useEffect(() => {
+        if (blocker.state === "blocked") {
+            setConfirmacaoSaidaAberta(true);
+        }
+    }, [blocker.state]);
+
+    useEffect(() => {
+        if (!temAlteracoesNaoSalvas) return;
+
+        function avisarAntesDeSair(event: BeforeUnloadEvent) {
+            event.preventDefault();
+            event.returnValue = "";
+        }
+
+        window.addEventListener("beforeunload", avisarAntesDeSair);
+
+        return () => {
+            window.removeEventListener("beforeunload", avisarAntesDeSair);
+        };
+    }, [temAlteracoesNaoSalvas]);
 
     useEffect(() => {
         if (!idValido) {
@@ -57,6 +82,7 @@ function OrdemServicoDetalhes() {
                             ordens.atribuirResponsavelOrdem(funcionarioId)
                         }
                         onFechar={voltarParaOrdens}
+                        onAlteracoesNaoSalvasChange={setTemAlteracoesNaoSalvas}
                         salvandoEdicaoDireta={ordens.salvando}
                         onSalvarEdicaoDireta={ordens.salvarEdicaoDireta}
                         podeAlterarStatus={ordens.podeAlterarStatus}
@@ -90,6 +116,49 @@ function OrdemServicoDetalhes() {
                 onSave={ordens.salvarOrdem}
                 onClearError={ordens.limparErro}
             />
+
+            {confirmacaoSaidaAberta && blocker.state === "blocked" && (
+                <div className="projeto-modal-overlay" role="presentation">
+                    <section
+                        className="projeto-modal"
+                        role="alertdialog"
+                        aria-modal="true"
+                        aria-labelledby="ordem-confirmar-saida"
+                    >
+                        <h2 id="ordem-confirmar-saida">Alterações não salvas</h2>
+
+                        <p>
+                            Você tem alterações que ainda não foram salvas.
+                            Deseja descartá-las?
+                        </p>
+
+                        <footer className="projeto-modal-actions">
+                            <button
+                                type="button"
+                                className="projeto-btn-secondary"
+                                onClick={() => {
+                                    setConfirmacaoSaidaAberta(false);
+                                    blocker.reset();
+                                }}
+                            >
+                                Continuar editando
+                            </button>
+
+                            <button
+                                type="button"
+                                className="projeto-btn-primary"
+                                onClick={() => {
+                                    setConfirmacaoSaidaAberta(false);
+                                    blocker.proceed();
+                                }}
+                            >
+                                Descartar alterações
+                            </button>
+                        </footer>
+                    </section>
+                </div>
+            )}
+
         </div>
     );
 }
