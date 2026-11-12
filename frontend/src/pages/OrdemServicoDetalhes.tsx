@@ -75,7 +75,6 @@ function OrdemServicoDetalhes() {
                         erroHoras={horasOrdem.erroHoras}
                         onRegistrarHoras={horasOrdem.registrarHoras}
                         podeRegistrarHoras={ordens.podeRegistrarHoras}
-                        exigeHorasNoStatus={ordens.exigeHorasNoStatus}
                         podeAlterarPrazo={ordens.podeGerenciar}
                         alterandoPrazo={ordens.alterandoPrazo}
                         onAlterarPrazo={ordens.alterarPrazoOrdem}

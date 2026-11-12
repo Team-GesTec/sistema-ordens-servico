@@ -387,3 +387,222 @@
         width: 100%;
     }
 }
+
+
+/* ===== GesTec referência consolidado: Data tables match the dense header/row system from clientes.html and funcionarios.html. ===== */
+/* Data tables match the dense header/row system from clientes.html and funcionarios.html. */
+.gestec-app .gestec-data-card { min-width: 0; overflow: hidden; border: 1px solid #c8e2f1; border-radius: 15px; background: rgba(255,255,255,.97); box-shadow: 0 8px 24px rgba(15,69,114,.055); }
+.gestec-table-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 17px 18px 14px; }
+.gestec-table-heading h2 { margin: 0 0 4px; color: #183552; font-size: 15px; font-weight: 800; }
+.gestec-table-heading p { margin: 0; color: #70869a; font-size: 11px; line-height: 1.5; }
+.gestec-table-scroll { width: 100%; overflow: auto; }
+.gestec-app table.gestec-data-table { width: 100%; min-width: 720px; margin: 0; border-collapse: separate; border-spacing: 0; font-size: 11px; text-align: left; }
+.gestec-app .gestec-data-table thead th { padding: 12px 14px; border-top: 1px solid #e0edf5; border-bottom: 1px solid #d6e8f3; background: #f1f9fd; color: #55748c; font-size: 9px; font-weight: 850; letter-spacing: .6px; text-transform: uppercase; white-space: nowrap; }
+.gestec-app .gestec-data-table tbody td { padding: 12px 14px; border-bottom: 1px solid #e8f1f6; color: #4e6379; line-height: 1.5; vertical-align: middle; }
+.gestec-app .gestec-data-table tbody tr:last-child td { border-bottom: 0; }
+.gestec-app .gestec-data-table tbody tr:hover { background: #f5fbfe; }
+.gestec-app .gestec-data-table tbody td:first-child { color: #253b53; }
+.gestec-entity-cell { display: flex; align-items: center; gap: 10px; min-width: 180px; }
+.gestec-entity-cell > span:last-child { display: flex; flex-direction: column; min-width: 0; gap: 2px; }
+.gestec-entity-cell strong { display: block; overflow: hidden; color: #243951; font-size: 11px; font-weight: 800; text-overflow: ellipsis; }
+.gestec-entity-cell small { color: #8193a7; font-size: 9px; }
+.gestec-avatar { width: 31px; height: 31px; flex: 0 0 31px; display: grid; place-items: center; border-radius: 9px; background: #dcecff; color: #1b64b5; font-size: 10px; font-weight: 850; }
+.gestec-status-pill { display: inline-flex; align-items: center; gap: 6px; padding: 5px 8px; border-radius: 6px; font-size: 9px; font-weight: 850; white-space: nowrap; }
+.gestec-status-pill i { width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
+.gestec-status-pill.is-active { background: #e4f7ef; color: #168260; }
+.gestec-status-pill.is-inactive { background: #fff0f1; color: #c73d4a; }
+.gestec-role-pill { display: inline-flex; padding: 5px 7px; border-radius: 6px; background: #edf4ff; color: #3b65a1; font-size: 9px; font-weight: 800; white-space: nowrap; }
+.gestec-role-pill.role-gestor { background: #eee9ff; color: #6650bd; }
+.gestec-role-pill.role-analista { background: #e1f4fd; color: #087fb9; }
+.gestec-role-pill.role-tecnico { background: #e1f6ee; color: #168260; }
+.gestec-actions-cell { text-align: right !important; white-space: nowrap; }
+.gestec-row-actions { display: inline-flex; align-items: center; justify-content: flex-end; gap: 5px; }
+.gestec-icon-action { width: 31px; height: 31px; display: inline-grid; place-items: center; border: 1px solid #d6e8f3; border-radius: 8px; background: #fff; color: #617b92; font-size: 15px; text-decoration: none; cursor: pointer; }
+.gestec-icon-action:hover:not(:disabled) { border-color: #83c7e7; background: #f0f9fe; color: #0a79b6; }
+.gestec-icon-action.is-danger { color: #bd3b4d; }
+.gestec-icon-action:disabled { opacity: .5; cursor: not-allowed; }
+.gestec-table-footer { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; padding: 12px 18px; border-top: 1px solid #e3eef5; color: #70869a; font-size: 10px; }
+.gestec-muted { color: #8a9cad; }
+
+
+
+/* ===== GesTec design consolidado: Consistent 10-row pagination across all data lists and list-style views. ===== */
+/* Consistent 10-row pagination across all data lists and list-style views. */
+.gestec-app .gestec-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 15px;
+  width: 100%;
+  margin: 16px 0 4px;
+  padding: 12px 15px;
+  border: 1px solid #d4e7f1;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, .84);
+  color: #647f94;
+  box-shadow: 0 4px 12px rgba(15, 69, 114, .025);
+}
+
+.gestec-app .gestec-pagination-summary {
+  font-size: 11px;
+}
+
+.gestec-app .gestec-pagination-summary strong {
+  color: #234963;
+}
+
+.gestec-app .gestec-pagination-controls {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.gestec-app .gestec-pagination-controls button {
+  display: inline-grid;
+  place-items: center;
+  min-width: 34px;
+  height: 34px;
+  padding: 0 8px;
+  border: 1px solid #d5e6ef;
+  border-radius: 8px;
+  background: #fff;
+  color: #3e667f;
+  font-size: 11px;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.gestec-app .gestec-pagination-controls button.active {
+  border-color: #087fba;
+  background: #087fba;
+  color: #fff;
+  box-shadow: 0 4px 10px rgba(8, 127, 186, .18);
+}
+
+.gestec-app .gestec-pagination-controls button:disabled {
+  opacity: .38;
+  cursor: not-allowed;
+}
+
+.gestec-app .gestec-pagination-unit {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.gestec-app .gestec-pagination-ellipsis {
+  padding: 0 2px;
+  color: #8aa3b4;
+}
+
+
+
+/* ===== GesTec design consolidado: Avatares consistentes: sequência verde, azul e amarelo nas listas; contraste próprio no tema escuro. ===== */
+/* Avatares consistentes: sequência verde, azul e amarelo nas listas; contraste próprio no tema escuro. */
+.gestec-app .gestec-avatar.gestec-avatar--green,
+.gestec-app .perfil-avatar.gestec-avatar--green,
+.gestec-app .cliente-avatar.gestec-avatar--green,
+.gestec-app .funcionario-avatar.gestec-avatar--green,
+.gestec-app .gestec-team-avatar.gestec-avatar--green,
+.gestec-app .gestec-project-affiliation-avatar.gestec-avatar--green {
+  border: 1px solid #b9ebd1 !important;
+  background: #dcf8e9 !important;
+  color: #08784c !important;
+}
+
+.gestec-app .gestec-avatar.gestec-avatar--blue,
+.gestec-app .perfil-avatar.gestec-avatar--blue,
+.gestec-app .cliente-avatar.gestec-avatar--blue,
+.gestec-app .funcionario-avatar.gestec-avatar--blue,
+.gestec-app .gestec-team-avatar.gestec-avatar--blue,
+.gestec-app .gestec-project-affiliation-avatar.gestec-avatar--blue {
+  border: 1px solid #c6ddff !important;
+  background: #e1edff !important;
+  color: #2162b7 !important;
+}
+
+.gestec-app .gestec-avatar.gestec-avatar--yellow,
+.gestec-app .perfil-avatar.gestec-avatar--yellow,
+.gestec-app .cliente-avatar.gestec-avatar--yellow,
+.gestec-app .funcionario-avatar.gestec-avatar--yellow,
+.gestec-app .gestec-team-avatar.gestec-avatar--yellow,
+.gestec-app .gestec-project-affiliation-avatar.gestec-avatar--yellow {
+  border: 1px solid #f7dfae !important;
+  background: #fff0cf !important;
+  color: #9a5b00 !important;
+}
+
+.gestec-app.dark-mode .gestec-avatar.gestec-avatar--green,
+.gestec-app.dark-mode .perfil-avatar.gestec-avatar--green,
+.gestec-app.dark-mode .cliente-avatar.gestec-avatar--green,
+.gestec-app.dark-mode .funcionario-avatar.gestec-avatar--green,
+.gestec-app.dark-mode .gestec-team-avatar.gestec-avatar--green,
+.gestec-app.dark-mode .gestec-project-affiliation-avatar.gestec-avatar--green {
+  border-color: #287653 !important;
+  background: #143d30 !important;
+  color: #8af0bd !important;
+}
+
+.gestec-app.dark-mode .gestec-avatar.gestec-avatar--blue,
+.gestec-app.dark-mode .perfil-avatar.gestec-avatar--blue,
+.gestec-app.dark-mode .cliente-avatar.gestec-avatar--blue,
+.gestec-app.dark-mode .funcionario-avatar.gestec-avatar--blue,
+.gestec-app.dark-mode .gestec-team-avatar.gestec-avatar--blue,
+.gestec-app.dark-mode .gestec-project-affiliation-avatar.gestec-avatar--blue {
+  border-color: #3269a7 !important;
+  background: #18385d !important;
+  color: #a9d0ff !important;
+}
+
+.gestec-app.dark-mode .gestec-avatar.gestec-avatar--yellow,
+.gestec-app.dark-mode .perfil-avatar.gestec-avatar--yellow,
+.gestec-app.dark-mode .cliente-avatar.gestec-avatar--yellow,
+.gestec-app.dark-mode .funcionario-avatar.gestec-avatar--yellow,
+.gestec-app.dark-mode .gestec-team-avatar.gestec-avatar--yellow,
+.gestec-app.dark-mode .gestec-project-affiliation-avatar.gestec-avatar--yellow {
+  border-color: #89611e !important;
+  background: #493516 !important;
+  color: #ffdc91 !important;
+}
+
+.gestec-app .gestec-avatar {
+  width: 36px;
+  height: 36px;
+  flex: 0 0 36px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 850;
+}
+
+.gestec-app .gestec-team-avatars {
+  display: flex;
+  align-items: center;
+  padding-left: 3px;
+}
+
+.gestec-app .gestec-team-avatar {
+  display: inline-grid;
+  place-items: center;
+  width: 27px;
+  height: 27px;
+  flex: 0 0 27px;
+  margin-left: -4px;
+  border: 2px solid #fff;
+  border-radius: 8px;
+  font-size: 8px;
+  font-weight: 850;
+}
+
+.gestec-app.dark-mode .gestec-team-avatar {
+  border-color: #142638;
+}
+
+.gestec-app .cliente-avatar.gestec-avatar--green,
+.gestec-app .cliente-avatar.gestec-avatar--blue,
+.gestec-app .cliente-avatar.gestec-avatar--yellow,
+.gestec-app .funcionario-avatar.gestec-avatar--green,
+.gestec-app .funcionario-avatar.gestec-avatar--blue,
+.gestec-app .funcionario-avatar.gestec-avatar--yellow {
+  border-radius: 11px;
+}
+

@@ -12,7 +12,6 @@ import OrdemServicoKanban from "../components/ordens/OrdemServicoKanban";
 import OrdemServicoVisualizacoesSalvas, { type TipoVisualizacaoOrdens } from "../components/ordens/OrdemServicoVisualizacoesSalvas";
 import { useOrdens } from "../hooks/useOrdens";
 import { useAnexosOrdem } from "../hooks/useAnexosOrdem";
-import { useHorasOrdem } from "../hooks/useHorasOrdem";
 
 import type { NivelCriticidade } from "../types/api";
 import { CRITICIDADE_LABELS, STATUS_LABELS, formatarDataOrdem, parseDataOrdem } from "../utils/ordemServicoUtils";
@@ -40,10 +39,6 @@ function Ordens() {
     const anexosOrdem = useAnexosOrdem(
         ordens.detalhesAbertos ? ordens.ordemSelecionada : null,
     );
-
-    const horasOrdem = useHorasOrdem(
-        ordens.detalhesAbertos ? ordens.ordemSelecionada : null,
-    );
     const [visualizacao, setVisualizacao] = useState<TipoVisualizacaoOrdens>("tabela");
 
     const [filtroPrazo, setFiltroPrazo] = useState<FiltroPrazo>("todos");
@@ -53,10 +48,10 @@ function Ordens() {
             filtroPrazo === "todos"
                 ? null
                 : {
-                    proximos3: 3,
-                    proximos5: 5,
-                    proximos7: 7,
-                }[filtroPrazo];
+                      proximos3: 3,
+                      proximos5: 5,
+                      proximos7: 7,
+                  }[filtroPrazo];
 
         // Calcula os dias úteis restantes para cada O.S.
         const resultado = ordens.ordensFiltradas
@@ -74,7 +69,7 @@ function Ordens() {
                 return (
                     diasA - diasB ||
                     pesoCriticidade(b.ordem.criticidade) -
-                    pesoCriticidade(a.ordem.criticidade) ||
+                        pesoCriticidade(a.ordem.criticidade) ||
                     a.ordem.id - b.ordem.id
                 );
             });
@@ -327,11 +322,6 @@ function Ordens() {
                 tiposPermitidos={anexosOrdem.tiposPermitidos}
                 onEnviarAnexo={anexosOrdem.enviarAnexo}
                 onBaixarAnexo={anexosOrdem.baixarAnexo}
-                horas={horasOrdem.horas}
-                carregandoHoras={horasOrdem.carregandoHoras}
-                erroHoras={horasOrdem.erroHoras}
-                onRegistrarHoras={horasOrdem.registrarHoras}
-                podeRegistrarHoras={ordens.podeRegistrarHoras}
                 podeAlterarPrazo={ordens.podeGerenciar}
                 alterandoPrazo={ordens.alterandoPrazo}
                 onAlterarPrazo={ordens.alterarPrazoOrdem}
