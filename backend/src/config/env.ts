@@ -16,7 +16,10 @@
  *    As variáveis do Storage são opcionais na inicialização: sem elas a API sobe normalmente e só
  *    as rotas de anexo respondem 503, para não travar quem não trabalha com anexos.
  */
-import 'dotenv/config';
+import { config } from 'dotenv';
+import { resolve } from 'node:path';
+
+config({ path: resolve(__dirname, '../../.env') });
 
 /** Tamanho mínimo aceito para o segredo do JWT (32 caracteres ≈ 256 bits de entropia se aleatório). */
 const JWT_SECRET_TAMANHO_MINIMO = 32;

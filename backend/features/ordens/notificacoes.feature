@@ -1,37 +1,32 @@
 # language: pt
 
-Funcionalidade: Notificações de SLA (MVP)
+Funcionalidade: Notificações persistentes de Ordens de Serviço
 
     Contexto:
-        Dado que os gestores cadastrados têm os ids 1 e 5
+        Dado que os funcionários do departamento têm os ids 1 e 5
 
-    Cenário: O responsável recebe o aviso de risco
+    Cenário: O responsável e o departamento recebem o aviso de SLA crítico
         Dado que existe a O.S. ativa 12 com responsável 2 e limite em "2026-10-23T15:00:00-03:00"
-        Quando a rotina de notificações roda em "2026-10-22T16:00:00-03:00"
-        Então a última rodada cria 1 avisos novos
-        E o funcionário 2 recebe um aviso de "em_risco" sobre a O.S. 12
+        Quando a rotina de notificações roda em "2026-10-22T15:00:00-03:00"
+        Então a última rodada cria 3 avisos novos
+        E o funcionário 2 recebe um aviso de "sla_critica" sobre a O.S. 12
+        E o funcionário 1 recebe um aviso de "sla_critica" sobre a O.S. 12
 
-    Cenário: Sem responsável, o aviso vai para os gestores
-        Dado que existe a O.S. ativa 15 sem responsável e limite em "2026-10-23T10:00:00-03:00"
-        Quando a rotina de notificações roda em "2026-10-22T16:00:00-03:00"
-        Então a última rodada cria 2 avisos novos
-        E o funcionário 1 recebe um aviso de "em_risco" sobre a O.S. 15
-        E o funcionário 5 recebe um aviso de "em_risco" sobre a O.S. 15
-
-    Cenário: A rodada seguinte não repete o aviso
+    Cenário: A rodada seguinte não repete o aviso crítico
         Dado que existe a O.S. ativa 12 com responsável 2 e limite em "2026-10-23T15:00:00-03:00"
-        Quando a rotina de notificações roda em "2026-10-22T16:00:00-03:00"
-        E a rotina de notificações roda em "2026-10-22T16:05:00-03:00"
+        Quando a rotina de notificações roda em "2026-10-22T15:00:00-03:00"
+        E a rotina de notificações roda em "2026-10-22T15:05:00-03:00"
         Então a última rodada cria 0 avisos novos
 
-    Cenário: Quando o SLA vence, chega um aviso novo
+    Cenário: A expiração substitui o aviso crítico mesmo que ele não tenha sido lido
         Dado que existe a O.S. ativa 12 com responsável 2 e limite em "2026-10-23T15:00:00-03:00"
-        Quando a rotina de notificações roda em "2026-10-22T16:00:00-03:00"
-        E a rotina de notificações roda em "2026-10-23T15:05:00-03:00"
-        Então a última rodada cria 1 avisos novos
-        E o funcionário 2 recebe um aviso de "vencido" sobre a O.S. 12
+        Quando a rotina de notificações roda em "2026-10-22T15:00:00-03:00"
+        E a rotina de notificações roda em "2026-10-23T15:00:00-03:00"
+        Então a última rodada cria 3 avisos novos
+        E o funcionário 2 recebe um aviso de "sla_expirada" sobre a O.S. 12
+        E não existe aviso crítico para a O.S. 12
 
-    Cenário: O.S. dentro do prazo não gera aviso
+    Cenário: O.S. com mais de um dia de prazo não gera aviso crítico
         Dado que existe a O.S. ativa 12 com responsável 2 e limite em "2026-10-23T15:00:00-03:00"
         Quando a rotina de notificações roda em "2026-10-22T10:00:00-03:00"
         Então a última rodada cria 0 avisos novos

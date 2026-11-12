@@ -1,55 +1,54 @@
-/**
- * controllers/controllerNotificacao.ts
- *
- * Recebe a requisição, pega o usuário logado e chama o service.
- * Não possui regra de negócio.
- */
-
 import type { Request, Response } from 'express';
 import { serviceNotificacao } from '../services/serviceNotificacao';
 import { usuarioAutenticado } from '../middlewares/authMiddleware';
+import { AppError } from '../errors/AppError';
+
+function idDaRota(req: Request): string {
+    const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+    if (!id) throw AppError.requisicaoInvalida('ID da notificação é obrigatório.');
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id)) {
+        throw AppError.requisicaoInvalida('ID da notificação deve ser um UUID válido.');
+    }
+    return id;
+}
 
 export class ControllerNotificacao {
-    /** GET /notificacoes — avisos do usuário logado, dos mais novos para os mais antigos. */
-    public async listarMinhas(req: Request, resp: Response): Promise<Response> {
+    async listarMinhas(req: Request, resp: Response): Promise<Response> {
         const usuario = usuarioAutenticado(req);
-        const notificacoes = await serviceNotificacao.listarDoFuncionario(usuario.id);
-        return resp.status(200).json(notificacoes);
+        const pagina = Number(req.query.pagina ?? 1);
+        const limite = Number(req.query.limite ?? 20);
+        const valorLida = req.query.lida;
+        if (valorLida !== undefined && valorLida !== 'true' && valorLida !== 'false') {
+            throw AppError.requisicaoInvalida('lida deve ser true ou false.');
+        }
+        const lida = valorLida === undefined ? undefined : valorLida === 'true';
+        const resultado = await serviceNotificacao.listarDoFuncionario(usuario.id, pagina, limite, lida);
+        return resp.status(200).json(resultado);
     }
 
-    public async dispensar(req: Request, resp: Response): Promise<Response> {
+    async contarNaoLidas(req: Request, resp: Response): Promise<Response> {
         const usuario = usuarioAutenticado(req);
-        const id = Array.isArray(req.params.id)
-            ? req.params.id[0]
-            : req.params.id;
+        const total = await serviceNotificacao.contarNaoLidas(usuario.id);
+        return resp.status(200).json({ total });
+    }
 
-        if (!id) {
-            const { AppError } = await import('../errors/AppError.js');
-            throw AppError.requisicaoInvalida('ID da notificação é obrigatório.');
-        }
+    async consultar(req: Request, resp: Response): Promise<Response> {
+        const usuario = usuarioAutenticado(req);
+        const notificacao = await serviceNotificacao.consultar(usuario.id, idDaRota(req));
+        return resp.status(200).json(notificacao);
+    }
 
-        await serviceNotificacao.dispensarNotificacao(usuario.id, id);
-
+    async marcarUmaComoLida(req: Request, resp: Response): Promise<Response> {
+        const usuario = usuarioAutenticado(req);
+        await serviceNotificacao.marcarUmaComoLida(usuario.id, idDaRota(req));
         return resp.status(204).send();
     }
 
-    public async marcarComoLida(req: Request, resp: Response): Promise<Response> {
+    async marcarTodasComoLidas(req: Request, resp: Response): Promise<Response> {
         const usuario = usuarioAutenticado(req);
-        const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
-        if (!id) {
-            const { AppError } = await import('../errors/AppError.js');
-            throw AppError.requisicaoInvalida('ID da notificação é obrigatório.');
-        }
-        await serviceNotificacao.marcarComoLida(usuario.id, id);
-        return resp.status(204).send();
-    }
-
-    public async marcarTodasComoLidas(req: Request, resp: Response): Promise<Response> {
-        const usuario = usuarioAutenticado(req);
-        const total = await serviceNotificacao.marcarTodasComoLidas(usuario.id);
-        return resp.status(200).json({ marcadas: total });
+        const resultado = await serviceNotificacao.marcarTodasComoLidas(usuario.id);
+        return resp.status(200).json({ atualizadas: resultado });
     }
 }
 
-/** Instância única usada pelas rotas. */
 export const controllerNotificacao = new ControllerNotificacao();

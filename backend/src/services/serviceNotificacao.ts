@@ -1,193 +1,122 @@
-/**
- * services/serviceNotificacao.ts
- *
- * Notificações de SLA (MVP da Sprint 2).
- *
- * Regras:
- *  - gera aviso quando a O.S. ativa entra em risco ou vence (usa calcularEstadoSla);
- *  - quem recebe: o responsável; sem responsável, todos os gestores;
- *  - no máximo um aviso por O.S., pessoa e tipo (sem repetir a cada rodada);
- *  - sem controle de lida/não lida (fica para a próxima sprint).
- */
-
-import { randomUUID } from 'crypto';
 import { repositoryNotificacao, type RepositoryNotificacao } from '../repositories/repositoryNotificacao';
 import { repositoryOrdemServico, type RepositoryOrdemServico } from '../repositories/repositoryOrdemServico';
-import { repositoryFuncionario, type RepositoryFuncionario } from '../repositories/repositoryFuncionario';
-import { calcularEstadoSla } from '../utils/estadoSla';
-import type { Notificacao, TipoNotificacao } from '../models/modelNotificacao';
+import type { TipoNotificacao } from '../models/modelNotificacao';
 import type { OrdemServico } from '../models/modelOrdemServico';
+import { AppError } from '../errors/AppError';
+import { randomUUID } from 'node:crypto';
+import { repositoryFuncionario, type RepositoryFuncionario } from '../repositories/repositoryFuncionario';
 import { serviceEmail, type ServiceEmail } from './serviceEmail';
 import { templateNotificacaoOrdem } from './templatesEmail';
 
-/** Monta o texto do aviso: diz o que aconteceu, sem contagem de tempo que fica velha. */
-function montarMensagem(ordem: OrdemServico, tipo: TipoNotificacao, extra?: string): string {
-    if (tipo === 'em_risco') {
-        return `A O.S. ${ordem.id} (${ordem.titulo}) entrou em risco de SLA.`;
-    }
-    if (tipo === 'status_alterado') return `O status da O.S. ${ordem.id} (${ordem.titulo}) foi alterado para ${extra}.`;
-    if (tipo === 'responsavel_atribuido') return `Você foi atribuído à O.S. ${ordem.id} (${ordem.titulo}).`;
-    return `O SLA da O.S. ${ordem.id} (${ordem.titulo}) venceu.`;
-}
+const TITULOS: Record<TipoNotificacao, string> = {
+    status_alterado: 'Status da ordem de serviço alterado',
+    sla_critica: 'SLA em estado crítico',
+    sla_expirada: 'SLA expirado',
+    responsavel_definido: 'Você foi definido como responsável técnico',
+    departamento_definido: 'Ordem de serviço atribuída ao seu departamento',
+};
 
 export class ServiceNotificacao {
-    private readonly notificacoes: RepositoryNotificacao;
-    private readonly ordens: RepositoryOrdemServico;
-    private readonly funcionarios: RepositoryFuncionario;
-    private readonly emails: ServiceEmail;
-
     constructor(
-        notificacoes: RepositoryNotificacao = repositoryNotificacao,
-        ordens: RepositoryOrdemServico = repositoryOrdemServico,
-        funcionarios: RepositoryFuncionario = repositoryFuncionario,
-        emails: ServiceEmail = serviceEmail,
-    ) {
-        this.notificacoes = notificacoes;
-        this.ordens = ordens;
-        this.funcionarios = funcionarios;
-        this.emails = emails;
+        private readonly repositorio: RepositoryNotificacao = repositoryNotificacao,
+        private readonly ordens: Pick<RepositoryOrdemServico, 'listar'> = repositoryOrdemServico,
+        private readonly funcionarios: Pick<RepositoryFuncionario, 'buscarPorId'> = repositoryFuncionario,
+        private readonly emails: ServiceEmail = serviceEmail,
+    ) {}
+
+    async notificarOrdem(
+        ordem: OrdemServico,
+        tipo: TipoNotificacao,
+        mensagem: string,
+        destinatarios?: number[],
+        evitarDuplicidade = false,
+    ): Promise<number> {
+        const ids = destinatarios ?? await this.repositorio.listarDestinatarios(ordem.departamento_id, ordem.responsavel_id);
+        const unicos = [...new Set(ids)];
+        const existentes = evitarDuplicidade
+            ? await Promise.all(unicos.map(async (id) => ({ id, existe: await this.repositorio.existe(ordem.id, id, tipo) })))
+            : unicos.map((id) => ({ id, existe: false }));
+        const novos = existentes.filter((item) => !item.existe).map(({ id }) => ({
+            os_id: ordem.id,
+            funcionario_id: id,
+            tipo,
+            titulo: TITULOS[tipo],
+            mensagem,
+        }));
+        const criadas = await this.repositorio.criarEmLote(novos);
+        const eventoId = `${tipo}:${ordem.id}:${randomUUID()}`;
+        await Promise.all(novos.map((notificacao) => this.enfileirarEmail(ordem, notificacao, eventoId)));
+        return criadas;
     }
 
-    /**
-     * Cria os avisos das O.S. que entraram em risco ou venceram.
-     * Chamado pela rotina a cada 5 minutos.
-     * @param agora O momento de referência. A rotina usa o relógio; um teste pode passar uma data fixa.
-     * @returns Quantos avisos novos foram criados.
-     */
-    async gerarNotificacoesSla(agora: Date = new Date(), atorId?: number, osId?: number): Promise<number> {
-        // 1. O que já existe
-        const existentes = await this.notificacoes.listarTodas();
+    private async enfileirarEmail(
+        ordem: OrdemServico,
+        notificacao: { funcionario_id: number; tipo: TipoNotificacao; mensagem: string },
+        eventoId: string,
+    ): Promise<void> {
+        try {
+            const funcionario = await this.funcionarios.buscarPorId(notificacao.funcionario_id);
+            const email = funcionario?.email?.trim() ?? '';
+            if (!email || !email.includes('@')) return;
+            const template = templateNotificacaoOrdem(notificacao.tipo, notificacao.mensagem);
+            await this.emails.enfileirar({
+                evento_id: eventoId,
+                destinatario_id: notificacao.funcionario_id,
+                para: email,
+                ...template,
+            });
+            void this.emails.processar().catch((erro) => {
+                console.error(`[email] falha ao processar notificação da O.S. ${ordem.id}`, erro);
+            });
+        } catch (erro) {
+            // Falha no e-mail não desfaz a notificação persistida; a fila mantém suas próprias tentativas.
+            console.error(`[email] falha ao enfileirar notificação da O.S. ${ordem.id}`, erro);
+        }
+    }
 
-        // 2. As O.S. ativas e os gestores
-        const ordens = (await this.ordens.listar()).filter((ordem) => ordem.ativo && (osId === undefined || ordem.id === osId));
-        const gestores = (await this.funcionarios.listar()).filter((funcionario) => funcionario.tipo === 'gestor');
-
-        const novas: Notificacao[] = [];
-
-        // 3. Para cada O.S.
+    async gerarNotificacoesSla(agora: Date = new Date()): Promise<number> {
+        const ordens = (await this.ordens.listar()).filter((ordem) => ordem.ativo);
+        let criadas = 0;
         for (const ordem of ordens) {
-            const estado = calcularEstadoSla(ordem, agora);
-            const eventoId = `sla:${ordem.id}:${estado}:${ordem.data_limite_sla?.toISOString()}`;
-            if (estado !== 'em_risco' && estado !== 'vencido') {
+            if (!ordem.data_limite_sla || ordem.status === 'concluido' || ordem.status === 'bloqueado') continue;
+            if (agora.getTime() >= ordem.data_limite_sla.getTime()) {
+                await this.repositorio.removerAlertaCritico(ordem.id);
+                criadas += await this.notificarOrdem(ordem, 'sla_expirada', `O prazo de SLA da O.S. ${ordem.id} (${ordem.titulo}) expirou.`, undefined, true);
                 continue;
             }
-
-            // SLA vai ao responsável, a quem abriu e aos Gestores.
-            // O contrato persistido sempre possui solicitante_id; o fallback mantém
-            // compatibilidade com doubles do MVP que só modelavam responsável/gestor.
-            const destinatarios = [...new Set(ordem.solicitante_id === undefined
-                ? (ordem.responsavel_id !== null ? [ordem.responsavel_id] : gestores.map((gestor) => gestor.id))
-                : [ordem.responsavel_id, ordem.solicitante_id, ...gestores.map((gestor) => gestor.id)]
-            .filter((id): id is number => id !== null && id !== undefined && id !== atorId))];
-
-            for (const funcionarioId of destinatarios) {
-                const jaExiste = [...existentes, ...novas].some(
-                    (notificacao) =>
-                        notificacao.os_id === ordem.id &&
-                        notificacao.funcionario_id === funcionarioId &&
-                        notificacao.tipo === estado && notificacao.evento_id === eventoId,
-                );
-                if (jaExiste) {
-                    await this.enviarEmail(ordem, funcionarioId, estado, eventoId);
-                    continue;
-                }
-
-                novas.push({
-                    id: randomUUID(),
-                    os_id: ordem.id,
-                    funcionario_id: funcionarioId,
-                    tipo: estado,
-                    mensagem: montarMensagem(ordem, estado),
-                    data_criacao: agora.toISOString(),
-                    evento_id: eventoId,
-                    lida: false,
-                });
-                await this.enviarEmail(ordem, funcionarioId, estado, eventoId);
+            const umDiaAntes = ordem.data_limite_sla.getTime() - 24 * 60 * 60 * 1000;
+            if (agora.getTime() >= umDiaAntes && agora.getTime() <= ordem.data_limite_sla.getTime()) {
+                criadas += await this.notificarOrdem(ordem, 'sla_critica', `A O.S. ${ordem.id} (${ordem.titulo}) vence em até 1 dia.`, undefined, true);
             }
         }
+        return criadas;
+    }
 
-        // 4. Grava uma vez só, e só se houver aviso novo
-        if (novas.length > 0) {
-            await this.notificacoes.salvarTodas([...existentes, ...novas]);
+    async listarDoFuncionario(funcionarioId: number, pagina = 1, limite = 20, lida?: boolean) {
+        if (!Number.isInteger(pagina) || pagina < 1 || !Number.isInteger(limite) || limite < 1 || limite > 100) {
+            throw AppError.requisicaoInvalida('pagina deve ser maior que zero e limite deve estar entre 1 e 100.');
         }
-
-        return novas.length;
+        const resultado = await this.repositorio.listarPorFuncionario(funcionarioId, pagina, limite, lida);
+        return { ...resultado, pagina, limite, totalPaginas: Math.ceil(resultado.total / limite) };
     }
 
-    async publicarEvento(
-        ordem: OrdemServico,
-        tipo: Extract<TipoNotificacao, 'status_alterado' | 'responsavel_atribuido'>,
-        atorId: number,
-        extra?: string,
-    ): Promise<number> {
-        const destinatarios = [...new Set([ordem.responsavel_id, ordem.solicitante_id]
-            .filter((id): id is number => id !== null && id !== atorId))];
-        const eventoId = `${tipo}:${ordem.id}:${randomUUID()}`;
-        const existentes = await this.notificacoes.listarTodas();
-        const novas: Notificacao[] = [];
-        for (const funcionarioId of destinatarios) {
-            if (existentes.some((n) => n.evento_id === eventoId && n.funcionario_id === funcionarioId)) continue;
-            novas.push({ id: randomUUID(), os_id: ordem.id, funcionario_id: funcionarioId, tipo, mensagem: montarMensagem(ordem, tipo, extra), data_criacao: new Date().toISOString(), evento_id: eventoId, lida: false });
-            await this.enviarEmail(ordem, funcionarioId, tipo, eventoId, extra);
-        }
-        if (novas.length) await this.notificacoes.salvarTodas([...existentes, ...novas]);
-        return novas.length;
+    contarNaoLidas(funcionarioId: number) {
+        return this.repositorio.contarNaoLidas(funcionarioId);
     }
 
-    private async enviarEmail(ordem: OrdemServico, funcionarioId: number, tipo: TipoNotificacao, eventoId: string, extra?: string): Promise<void> {
-        try {
-            if (typeof this.funcionarios.buscarPorId !== 'function') return;
-            const funcionario = await this.funcionarios.buscarPorId(funcionarioId);
-            const email = funcionario && 'email' in funcionario ? String((funcionario as unknown as { email?: string }).email ?? '') : '';
-            const usuario = funcionario && 'usuario' in funcionario ? String(funcionario.usuario) : '';
-            const para = email.includes('@') ? email : usuario.includes('@') ? usuario : '';
-            if (!para) return;
-            const mensagem = montarMensagem(ordem, tipo, extra);
-            const template = templateNotificacaoOrdem(tipo, mensagem);
-            await this.emails.enfileirar({ evento_id: eventoId, destinatario_id: funcionarioId, para, ...template });
-            // Primeira tentativa acontece logo após o enfileiramento; a rotina periódica
-            // continua responsável pelas novas tentativas após falhas.
-            void this.emails.processar().catch(() => console.error('[email] falha no processamento da fila'));
-        } catch (erro) { console.error('[notificacoes] falha ao enfileirar e-mail', erro); }
+    async consultar(funcionarioId: number, id: string) {
+        const notificacao = await this.repositorio.buscarDoFuncionario(funcionarioId, id);
+        if (!notificacao) throw AppError.naoEncontrado('Notificação não encontrada.');
+        return notificacao;
     }
 
-    /** Avisos de um funcionário, dos mais novos para os mais antigos. */
-    async listarDoFuncionario(funcionarioId: number): Promise<Notificacao[]> {
-        const [notificacoes, dispensadas] = await Promise.all([
-            this.notificacoes.listarPorFuncionario(funcionarioId),
-            this.notificacoes.listarDispensadas(funcionarioId),
-        ]);
-
-        return notificacoes.filter(
-            (notificacao) => !dispensadas.includes(notificacao.id),
-        );
+    async marcarUmaComoLida(funcionarioId: number, id: string): Promise<void> {
+        if (!(await this.repositorio.marcarUmaComoLida(funcionarioId, id))) throw AppError.naoEncontrado('Notificação não encontrada.');
     }
 
-    async dispensarNotificacao(
-        funcionarioId: number,
-        notificacaoId: string,
-    ): Promise<void> {
-        const notificacoes = await this.notificacoes.listarPorFuncionario(funcionarioId);
-
-        const pertenceAoFuncionario = notificacoes.some(
-            (notificacao) => notificacao.id === notificacaoId,
-        );
-
-        if (!pertenceAoFuncionario) {
-            const { AppError } = await import('../errors/AppError.js');
-            throw AppError.naoEncontrado('Notificação não encontrada.');
-        }
-
-        await this.notificacoes.salvarDispensadas(funcionarioId, notificacaoId);
+    marcarTodasComoLidas(funcionarioId: number) {
+        return this.repositorio.marcarTodasComoLidas(funcionarioId);
     }
-
-    async marcarComoLida(funcionarioId: number, notificacaoId: string): Promise<void> {
-        const ok = await this.notificacoes.marcarComoLida(funcionarioId, notificacaoId);
-        if (!ok) { const { AppError } = await import('../errors/AppError.js'); throw AppError.naoEncontrado('Notificação não encontrada.'); }
-    }
-
-    marcarTodasComoLidas(funcionarioId: number): Promise<number> { return this.notificacoes.marcarTodasComoLidas(funcionarioId); }
 }
 
-/** Instância única usada pela rotina e pelo controller. */
 export const serviceNotificacao = new ServiceNotificacao();

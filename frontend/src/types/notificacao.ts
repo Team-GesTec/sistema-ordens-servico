@@ -1,14 +1,26 @@
+export type TipoNotificacao =
+    | "status_alterado"
+    | "sla_critica"
+    | "sla_expirada"
+    | "responsavel_definido"
+    | "departamento_definido";
 
-export type TipoNotificacao = "em_risco" | "vencido" | "status_alterado" | "responsavel_atribuido";
-export type TipoNotificacaoSla = TipoNotificacao;
-
-export interface NotificacaoSla {
+export interface Notificacao {
     id: string;
     os_id: number;
     funcionario_id: number;
-    tipo: TipoNotificacaoSla;
+    tipo: TipoNotificacao;
+    titulo: string;
     mensagem: string;
+    lida: boolean;
     data_criacao: string;
-    evento_id?: string;
-    lida?: boolean;
+    ordens_servico?: { id: number; titulo: string; status: string };
+}
+
+export interface ResultadoNotificacoes {
+    dados: Notificacao[];
+    total: number;
+    pagina: number;
+    limite: number;
+    totalPaginas: number;
 }

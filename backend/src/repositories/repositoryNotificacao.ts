@@ -1,109 +1,112 @@
-/**
- * repositories/repositoryNotificacao.ts
- *
- * Único lugar que lê e grava as notificações (MVP: arquivo JSON, não o banco).
- * Só a rotina de SLA grava; a rota da barra lateral só lê.
- */
+import { prisma } from '../prisma/client';
+import type { TipoNotificacao } from '../models/modelNotificacao';
 
-import { readFile, writeFile, mkdir } from 'fs/promises';
-import path from 'path';
-import type { Notificacao } from '../models/modelNotificacao.js';
-
-/** Pasta e arquivo onde as notificações ficam guardadas (backend/data/notificacoes.json). */
-const PASTA_DADOS = path.resolve(__dirname, '../../data');
-const ARQUIVO_NOTIFICACOES = path.join(PASTA_DADOS, 'notificacoes.json');
-const ARQUIVO_DISPENSADAS = path.join(PASTA_DADOS, 'notificacoes-dispensadas.json');
+interface NotificacaoBanco {
+    id: string;
+    os_id: number;
+    funcionario_id: number;
+    tipo: TipoNotificacao;
+    titulo: string;
+    mensagem: string;
+    lida: boolean;
+    data_criacao: Date;
+    ordens_servico?: { id: number; titulo: string; status: string };
+}
 
 export class RepositoryNotificacao {
-    /** Lê todas as notificações. Se o arquivo ainda não existe, devolve uma lista vazia. */
-    async listarTodas(): Promise<Notificacao[]> {
-        try {
-            const conteudo = await readFile(ARQUIVO_NOTIFICACOES, 'utf-8');
-            return (JSON.parse(conteudo) as Notificacao[]).map((item) => ({ ...item, lida: item.lida ?? false }));
-        } catch (erro) {
-            if ((erro as NodeJS.ErrnoException).code === 'ENOENT') {
-                return [];
-            }
-            throw erro;
-        }
+    async criarEmLote(dados: Array<{
+        os_id: number;
+        funcionario_id: number;
+        tipo: TipoNotificacao;
+        titulo: string;
+        mensagem: string;
+    }>): Promise<number> {
+        if (dados.length === 0) return 0;
+        const comandos = dados.map((notificacao) => prisma.$executeRaw`
+            INSERT INTO notificacoes (os_id, funcionario_id, tipo, titulo, mensagem)
+            VALUES (${notificacao.os_id}, ${notificacao.funcionario_id}, ${notificacao.tipo}, ${notificacao.titulo}, ${notificacao.mensagem})
+        `);
+        const resultados = await prisma.$transaction(comandos);
+        return resultados.reduce((total, quantidade) => total + quantidade, 0);
     }
 
-    /** Notificações de um funcionário, das mais novas para as mais antigas. */
-    async listarPorFuncionario(funcionarioId: number): Promise<Notificacao[]> {
-        const todas = await this.listarTodas();
-        return todas
-            .filter((notificacao) => notificacao.funcionario_id === funcionarioId)
-            .sort((a, b) => b.data_criacao.localeCompare(a.data_criacao));
+    async listarPorFuncionario(funcionarioId: number, pagina: number, limite: number, lida?: boolean) {
+        const deslocamento = (pagina - 1) * limite;
+        const dados = lida === undefined
+            ? await prisma.$queryRaw<NotificacaoBanco[]>`
+                SELECT n.*, json_build_object('id', os.id, 'titulo', os.titulo, 'status', os.status) AS ordens_servico
+                FROM notificacoes n
+                INNER JOIN ordens_servico os ON os.id = n.os_id
+                WHERE n.funcionario_id = ${funcionarioId}
+                ORDER BY n.data_criacao DESC
+                LIMIT ${limite} OFFSET ${deslocamento}
+            `
+            : await prisma.$queryRaw<NotificacaoBanco[]>`
+                SELECT n.*, json_build_object('id', os.id, 'titulo', os.titulo, 'status', os.status) AS ordens_servico
+                FROM notificacoes n
+                INNER JOIN ordens_servico os ON os.id = n.os_id
+                WHERE n.funcionario_id = ${funcionarioId} AND n.lida = ${lida}
+                ORDER BY n.data_criacao DESC
+                LIMIT ${limite} OFFSET ${deslocamento}
+            `;
+        const contagem = lida === undefined
+            ? await prisma.$queryRaw<Array<{ total: number }>>`SELECT COUNT(*)::int AS total FROM notificacoes WHERE funcionario_id = ${funcionarioId}`
+            : await prisma.$queryRaw<Array<{ total: number }>>`SELECT COUNT(*)::int AS total FROM notificacoes WHERE funcionario_id = ${funcionarioId} AND lida = ${lida}`;
+        return { dados, total: contagem[0]?.total ?? 0 };
     }
 
-    async listarDispensadas(funcionarioId: number): Promise<string[]> {
-        try {
-            const conteudo = await readFile(ARQUIVO_DISPENSADAS, 'utf-8');
-            const dispensadas = JSON.parse(conteudo) as Record<string, string[]>;
-
-            return dispensadas[String(funcionarioId)] ?? [];
-        } catch (erro) {
-            if ((erro as NodeJS.ErrnoException).code === 'ENOENT') {
-                return [];
-            }
-            throw erro;
-        }
+    async contarNaoLidas(funcionarioId: number): Promise<number> {
+        const resultado = await prisma.$queryRaw<Array<{ total: number }>>`
+            SELECT COUNT(*)::int AS total FROM notificacoes WHERE funcionario_id = ${funcionarioId} AND lida = false
+        `;
+        return resultado[0]?.total ?? 0;
     }
 
-    async salvarDispensadas(
-        funcionarioId: number,
-        notificacaoId: string,
-    ): Promise<void> {
-        let dispensadas: Record<string, string[]> = {};
-
-        try {
-            const conteudo = await readFile(ARQUIVO_DISPENSADAS, 'utf-8');
-            dispensadas = JSON.parse(conteudo) as Record<string, string[]>;
-        } catch (erro) {
-            if ((erro as NodeJS.ErrnoException).code !== 'ENOENT') {
-                throw erro;
-            }
-        }
-
-        const ids = dispensadas[String(funcionarioId)] ?? [];
-
-        if (!ids.includes(notificacaoId)) {
-            dispensadas[String(funcionarioId)] = [...ids, notificacaoId];
-        }
-
-        await mkdir(PASTA_DADOS, { recursive: true });
-        await writeFile(
-            ARQUIVO_DISPENSADAS,
-            JSON.stringify(dispensadas, null, 2),
-            'utf-8',
-        );
+    async buscarDoFuncionario(funcionarioId: number, id: string): Promise<NotificacaoBanco | null> {
+        const resultado = await prisma.$queryRaw<NotificacaoBanco[]>`
+            SELECT n.*, json_build_object('id', os.id, 'titulo', os.titulo, 'status', os.status) AS ordens_servico
+            FROM notificacoes n
+            INNER JOIN ordens_servico os ON os.id = n.os_id
+            WHERE n.id = ${id}::uuid AND n.funcionario_id = ${funcionarioId}
+            LIMIT 1
+        `;
+        return resultado[0] ?? null;
     }
 
-    /** Grava a lista inteira no arquivo, substituindo o conteúdo anterior. */
-    async salvarTodas(notificacoes: Notificacao[]): Promise<void> {
-        await mkdir(PASTA_DADOS, { recursive: true });
-        await writeFile(ARQUIVO_NOTIFICACOES, JSON.stringify(notificacoes, null, 2), 'utf-8');
+    async marcarUmaComoLida(funcionarioId: number, id: string): Promise<boolean> {
+        const resultado = await prisma.$executeRaw`
+            UPDATE notificacoes SET lida = true WHERE id = ${id}::uuid AND funcionario_id = ${funcionarioId}
+        `;
+        return resultado > 0;
     }
 
-    async marcarComoLida(funcionarioId: number, notificacaoId: string): Promise<boolean> {
-        const lista = await this.listarTodas();
-        const item = lista.find((n) => n.id === notificacaoId && n.funcionario_id === funcionarioId);
-        if (!item) return false;
-        item.lida = true;
-        await this.salvarTodas(lista);
-        return true;
+    marcarTodasComoLidas(funcionarioId: number): Promise<number> {
+        return prisma.$executeRaw`
+            UPDATE notificacoes SET lida = true WHERE funcionario_id = ${funcionarioId} AND lida = false
+        `;
     }
 
-    async marcarTodasComoLidas(funcionarioId: number): Promise<number> {
-        const lista = await this.listarTodas();
-        let total = 0;
-        for (const item of lista) {
-            if (item.funcionario_id === funcionarioId && !item.lida) { item.lida = true; total += 1; }
-        }
-        if (total) await this.salvarTodas(lista);
-        return total;
+    async removerAlertaCritico(osId: number): Promise<void> {
+        await prisma.$executeRaw`DELETE FROM notificacoes WHERE os_id = ${osId} AND tipo = 'sla_critica'`;
+    }
+
+    async existe(osId: number, funcionarioId: number, tipo: TipoNotificacao): Promise<boolean> {
+        const resultado = await prisma.$queryRaw<Array<{ existe: boolean }>>`
+            SELECT EXISTS(SELECT 1 FROM notificacoes WHERE os_id = ${osId} AND funcionario_id = ${funcionarioId} AND tipo = ${tipo}) AS existe
+        `;
+        return resultado[0]?.existe ?? false;
+    }
+
+    async listarDestinatarios(departamentoId: number, responsavelId: number | null): Promise<number[]> {
+        const funcionarios = responsavelId === null
+            ? await prisma.$queryRaw<Array<{ id: number }>>`
+                SELECT id FROM funcionarios WHERE ativo = true AND departamento_id = ${departamentoId}
+            `
+            : await prisma.$queryRaw<Array<{ id: number }>>`
+                SELECT id FROM funcionarios WHERE ativo = true AND (departamento_id = ${departamentoId} OR id = ${responsavelId})
+            `;
+        return funcionarios.map((funcionario) => funcionario.id);
     }
 }
 
-/** Instância única usada pelo service. */
 export const repositoryNotificacao = new RepositoryNotificacao();

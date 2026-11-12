@@ -39,7 +39,7 @@ export class ControllerOrdemServico {
     /** POST /ordens-servico — abre uma nova O.S. */
     public async criarOrdem(req: Request, resp: Response): Promise<Response> {
         const usuario = usuarioAutenticado(req);
-        const novaOS = await serviceOrdemServico.criar(req.body, usuario);
+        const novaOS = await serviceOrdemServico.criar(req.body, usuario.id, usuario.tipo);
 
         return resp.status(201).json(novaOS);
     }

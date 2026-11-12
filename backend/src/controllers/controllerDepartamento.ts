@@ -7,7 +7,9 @@
  */
 import type { Request, Response } from 'express';
 import { serviceDepartamento } from '../services/serviceDepartamento';
+import { AppError } from '../errors/AppError';
 import { lerId } from '../utils/validacao';
+import { usuarioAutenticado } from '../middlewares/authMiddleware';
 
 export class ControllerDepartamento {
     /** GET /departamento — lista todos os departamentos. */
@@ -19,6 +21,19 @@ export class ControllerDepartamento {
     public async getById(req: Request, resp: Response): Promise<Response> {
         const id = lerId(req.params.id);
         return resp.status(200).json(await serviceDepartamento.buscarPorId(id));
+    }
+
+    /** GET /departamento/:id/equipe — consulta os vínculos reais do departamento. */
+    public async getEquipe(req: Request, resp: Response): Promise<Response> {
+        const id = lerId(req.params.id);
+        const historico = req.query.historico;
+        if (historico !== undefined && historico !== 'true' && historico !== 'false') {
+            throw AppError.requisicaoInvalida('historico deve ser true ou false');
+        }
+        if (historico === 'true' && usuarioAutenticado(req).tipo !== 'gestor') {
+            throw AppError.acessoNegado('Somente Gestores podem consultar registros históricos/inativos.');
+        }
+        return resp.status(200).json(await serviceDepartamento.buscarEquipe(id, historico === 'true'));
     }
 
     /** POST /departamento — cadastra o departamento (201 com o registro criado). */
