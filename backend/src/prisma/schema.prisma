@@ -56,6 +56,7 @@ model departamentos {
   id                                                       Int                      @id @default(autoincrement())
   responsavel_id                                           Int?
   nome                                                     String
+  ativo                                                    Boolean                  @default(true)
   funcionarios_departamentos_responsavel_idTofuncionarios  funcionarios?            @relation("departamentos_responsavel_idTofuncionarios", fields: [responsavel_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "responsavel_fk")
   funcionarios_funcionarios_departamento_idTodepartamentos funcionarios[]           @relation("funcionarios_departamento_idTodepartamentos")
   ordens_servico                                           ordens_servico[]
@@ -90,6 +91,7 @@ model funcionarios {
   notificacoes                                                notificacoes[]
   ordens_servico_ordens_servico_responsavel_idTofuncionarios ordens_servico[]     @relation("ordens_servico_responsavel_idTofuncionarios")
   ordens_servico_ordens_servico_solicitante_idTofuncionarios ordens_servico[]     @relation("ordens_servico_solicitante_idTofuncionarios")
+  lancamentos_horas lancamentos_horas[]
 }
 
 model notificacoes {
@@ -156,6 +158,7 @@ model ordens_servico {
   notificacoes                                             notificacoes[]
   funcionarios_ordens_servico_solicitante_idTofuncionarios funcionarios         @relation("ordens_servico_solicitante_idTofuncionarios", fields: [solicitante_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
+  lancamentos_horas lancamentos_horas[]
   @@index([criticidade, data_limite_sla], map: "idx_os_criticidade_limite")
   @@index([departamento_id, status], map: "idx_os_departamento_status")
   @@index([projeto_id], map: "idx_os_projeto")
@@ -235,6 +238,21 @@ model sla_config {
   ordens_servico   ordens_servico[]
 
   @@unique([tipo, criticidade], map: "config_unica")
+}
+
+model lancamentos_horas {
+  id              Int                   @id @default(autoincrement())
+  os_id           Int
+  funcionario_id  Int
+  minutos         Int
+  data_trabalho   DateTime              @db.Date
+  status_os       status_enum
+  criado_em       DateTime              @default(now()) @db.Timestamptz(6)
+  ordens_servico  ordens_servico        @relation(fields: [os_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  funcionarios   funcionarios   @relation(fields: [funcionario_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+
+  @@index([os_id], map: "idx_lancamentos_horas_os")
 }
 
 enum nivel_criticidade {

@@ -56,6 +56,12 @@ function emitirSucessoDaOperacao(path: string, method: string, requestBody: Body
         publishToast({ title: "Notificação dispensada", message: "A notificação foi dispensada.", variant: "success" });
         return;
     }
+
+    if (rota.endsWith("/horas") && method === "POST") {
+        publishToast({ title: "Horas registradas", message: "As horas foram lançadas na ordem de serviço.", variant: "success" });
+        return;
+    }
+
     if (rota.includes("/anexos") && method === "POST") {
         publishToast({ title: "Anexo enviado", message: "O arquivo foi anexado à ordem de serviço.", variant: "success" });
         return;
@@ -142,12 +148,11 @@ export async function apiRequest<T>(
     path: string,
     options: RequestInit = {},
     requireAuth = true,
-    notificarFalha = true,
 ): Promise<T> {
     const headers = new Headers(options.headers);
     const method = (options.method ?? "GET").toUpperCase();
     const notifyMutation = ehMutacao(method, path);
-    const notifyFailure = notificarFalha && (notifyMutation || (method === "GET" && !/^\/auth(?:\/|$)/i.test(path)));
+    const notifyFailure = notifyMutation || (method === "GET" && !/^\/auth(?:\/|$)/i.test(path));
 
     // Com FormData o navegador define o Content-Type multipart (com o boundary) sozinho
     if (options.body && !(options.body instanceof FormData) && !headers.has("Content-Type")) {

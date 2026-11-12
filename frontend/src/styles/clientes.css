@@ -9,6 +9,27 @@
     grid-template-columns: minmax(0, 1fr) minmax(160px, 220px);
 }
 
+.clientes-search-container {
+    position: relative;
+    width: 100%;
+}
+
+.clientes-search-icon {
+    position: absolute;
+    left: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 23px;
+    color: #777;
+    pointer-events: none;
+    z-index: 1;
+}
+
+.clientes-search-container .clientes-search {
+    width: 100%;
+    padding-left: 42px;
+}
+
 .clientes-search-wrapper {
     position: relative;
     min-width: 0;
@@ -16,7 +37,6 @@
     height: 38px;
     padding: 0 12px;
     border: 1px solid rgba(23, 104, 183, 0.12);
-    border-radius: 4px;
     background: #fff;
     color: #193247;
     font: inherit;

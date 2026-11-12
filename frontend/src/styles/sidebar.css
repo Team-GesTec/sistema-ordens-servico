@@ -7,6 +7,7 @@
     position: fixed;
     top: 0;
     left: 0;
+    right: auto;
 
     width: 75px;
     height: 100vh;
@@ -33,10 +34,15 @@
 
     z-index: 1000;
 
+    /* A borda esquerda permanece fixa.
+       Somente a largura aumenta para a direita. */
+
+    transform: none;
+    transform-origin: left center;
+
     transition:
-        width 0.42s cubic-bezier(0.22, 1, 0.36, 1),
-        padding 0.35s ease,
-        box-shadow 0.35s ease;
+        width 0.7s cubic-bezier(0.22, 1, 0.36, 1),
+        box-shadow 0.6s ease;
 }
 
 .sidebar:hover {
@@ -55,6 +61,7 @@
 
     display: flex;
     align-items: center;
+    justify-content: flex-start;
 
     gap: 12px;
 
@@ -88,55 +95,7 @@
 
     object-fit: contain;
 
-    transition:
-        transform 0.4s ease,
-        width 0.35s ease,
-        height 0.35s ease;
-}
-
-.sidebar:hover .sidebar-brand-mark img {
-    transform: scale(1.04);
-}
-
-.sidebar-brand-text {
-    display: flex;
-    flex-direction: column;
-
-    min-width: 0;
-
-    white-space: nowrap;
-
-    opacity: 0;
-    transform: translateX(-10px);
-
-    transition:
-        opacity 0.25s ease,
-        transform 0.38s cubic-bezier(0.22, 1, 0.36, 1);
-
-    pointer-events: none;
-}
-
-.sidebar:hover .sidebar-brand-text {
-    opacity: 1;
-    transform: translateX(0);
-
-    transition-delay: 0.10s;
-}
-
-.sidebar-brand-text strong {
-    font-size: 1.05rem;
-    font-weight: 800;
-    letter-spacing: 0.3px;
-}
-
-.sidebar-brand-text small {
-    margin-top: 2px;
-
-    font-size: 0.58rem;
-    font-weight: 700;
-    letter-spacing: 1.1px;
-
-    color: #426b87;
+    display: block;
 }
 
 /* =========================================
@@ -149,7 +108,7 @@
     display: flex;
     flex-direction: column;
 
-    gap: 5px;
+    gap: 12px;
 
     overflow: hidden;
 }
@@ -160,61 +119,7 @@
     display: flex;
     flex-direction: column;
 
-    gap: 4px;
-}
-
-.sidebar-section-label {
-    width: 100%;
-
-    box-sizing: border-box;
-
-    margin: 12px 0 5px;
-    padding-left: 12px;
-
-    color: #52768e;
-
-    font-size: 0.66rem;
-    font-weight: 800;
-    letter-spacing: 1px;
-    text-transform: uppercase;
-
-    white-space: nowrap;
-
-    opacity: 0;
-    transform: translateX(-8px);
-
-    transition:
-        opacity 0.22s ease,
-        transform 0.32s ease;
-
-    pointer-events: none;
-}
-
-.sidebar:hover .sidebar-section-label {
-    opacity: 1;
-    transform: translateX(0);
-
-    transition-delay: 0.12s;
-}
-
-.sidebar-nav hr {
-    width: 80%;
-    height: 1px;
-
-    margin: 8px auto;
-
-    border: 0;
-
-    background: rgba(21, 137, 202, 0.18);
-
-    transition:
-        width 0.35s ease,
-        margin 0.35s ease,
-        opacity 0.25s ease;
-}
-
-.sidebar:hover .sidebar-nav hr {
-    width: 95%;
+    gap: 5px;
 }
 
 /* =========================================
@@ -243,15 +148,16 @@
     overflow: hidden;
 
     transition:
-        width 0.38s cubic-bezier(0.22, 1, 0.36, 1),
-        background 0.25s ease,
-        border-radius 0.25s ease,
-        transform 0.25s ease;
+        width 0.7s cubic-bezier(0.22, 1, 0.36, 1),
+        background 0.3s ease,
+        border-radius 0.3s ease;
 }
 
 .sidebar:hover .menu-item {
     width: 100%;
 }
+
+/* ÍCONES: POSIÇÃO FIXA */
 
 .menu-item i {
     width: 55px;
@@ -265,11 +171,9 @@
     flex-shrink: 0;
 
     font-size: 18px;
-
-    transition:
-        transform 0.3s ease,
-        color 0.25s ease;
 }
+
+/* TEXTOS */
 
 .menu-item span {
     display: block;
@@ -282,29 +186,24 @@
     white-space: nowrap;
 
     opacity: 0;
-    transform: translateX(-9px);
 
-    transition:
-        opacity 0.22s ease,
-        transform 0.32s ease;
+    transition: opacity 0.35s ease;
 
     pointer-events: none;
 }
 
 .sidebar:hover .menu-item span {
     opacity: 1;
-    transform: translateX(0);
-
-    transition-delay: 0.10s;
+    transition-delay: 0.12s;
 }
+
+/* HOVER */
 
 .menu-item:hover {
     background: rgba(255, 255, 255, 0.45);
 }
 
-.menu-item:hover i {
-    transform: scale(1.08);
-}
+/* ITEM ATIVO */
 
 .menu-item.active {
     background: #29aaf0;
@@ -313,116 +212,6 @@
 
 .menu-item.active i {
     color: #fff;
-}
-
-/* =========================================
-   RODAPÉ
-========================================= */
-
-.sidebar-rodape {
-    position: relative;
-
-    display: flex;
-    flex-direction: column;
-
-    gap: 8px;
-
-    width: 100%;
-
-    margin-top: auto;
-    padding: 8px 1%;
-
-    box-sizing: border-box;
-
-    border-top: 1px solid rgba(128, 128, 128, 0.2);
-}
-
-.sidebar-tema {
-    width: 100%;
-
-    display: flex;
-    align-items: center;
-
-    gap: 12px;
-}
-
-/* =========================================
-   BOTÃO DE TEMA
-========================================= */
-
-.theme-button {
-    width: 55px;
-    min-width: 55px;
-    height: 42px;
-
-    padding: 0;
-    margin: 0 auto;
-
-    display: flex;
-    justify-content: center;
-    align-items: center;
-
-    border: none;
-    border-radius: 5px;
-
-    flex-shrink: 0;
-
-    cursor: pointer;
-
-    transition:
-        background 0.25s ease,
-        transform 0.25s ease;
-}
-
-.sidebar:hover .theme-button {
-    width: 55px;
-    min-width: 55px;
-
-    justify-content: center;
-}
-
-/* =========================================
-   CHAVE DE TEMA
-========================================= */
-
-.tema-chave {
-    display: inline-flex;
-    align-items: center;
-
-    width: 34px;
-    height: 19px;
-
-    margin-left: auto;
-    padding: 2px;
-
-    box-sizing: border-box;
-
-    flex-shrink: 0;
-
-    border-radius: 20px;
-
-    background: #aab2bd;
-
-    transition: background 0.2s ease;
-}
-
-.tema-chave span {
-    width: 15px;
-    height: 15px;
-
-    border-radius: 50%;
-
-    background: #fff;
-
-    transition: transform 0.2s ease;
-}
-
-.tema-chave.ligado {
-    background: #1589ca;
-}
-
-.tema-chave.ligado span {
-    transform: translateX(15px);
 }
 
 /* =========================================
@@ -443,16 +232,18 @@
 }
 
 .sidebar-perfil {
+    position: relative;
+
     width: 100%;
     min-width: 0;
 
     display: flex;
     align-items: center;
-    justify-content: center;
+    justify-content: flex-start;
 
     gap: 10px;
 
-    padding: 6px 0;
+    padding: 6px;
 
     box-sizing: border-box;
 
@@ -468,17 +259,10 @@
 
     transition:
         background 0.25s ease,
-        border-color 0.25s ease,
-        padding 0.35s ease,
-        justify-content 0.35s ease;
+        border-color 0.25s ease;
 }
 
-.sidebar:hover .sidebar-perfil {
-    justify-content: flex-start;
-    padding: 6px;
-}
-
-/* Avatar */
+/* AVATAR */
 
 .perfil-avatar {
     display: flex;
@@ -505,14 +289,10 @@
     letter-spacing: 0.4px;
     text-transform: uppercase;
 
-    transition: transform 0.3s ease;
+    transition: none;
 }
 
-.sidebar-perfil:hover .perfil-avatar {
-    transform: scale(1.05);
-}
-
-/* Informações do usuário */
+/* INFORMAÇÕES DO USUÁRIO */
 
 .perfil-informacoes {
     display: flex;
@@ -526,19 +306,14 @@
     white-space: nowrap;
 
     opacity: 0;
-    transform: translateX(-9px);
 
-    transition:
-        opacity 0.22s ease,
-        transform 0.32s ease;
+    transition: opacity 0.35s ease;
 
     pointer-events: none;
 }
 
 .sidebar:hover .perfil-informacoes {
     opacity: 1;
-    transform: translateX(0);
-
     transition-delay: 0.12s;
 }
 
@@ -563,27 +338,24 @@
     white-space: nowrap;
 }
 
-/* Seta */
+/* SETA */
 
 .sidebar-perfil > i {
     flex-shrink: 0;
 
     font-size: 0.75rem;
+
     opacity: 0;
 
-    transform: translateX(-5px);
-
-    transition:
-        opacity 0.22s ease,
-        transform 0.3s ease;
+    transition: opacity 0.35s ease;
 }
 
 .sidebar:hover .sidebar-perfil > i {
     opacity: 0.7;
-    transform: translateX(0);
-
     transition-delay: 0.12s;
 }
+
+/* HOVER DO PERFIL */
 
 .sidebar-perfil:hover,
 .sidebar-perfil[aria-expanded="true"] {
@@ -640,6 +412,8 @@
     transform: translateY(0) scale(1);
 }
 
+/* CABEÇALHO DO MENU */
+
 .perfil-menu-cabecalho {
     display: flex;
     flex-direction: column;
@@ -666,6 +440,8 @@
     color: #64748b;
     font-size: 0.76rem;
 }
+
+/* ITENS DO MENU */
 
 .perfil-menu-item {
     display: flex;
@@ -702,6 +478,8 @@
     text-align: center;
 }
 
+/* BOTÃO SAIR */
+
 .perfil-menu-item.perfil-sair {
     color: #dc2626;
 }
@@ -710,7 +488,9 @@
     background: rgba(220, 38, 38, 0.09);
 }
 
-/* Chave de tema no perfil */
+/* =========================================
+   CHAVE DE TEMA NO PERFIL
+========================================= */
 
 .sidebar-theme-switch {
     display: inline-flex;
@@ -877,10 +657,6 @@
         min-width: 42px;
     }
 
-    .sidebar-brand-text {
-        display: none;
-    }
-
     .sidebar-nav {
         width: auto;
 
@@ -894,14 +670,11 @@
 
     .sidebar-nav-section {
         width: auto;
+
         flex-direction: row;
         align-items: center;
-        gap: 5px;
-    }
 
-    .sidebar-section-label,
-    .sidebar-nav hr {
-        display: none;
+        gap: 5px;
     }
 
     .menu-item {
@@ -935,10 +708,6 @@
 
     .sidebar-perfil {
         width: auto;
-        padding: 0;
-    }
-
-    .sidebar:hover .sidebar-perfil {
         padding: 0;
         justify-content: center;
     }
@@ -995,656 +764,3 @@
         animation-duration: 0.01ms !important;
     }
 }
-
-
-/* ===== GesTec design consolidado: Área autenticada, navegação lateral e cabeçalho. ===== */
-/* Área autenticada, navegação lateral e cabeçalho. */
-.gestec-app {
-  min-height: 100vh;
-  color: var(--gestec-ink);
-  background: linear-gradient(155deg, #d9f3fd 0, #edf8fd 265px, #f7fcff 100%);
-  --azul-escuro: #090c5c;
-  --azul-claro: #1589ca;
-  --branco: #f9fbff;
-  --preto: #15243a;
-}
-
-.gestec-app .sidebar {
-  position: fixed;
-  z-index: 1000;
-  inset: 0 auto 0 0;
-  width: var(--gestec-sidebar-width);
-  height: 100vh;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  gap: 0;
-  padding: 17px 12px 12px;
-  overflow-x: hidden;
-  overflow-y: auto;
-  background: linear-gradient(180deg, #090c5c 0%, #0c286f 55%, #126fa8 100%);
-  border: 0;
-  border-right: 1px solid rgba(255, 255, 255, .12);
-  box-shadow: 8px 0 26px rgba(9, 31, 92, .08);
-  transition: none;
-  scrollbar-width: thin;
-  scrollbar-color: rgba(255, 255, 255, .25) transparent;
-}
-
-.gestec-app .sidebar:hover {
-  width: var(--gestec-sidebar-width);
-}
-
-.gestec-app .sidebar-brand {
-  min-width: 0;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 2px 5px 20px;
-  margin-bottom: 17px;
-  border: 0;
-  border-bottom: 1px solid rgba(255, 255, 255, .25);
-  color: #fff;
-  text-decoration: none;
-}
-
-.gestec-app .sidebar-brand-mark {
-  display: grid;
-  place-items: center;
-  flex: 0 0 38px;
-  width: 38px;
-  height: 38px;
-  overflow: hidden;
-  border: 1px solid rgba(21, 137, 202, .22);
-  border-radius: 11px;
-  background: #fff;
-  box-shadow: 0 5px 14px rgba(0, 0, 0, .12);
-}
-
-.gestec-app .sidebar-brand-mark img {
-  display: block;
-  width: 34px;
-  height: 24px;
-  object-fit: contain;
-}
-
-.gestec-app .sidebar-brand-text {
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
-}
-
-.gestec-app .sidebar-brand-text strong {
-  color: #fff;
-  font-size: 16px;
-  line-height: 1.3;
-  font-weight: 750;
-  letter-spacing: .02em;
-}
-
-.gestec-app .sidebar-brand-text small {
-  color: #b8d8ee;
-  font-size: 9px;
-  letter-spacing: 1.2px;
-  line-height: 1.5;
-  white-space: nowrap;
-}
-
-.gestec-app .sidebar-nav {
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  gap: 21px;
-}
-
-.gestec-app .sidebar-nav-section {
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  gap: 4px;
-  min-width: 0;
-}
-
-.gestec-app .sidebar-section-label {
-  margin: 0 8px 4px;
-  color: #9dc9e8;
-  font-size: 9px;
-  font-weight: 800;
-  letter-spacing: 1.3px;
-  line-height: 1.4;
-  text-transform: uppercase;
-}
-
-.gestec-app .sidebar .menu-item,
-.gestec-app .sidebar:hover .menu-item {
-  width: 100%;
-  min-width: 0;
-  height: 40px;
-  min-height: 40px;
-  display: flex;
-  align-items: center;
-  justify-content: flex-start;
-  gap: 11px;
-  margin: 0;
-  padding: 0 11px;
-  overflow: hidden;
-  border: 1px solid transparent;
-  border-radius: 9px;
-  background: transparent;
-  color: #e6f3ff;
-  text-decoration: none;
-  white-space: nowrap;
-  transition: background .16s ease, color .16s ease, transform .16s ease;
-}
-
-.gestec-app .sidebar .menu-item i,
-.gestec-app .sidebar:hover .menu-item i {
-  display: flex;
-  flex: 0 0 17px;
-  align-items: center;
-  justify-content: center;
-  width: 17px;
-  min-width: 17px;
-  height: 20px;
-  font-size: 14px;
-  color: #c3e3f7;
-}
-
-.gestec-app .sidebar .menu-item span,
-.gestec-app .sidebar:hover .menu-item span {
-  display: inline;
-  min-width: 0;
-  margin: 0;
-  opacity: 1;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-size: 12px;
-  font-weight: 550;
-}
-
-.gestec-app .sidebar .menu-item:hover,
-.gestec-app .sidebar:hover .menu-item:hover {
-  transform: translateX(2px);
-  background: rgba(255, 255, 255, .11);
-  color: #fff;
-}
-
-.gestec-app .sidebar .menu-item.active,
-.gestec-app .sidebar:hover .menu-item.active {
-  background: linear-gradient(110deg, #1589ca 0%, #35b4e6 100%);
-  border-color: rgba(255, 255, 255, .13);
-  color: #fff;
-  box-shadow: 0 7px 18px rgba(3, 13, 81, .24), inset 0 0 0 1px rgba(255, 255, 255, .08);
-}
-
-.gestec-app .sidebar .menu-item.active i {
-  color: #fff;
-}
-
-.gestec-app .sidebar-perfil-container {
-  position: relative;
-  width: 100%;
-  margin-top: auto;
-  padding-top: 14px;
-}
-
-.gestec-app .sidebar-perfil {
-  justify-content: flex-start;
-  gap: 9px;
-  min-height: 58px;
-  padding: 8px 5px;
-  border: 1px solid rgba(255, 255, 255, .13);
-  border-radius: 11px;
-  color: #fff;
-}
-
-.gestec-app .sidebar:not(:hover) .sidebar-perfil {
-  justify-content: flex-start;
-  padding: 8px 5px;
-}
-
-.gestec-app .sidebar:not(:hover) .perfil-informacoes,
-.gestec-app .sidebar:not(:hover) .sidebar-perfil>i {
-  display: block;
-}
-
-.gestec-app .sidebar:hover .perfil-informacoes {
-  display: flex;
-}
-
-.gestec-app .sidebar:hover .sidebar-perfil>i {
-  display: block;
-}
-
-.gestec-app .sidebar-perfil:hover,
-.gestec-app .sidebar-perfil[aria-expanded="true"] {
-  background: rgba(255, 255, 255, .09);
-  border-color: rgba(255, 255, 255, .22);
-}
-
-.gestec-app .perfil-avatar {
-  width: 35px;
-  height: 35px;
-  border-radius: 10px;
-  background: #dcecff;
-  color: #12518b;
-  font-size: 12px;
-}
-
-.gestec-app .perfil-informacoes {
-  gap: 2px;
-}
-
-.gestec-app .perfil-informacoes strong {
-  color: #fff;
-  font-size: 11px;
-}
-
-.gestec-app .perfil-informacoes small {
-  color: #bad6e9;
-  font-size: 10px;
-}
-
-.gestec-app .sidebar-perfil>i {
-  color: #bbd7e9;
-}
-
-.gestec-app .sidebar-perfil-menu,
-.gestec-app .sidebar:hover .sidebar-perfil-menu {
-  bottom: calc(100% + 8px);
-  background: #fff;
-  color: #15243a;
-  border-color: #d6e8f3;
-  box-shadow: 0 12px 35px rgba(0, 0, 0, .2);
-}
-
-.gestec-app .sidebar .sidebar-perfil-menu {
-  opacity: 0;
-  visibility: hidden;
-  pointer-events: none;
-}
-
-.gestec-app .sidebar .sidebar-perfil-menu.aberto {
-  opacity: 1;
-  visibility: visible;
-  pointer-events: auto;
-}
-
-.gestec-app .perfil-menu-cabecalho {
-  border-bottom-color: #e0edf5;
-}
-
-.gestec-app .perfil-menu-item {
-  color: #284a61;
-}
-
-.gestec-app .app-workspace {
-  min-width: 0;
-  min-height: 100vh;
-  margin-left: var(--gestec-sidebar-width);
-}
-
-.gestec-app .app-theme-toggle {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  min-height: 36px;
-  padding: 0 12px;
-  border: 1px solid #d9ebf5;
-  border-radius: 10px;
-  background: rgba(243, 250, 254, .95);
-  color: #365d78;
-  font-size: 11px;
-  font-weight: 650;
-  cursor: pointer;
-  transition: background .16s ease, border-color .16s ease;
-}
-
-.gestec-app .app-theme-toggle:hover {
-  background: #e7f6fe;
-  border-color: #a9d7ec;
-}
-
-.gestec-app .app-theme-toggle i {
-  color: #167fb7;
-}
-
-
-
-/* ===== GesTec design consolidado: Sidebar expande sobre o conteúdo: a área de trabalho não salta nem encolhe. ===== */
-/* Sidebar expande sobre o conteúdo: a área de trabalho não salta nem encolhe. */
-.gestec-app .app-workspace {
-  width: calc(100% - var(--gestec-sidebar-width)) !important;
-  min-width: 0;
-  margin-left: var(--gestec-sidebar-width) !important;
-  transition: none;
-}
-
-.gestec-app .app-sidebar-toggle,
-.gestec-app .app-sidebar-backdrop {
-  display: none !important;
-}
-
-.gestec-app .main,
-.gestec-app .dashboard {
-  width: 100%;
-  max-width: none !important;
-  padding: 30px clamp(20px, 2.7vw, 48px) 36px !important;
-}
-
-.gestec-app .container,
-.gestec-app .projetos-container,
-.gestec-app .projetos-page,
-.gestec-app .dashboard>.dashboard-container,
-.gestec-app .dashboard .dashboard-container {
-  width: 100% !important;
-  max-width: none !important;
-  margin-right: 0 !important;
-  margin-left: 0 !important;
-}
-
-
-
-/* ===== GesTec design consolidado: Refinamento responsivo final: sidebar com proporção compacta 1:12 e expandida 25:54. ===== */
-/* Refinamento responsivo final: sidebar com proporção compacta 1:12 e expandida 25:54. */
-.gestec-app {
-  --gestec-sidebar-width: clamp(66px, 7.6923vw, 120px);
-  --gestec-sidebar-expanded-width: clamp(260px, 31.6456vw, 500px);
-}
-
-.gestec-app .sidebar,
-.gestec-app .sidebar:hover,
-.gestec-app .sidebar:focus-within {
-  position: fixed !important;
-  inset: 0 auto 0 0 !important;
-  z-index: 1500 !important;
-  box-sizing: border-box !important;
-  width: var(--gestec-sidebar-width) !important;
-  min-width: var(--gestec-sidebar-width) !important;
-  max-width: var(--gestec-sidebar-width) !important;
-  height: 100dvh !important;
-  padding: 14px 5px 12px !important;
-  overflow-x: hidden !important;
-  overflow-y: auto !important;
-  flex-direction: column !important;
-  align-items: stretch !important;
-  background: linear-gradient(180deg, #090c5c 0%, #0c286f 56%, #126fa8 100%) !important;
-  transition: width .18s ease, max-width .18s ease, box-shadow .18s ease !important;
-}
-
-.gestec-app .sidebar:hover,
-.gestec-app .sidebar:focus-within {
-  width: var(--gestec-sidebar-expanded-width) !important;
-  min-width: var(--gestec-sidebar-expanded-width) !important;
-  max-width: var(--gestec-sidebar-expanded-width) !important;
-  padding: 14px 12px 12px !important;
-  overflow-x: hidden !important;
-  box-shadow: 14px 0 38px rgba(5, 25, 63, .24) !important;
-}
-
-
-
-/* ===== GesTec design consolidado: O conteúdo usa sempre a largura restante calculada pela sidebar compacta; a expansão sobrepõe, não desloca. ===== */
-/* O conteúdo usa sempre a largura restante calculada pela sidebar compacta; a expansão sobrepõe, não desloca. */
-.gestec-app .app-workspace {
-  width: calc(100% - var(--gestec-sidebar-width)) !important;
-  min-width: 0 !important;
-  margin-left: var(--gestec-sidebar-width) !important;
-  overflow-x: clip;
-}
-
-.gestec-app .sidebar:not(:hover):not(:focus-within) .sidebar-brand {
-  justify-content: center !important;
-  gap: 0 !important;
-  padding: 2px 0 14px !important;
-  margin: 0 0 16px !important;
-}
-
-.gestec-app .sidebar:not(:hover):not(:focus-within) .sidebar-brand-text,
-.gestec-app .sidebar:not(:hover):not(:focus-within) .sidebar-section-label,
-.gestec-app .sidebar:not(:hover):not(:focus-within) .menu-item span,
-.gestec-app .sidebar:not(:hover):not(:focus-within) .sidebar-theme-toggle>span,
-.gestec-app .sidebar:not(:hover):not(:focus-within) .perfil-informacoes,
-.gestec-app .sidebar:not(:hover):not(:focus-within) .sidebar-perfil>i {
-  display: none !important;
-}
-
-.gestec-app .sidebar:not(:hover):not(:focus-within) .menu-item {
-  justify-content: center !important;
-  gap: 0 !important;
-  width: 100% !important;
-  padding: 0 !important;
-  margin: 0 !important;
-}
-
-.gestec-app .sidebar:not(:hover):not(:focus-within) .menu-item i {
-  width: 100% !important;
-  min-width: 0 !important;
-  flex: 0 0 100% !important;
-  justify-content: center !important;
-  font-size: 22px !important;
-  color: #75e0ff !important;
-}
-
-.gestec-app .sidebar:not(:hover):not(:focus-within) .sidebar-nav {
-  gap: 12px !important;
-}
-
-.gestec-app .sidebar:not(:hover):not(:focus-within) .sidebar-nav-section {
-  gap: 7px !important;
-}
-
-.gestec-app .sidebar:not(:hover):not(:focus-within) .sidebar-theme-toggle {
-  justify-content: center !important;
-  width: 100% !important;
-  min-height: 44px !important;
-  padding: 0 !important;
-}
-
-.gestec-app .sidebar:not(:hover):not(:focus-within) .sidebar-theme-toggle>i {
-  flex: 0 0 auto !important;
-  font-size: 21px !important;
-  color: #7ce2ff !important;
-}
-
-.gestec-app .sidebar:not(:hover):not(:focus-within) .sidebar-theme-switch {
-  display: none !important;
-}
-
-.gestec-app .sidebar:not(:hover):not(:focus-within) .sidebar-perfil-container {
-  padding-top: 10px !important;
-}
-
-.gestec-app .sidebar:not(:hover):not(:focus-within) .sidebar-perfil {
-  justify-content: center !important;
-  min-height: 48px !important;
-  padding: 4px 0 !important;
-}
-
-.gestec-app .sidebar:hover .sidebar-brand,
-.gestec-app .sidebar:focus-within .sidebar-brand {
-  justify-content: flex-start !important;
-  gap: 10px !important;
-  padding: 2px 4px 18px !important;
-}
-
-.gestec-app .sidebar:hover .sidebar-brand-text,
-.gestec-app .sidebar:focus-within .sidebar-brand-text,
-.gestec-app .sidebar:hover .sidebar-section-label,
-.gestec-app .sidebar:focus-within .sidebar-section-label,
-.gestec-app .sidebar:hover .menu-item span,
-.gestec-app .sidebar:focus-within .menu-item span,
-.gestec-app .sidebar:hover .sidebar-theme-toggle>span,
-.gestec-app .sidebar:focus-within .sidebar-theme-toggle>span,
-.gestec-app .sidebar:hover .perfil-informacoes,
-.gestec-app .sidebar:focus-within .perfil-informacoes,
-.gestec-app .sidebar:hover .sidebar-perfil>i,
-.gestec-app .sidebar:focus-within .sidebar-perfil>i {
-  display: flex !important;
-}
-
-.gestec-app .sidebar:hover .menu-item,
-.gestec-app .sidebar:focus-within .menu-item {
-  justify-content: flex-start !important;
-  gap: 12px !important;
-  padding: 0 12px !important;
-}
-
-.gestec-app .sidebar:hover .menu-item i,
-.gestec-app .sidebar:focus-within .menu-item i {
-  flex: 0 0 22px !important;
-  width: 22px !important;
-  min-width: 22px !important;
-  font-size: 19px !important;
-  color: #7ce2ff !important;
-}
-
-.gestec-app .sidebar:hover .menu-item span,
-.gestec-app .sidebar:focus-within .menu-item span {
-  font-size: 15px !important;
-  line-height: 1.4 !important;
-}
-
-.gestec-app .sidebar:hover .sidebar-section-label,
-.gestec-app .sidebar:focus-within .sidebar-section-label {
-  font-size: 11px !important;
-}
-
-.gestec-app .sidebar .sidebar-theme-toggle {
-  min-height: 46px !important;
-}
-
-.gestec-app .sidebar .sidebar-theme-toggle>i {
-  font-size: 20px !important;
-}
-
-.gestec-app .sidebar .sidebar-theme-toggle>span:not(.sidebar-theme-switch) {
-  font-size: 14px !important;
-}
-
-.gestec-app .sidebar .sidebar-perfil {
-  gap: 10px !important;
-}
-
-.gestec-app .sidebar .perfil-avatar {
-  width: 38px !important;
-  height: 38px !important;
-  flex: 0 0 38px !important;
-}
-
-.gestec-app .sidebar .perfil-informacoes strong {
-  font-size: 14px !important;
-}
-
-.gestec-app .sidebar .perfil-informacoes small {
-  font-size: 12px !important;
-}
-
-
-
-/* ===== GesTec design consolidado: Preferências da conta: tema e logout ficam juntos no menu do avatar. ===== */
-/* Preferências da conta: tema e logout ficam juntos no menu do avatar. */
-.gestec-app .perfil-menu-tema {
-  color: #284a61;
-}
-
-.gestec-app .perfil-menu-tema>i {
-  color: #0b91cf;
-}
-
-.gestec-app .perfil-menu-tema .sidebar-theme-switch {
-  margin-left: auto;
-}
-
-.gestec-app.dark-mode .perfil-menu-tema {
-  color: #d5eaf7;
-}
-
-.gestec-app.dark-mode .perfil-menu-tema>i {
-  color: #69ddff;
-}
-
-.gestec-app.dark-mode .perfil-menu-tema:hover {
-  background: #173a53;
-  color: #fff;
-}
-
-.gestec-app .sidebar-perfil-menu {
-  gap: 6px;
-}
-
-.gestec-app .sidebar-perfil-menu .perfil-menu-tema {
-  border-bottom: 1px solid #e3edf3;
-  border-radius: 8px;
-}
-
-.gestec-app.dark-mode .sidebar-perfil-menu .perfil-menu-tema {
-  border-bottom-color: #2b4a60;
-}
-
-
-
-/* ===== GesTec design consolidado: Conta e menu de preferências: o popover abre para cima e não é recortado pela sidebar. ===== */
-/* Conta e menu de preferências: o popover abre para cima e não é recortado pela sidebar. */
-.gestec-app #gestec-primary-sidebar {
-  overflow: visible !important;
-}
-
-.gestec-app #gestec-primary-sidebar .sidebar-nav {
-  min-height: 0;
-  overflow-x: hidden;
-  overflow-y: auto;
-}
-
-.gestec-app #gestec-primary-sidebar .sidebar-perfil-container {
-  position: relative;
-  z-index: 1300;
-  flex: 0 0 auto;
-  overflow: visible;
-}
-
-.gestec-app #gestec-primary-sidebar .sidebar-perfil-menu {
-  position: absolute !important;
-  top: auto !important;
-  right: auto !important;
-  bottom: calc(100% + 12px) !important;
-  left: calc(100% + 12px) !important;
-  z-index: 1600 !important;
-  width: min(270px, calc(100vw - var(--gestec-sidebar-width) - 28px)) !important;
-  max-height: min(72vh, 430px) !important;
-  overflow-x: hidden !important;
-  overflow-y: auto !important;
-  padding: 10px !important;
-  border-radius: 14px !important;
-}
-
-.gestec-app #gestec-primary-sidebar .sidebar-perfil-menu .perfil-menu-cabecalho {
-  padding: 10px 11px 12px;
-}
-
-.gestec-app #gestec-primary-sidebar .sidebar-perfil-menu .perfil-menu-item {
-  min-height: 46px;
-  padding: 10px 11px;
-  border-radius: 9px;
-  text-align: left;
-}
-
-.gestec-app #gestec-primary-sidebar .sidebar-perfil-menu .perfil-menu-item span {
-  font-size: 13px;
-}
-
-@media (max-width: 650px) {
-  .gestec-app #gestec-primary-sidebar .sidebar-perfil-menu {
-    top: auto !important;
-    right: 0 !important;
-    bottom: calc(100% + 9px) !important;
-    left: auto !important;
-    width: min(270px, calc(100vw - 24px)) !important;
-  }
-}
-

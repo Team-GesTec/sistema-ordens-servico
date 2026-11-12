@@ -7,7 +7,6 @@
  */
 import type { Request, Response } from 'express';
 import { serviceDepartamento } from '../services/serviceDepartamento';
-import { AppError } from '../errors/AppError';
 import { lerId } from '../utils/validacao';
 import { usuarioAutenticado } from '../middlewares/authMiddleware';
 
@@ -23,17 +22,19 @@ export class ControllerDepartamento {
         return resp.status(200).json(await serviceDepartamento.buscarPorId(id));
     }
 
-    /** GET /departamento/:id/equipe — consulta os vínculos reais do departamento. */
     public async getEquipe(req: Request, resp: Response): Promise<Response> {
         const id = lerId(req.params.id);
-        const historico = req.query.historico;
-        if (historico !== undefined && historico !== 'true' && historico !== 'false') {
-            throw AppError.requisicaoInvalida('historico deve ser true ou false');
-        }
-        if (historico === 'true' && usuarioAutenticado(req).tipo !== 'gestor') {
-            throw AppError.acessoNegado('Somente Gestores podem consultar registros históricos/inativos.');
-        }
-        return resp.status(200).json(await serviceDepartamento.buscarEquipe(id, historico === 'true'));
+        const usuario = usuarioAutenticado(req);
+        const historico = req.query.historico === 'true';
+
+        return resp.status(200).json(
+            await serviceDepartamento.buscarEquipe(id, historico, usuario.tipo),
+        );
+    }
+
+    /** GET /departamento/inativos — lista departamentos inativos. */
+    public async getInativos(req: Request, resp: Response): Promise<Response> {
+        return resp.status(200).json(await serviceDepartamento.listarInativos());
     }
 
     /** POST /departamento — cadastra o departamento (201 com o registro criado). */
@@ -53,14 +54,12 @@ export class ControllerDepartamento {
         return resp.status(200).json(await serviceDepartamento.atualizar(id, req.body, true));
     }
 
-    /**
-     * DELETE /departamento/:id — exclui o departamento.
-     * Responde 409 se o registro ainda estiver vinculado a outros dados.
-     */
-    public async deleteDepartamento(req: Request, resp: Response): Promise<Response> {
-        const id = lerId(req.params.id);
-        await serviceDepartamento.remover(id);
-        return resp.status(200).json({ mensagem: 'Departamento excluído com sucesso' });
+    /** PATCH /departamento/:id/ativo — ativa ou inativa um departamento. */
+    public async alterarAtivo(req: Request, resp: Response): Promise<Response> {
+        const id = Number(req.params.id);
+        return resp.status(200).json(
+            await serviceDepartamento.alterarAtivo(id, req.body?.ativo)
+        );
     }
 }
 

@@ -44,6 +44,18 @@ export class RepositoryOrdemServico {
         return ordemServicoCache.obterTodos(() => prisma.ordens_servico.findMany({ orderBy: { data_criacao: 'desc' } }));
     }
 
+    /** Lista ordens de serviço vinculadas a um departamento. */
+    async listarPorDepartamento(
+        departamentoId: number,
+        incluirInativas = false,
+    ): Promise<OrdemServico[]> {
+        return (await this.listar()).filter(
+            (ordem) =>
+                ordem.departamento_id === departamentoId &&
+                (incluirInativas || ordem.ativo),
+        );
+    }
+
     /** Busca uma ordem de serviço pelo id (cache → banco). Devolve `null` se não existir. */
     async buscarPorId(id: number): Promise<OrdemServico | null> {
         return ordemServicoCache.obterPorId(id, () => prisma.ordens_servico.findUnique({ where: { id } }));
