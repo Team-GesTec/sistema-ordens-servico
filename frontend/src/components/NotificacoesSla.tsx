@@ -1,9 +1,9 @@
 import { useEffect } from "react";
 import { publishToast } from "../services/feedbackEvents";
-import type { NotificacaoSla } from "../types/notificacao";
+import type { Notificacao } from "../types/notificacao";
 
 interface NotificacoesSlaProps {
-    notificacoes: NotificacaoSla[];
+    notificacoes: Notificacao[];
     onDispensar: (id: string) => Promise<boolean>;
 }
 
@@ -16,7 +16,7 @@ export default function NotificacoesSla({ notificacoes, onDispensar }: Notificac
             if (notificacoesApresentadas.has(notificacao.id)) return;
             notificacoesApresentadas.add(notificacao.id);
 
-            const vencida = notificacao.tipo === "vencido" || notificacao.tipo === "bloqueado";
+            const vencida = notificacao.tipo === "sla_expirada";
             publishToast({
                 title: vencida ? "SLA vencido" : "SLA em risco",
                 message: notificacao.mensagem,

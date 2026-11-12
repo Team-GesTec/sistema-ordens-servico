@@ -23,6 +23,7 @@ export interface DadosCriacaoFuncionario {
     usuario: string;
     senha_hash: string;
     nome: string;
+    email?: string | null;
     tipo: PerfilFuncionario;
     ativo: boolean;
 }

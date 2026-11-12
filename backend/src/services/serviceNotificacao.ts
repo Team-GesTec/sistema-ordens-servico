@@ -3,6 +3,10 @@ import { repositoryOrdemServico, type RepositoryOrdemServico } from '../reposito
 import type { TipoNotificacao } from '../models/modelNotificacao';
 import type { OrdemServico } from '../models/modelOrdemServico';
 import { AppError } from '../errors/AppError';
+import { randomUUID } from 'node:crypto';
+import { repositoryFuncionario, type RepositoryFuncionario } from '../repositories/repositoryFuncionario';
+import { serviceEmail, type ServiceEmail } from './serviceEmail';
+import { templateNotificacaoOrdem } from './templatesEmail';
 
 const TITULOS: Record<TipoNotificacao, string> = {
     status_alterado: 'Status da ordem de serviço alterado',
@@ -16,6 +20,8 @@ export class ServiceNotificacao {
     constructor(
         private readonly repositorio: RepositoryNotificacao = repositoryNotificacao,
         private readonly ordens: Pick<RepositoryOrdemServico, 'listar'> = repositoryOrdemServico,
+        private readonly funcionarios: Pick<RepositoryFuncionario, 'buscarPorId'> = repositoryFuncionario,
+        private readonly emails: ServiceEmail = serviceEmail,
     ) {}
 
     async notificarOrdem(
@@ -30,13 +36,42 @@ export class ServiceNotificacao {
         const existentes = evitarDuplicidade
             ? await Promise.all(unicos.map(async (id) => ({ id, existe: await this.repositorio.existe(ordem.id, id, tipo) })))
             : unicos.map((id) => ({ id, existe: false }));
-        return this.repositorio.criarEmLote(existentes.filter((item) => !item.existe).map(({ id }) => ({
+        const novos = existentes.filter((item) => !item.existe).map(({ id }) => ({
             os_id: ordem.id,
             funcionario_id: id,
             tipo,
             titulo: TITULOS[tipo],
             mensagem,
-        })));
+        }));
+        const criadas = await this.repositorio.criarEmLote(novos);
+        const eventoId = `${tipo}:${ordem.id}:${randomUUID()}`;
+        await Promise.all(novos.map((notificacao) => this.enfileirarEmail(ordem, notificacao, eventoId)));
+        return criadas;
+    }
+
+    private async enfileirarEmail(
+        ordem: OrdemServico,
+        notificacao: { funcionario_id: number; tipo: TipoNotificacao; mensagem: string },
+        eventoId: string,
+    ): Promise<void> {
+        try {
+            const funcionario = await this.funcionarios.buscarPorId(notificacao.funcionario_id);
+            const email = funcionario?.email?.trim() ?? '';
+            if (!email || !email.includes('@')) return;
+            const template = templateNotificacaoOrdem(notificacao.tipo, notificacao.mensagem);
+            await this.emails.enfileirar({
+                evento_id: eventoId,
+                destinatario_id: notificacao.funcionario_id,
+                para: email,
+                ...template,
+            });
+            void this.emails.processar().catch((erro) => {
+                console.error(`[email] falha ao processar notificação da O.S. ${ordem.id}`, erro);
+            });
+        } catch (erro) {
+            // Falha no e-mail não desfaz a notificação persistida; a fila mantém suas próprias tentativas.
+            console.error(`[email] falha ao enfileirar notificação da O.S. ${ordem.id}`, erro);
+        }
     }
 
     async gerarNotificacoesSla(agora: Date = new Date()): Promise<number> {
