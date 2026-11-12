@@ -67,4 +67,12 @@ router.patch('/:id/status', gestorOuTecnico, (req: Request, res: Response) =>
     controllerOrdemServico.alterarStatus(req, res),
 );
 
+// POST horas — qualquer perfil autenticado; o service só aceita o responsável pela O.S. (senão, 403)
+router.post('/:id/horas', (req: Request, res: Response) =>
+    controllerOrdemServico.registrarHoras(req, res),
+);
+
+// GET horas — qualquer usuário autenticado
+router.get('/:id/horas', (req: Request, res: Response) => controllerOrdemServico.listarHoras(req, res));
+
 export default router;

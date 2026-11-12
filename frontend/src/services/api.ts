@@ -56,6 +56,12 @@ function emitirSucessoDaOperacao(path: string, method: string, requestBody: Body
         publishToast({ title: "Notificação dispensada", message: "A notificação foi dispensada.", variant: "success" });
         return;
     }
+
+    if (rota.endsWith("/horas") && method === "POST") {
+        publishToast({ title: "Horas registradas", message: "As horas foram lançadas na ordem de serviço.", variant: "success" });
+        return;
+    }
+
     if (rota.includes("/anexos") && method === "POST") {
         publishToast({ title: "Anexo enviado", message: "O arquivo foi anexado à ordem de serviço.", variant: "success" });
         return;

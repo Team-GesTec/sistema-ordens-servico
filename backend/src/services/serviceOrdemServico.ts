@@ -43,6 +43,7 @@
  */
 
 import { prisma } from '../prisma/client';
+import { serviceLancamentoHoras } from './serviceLancamentoHoras';
 import type { Prisma } from '../prisma/generated/client';
 import { AppError } from '../errors/AppError';
 import { repositoryOrdemServico, type RepositoryOrdemServico } from '../repositories/repositoryOrdemServico';
@@ -139,7 +140,7 @@ type OrdemServicoComSla = OrdemServico & { estado_sla: EstadoSla };
 
 /** Devolve uma cópia da O.S. com o estado do SLA. Não altera a O.S. original (que pode estar no cache). */
 function comEstadoSla(ordem: OrdemServico, agora: Date): OrdemServicoComSla {
-    return {...ordem, estado_sla: calcularEstadoSla(ordem,agora)}
+    return { ...ordem, estado_sla: calcularEstadoSla(ordem, agora) }
 }
 
 export class ServiceOrdemServico {
@@ -152,10 +153,11 @@ export class ServiceOrdemServico {
     }
 
     /** Lista somente as O.S. ativas, cada uma com o estado do SLA. */
-    async listar(): Promise<OrdemServicoComSla[]> {       const ordens = await this.repositorio.listar();
+    async listar(): Promise<OrdemServicoComSla[]> {
+        const ordens = await this.repositorio.listar();
         const ativas = ordens.filter((ordem) => ordem.ativo);
         const agora = new Date();
-        return ativas.map((ordem) => comEstadoSla(ordem,agora));
+        return ativas.map((ordem) => comEstadoSla(ordem, agora));
     }
 
     /** Lista somente as O.S. inativas, para consulta do histórico. */
@@ -169,7 +171,7 @@ export class ServiceOrdemServico {
      */
     async buscarPorId(id: number): Promise<OrdemServicoComSla> {
         const ordem = await this.repositorio.buscarPorId(id);
-        if(!ordem) {
+        if (!ordem) {
             throw AppError.naoEncontrado('OS não encontrada');
         }
         return comEstadoSla(ordem, new Date());
@@ -468,6 +470,14 @@ export class ServiceOrdemServico {
 
             const projetosBloqueados = await bloquearProjetosRelacionados(conexao, [ordemAtual.projeto_id]);
             validarProjetoDaOrdem(ordemAtual.projeto_id, ordemAtual.ativo, novoStatus, projetosBloqueados);
+
+            const informouHoras = [dados.duracao, dados.data_trabalho].some(
+                (valor) => valor !== undefined && valor !== null && valor !== '',
+            );
+            if (ehResponsavel && informouHoras) {
+                await serviceLancamentoHoras.gravarNaTransacao(ordemAtual, usuario.id, dados, conexao);
+            }
+
             const ordemAtualizada = await this.repositorio.atualizarStatus(idOS, dadosStatus, conexao);
 
             await serviceAuditoria.registrar(

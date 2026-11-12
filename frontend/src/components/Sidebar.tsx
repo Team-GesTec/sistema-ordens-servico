@@ -68,6 +68,7 @@ function Sidebar({ darkMode, setDarkMode }: SidebarProps) {
             className="sidebar"
             aria-label="Navegação principal"
         >
+            {/* LOGO */}
             <NavLink
                 to="/home"
                 className="sidebar-brand"
@@ -76,33 +77,29 @@ function Sidebar({ darkMode, setDarkMode }: SidebarProps) {
                 <span className="sidebar-brand-mark">
                     <img src={logo} alt="" />
                 </span>
-
-                <span className="sidebar-brand-text">
-                    <strong>GesTec</strong>
-                    <small>SISTEMA DE GESTÃO</small>
-                </span>
             </NavLink>
 
+            {/* NAVEGAÇÃO */}
             <nav className="sidebar-nav">
+
+                {/* MENU PRINCIPAL */}
                 <div className="sidebar-nav-section">
-                    <p className="sidebar-section-label">
-                        Menu principal
-                    </p>
 
                     <NavLink
                         to="/home"
                         className="menu-item"
-                        title="Visão geral"
                         aria-label="Visão geral"
                     >
-                        <i className="fa-solid fa-house" aria-hidden="true" />
+                        <i
+                            className="fa-solid fa-house"
+                            aria-hidden="true"
+                        />
                         <span>Visão geral</span>
                     </NavLink>
 
                     <NavLink
                         to="/ordens"
                         className="menu-item"
-                        title="Ordens de serviço"
                         aria-label="Ordens de serviço"
                     >
                         <i
@@ -111,29 +108,27 @@ function Sidebar({ darkMode, setDarkMode }: SidebarProps) {
                         />
                         <span>Ordens de serviço</span>
                     </NavLink>
+
                 </div>
 
-                <hr />
-
+                {/* GESTÃO */}
                 <div className="sidebar-nav-section">
-                    <p className="sidebar-section-label">
-                        Gestão
-                    </p>
 
                     <NavLink
                         to="/clientes"
                         className="menu-item"
-                        title="Clientes"
                         aria-label="Clientes"
                     >
-                        <i className="fa-solid fa-users" aria-hidden="true" />
+                        <i
+                            className="fa-solid fa-users"
+                            aria-hidden="true"
+                        />
                         <span>Clientes</span>
                     </NavLink>
 
                     <NavLink
                         to="/projetos"
                         className="menu-item"
-                        title="Projetos"
                         aria-label="Projetos"
                     >
                         <i
@@ -146,7 +141,6 @@ function Sidebar({ darkMode, setDarkMode }: SidebarProps) {
                     <NavLink
                         to="/funcionarios"
                         className="menu-item"
-                        title="Funcionários"
                         aria-label="Funcionários"
                     >
                         <i
@@ -159,7 +153,6 @@ function Sidebar({ darkMode, setDarkMode }: SidebarProps) {
                     <NavLink
                         to="/departamentos"
                         className="menu-item"
-                        title="Departamentos"
                         aria-label="Departamentos"
                     >
                         <i
@@ -168,19 +161,15 @@ function Sidebar({ darkMode, setDarkMode }: SidebarProps) {
                         />
                         <span>Departamentos</span>
                     </NavLink>
+
                 </div>
 
-                <hr />
-
+                {/* ANÁLISES */}
                 <div className="sidebar-nav-section">
-                    <p className="sidebar-section-label">
-                        Análises
-                    </p>
 
                     <NavLink
                         to="/auditoria"
                         className="menu-item"
-                        title="Logs de auditoria"
                         aria-label="Logs de auditoria"
                     >
                         <i
@@ -193,7 +182,6 @@ function Sidebar({ darkMode, setDarkMode }: SidebarProps) {
                     <NavLink
                         to="/relatorios"
                         className="menu-item"
-                        title="Relatórios"
                         aria-label="Relatórios"
                     >
                         <i
@@ -202,12 +190,18 @@ function Sidebar({ darkMode, setDarkMode }: SidebarProps) {
                         />
                         <span>Relatórios</span>
                     </NavLink>
+
                 </div>
             </nav>
 
+            {/* PERFIL */}
             <div className="sidebar-perfil-container">
+
+                {/* MENU SUSPENSO */}
                 <div
-                    className={`sidebar-perfil-menu${perfilAberto ? " aberto" : ""}`}
+                    className={`sidebar-perfil-menu${
+                        perfilAberto ? " aberto" : ""
+                    }`}
                     aria-hidden={!perfilAberto}
                 >
                     <div className="perfil-menu-cabecalho">
@@ -215,6 +209,7 @@ function Sidebar({ darkMode, setDarkMode }: SidebarProps) {
                         <span>{nomePerfil}</span>
                     </div>
 
+                    {/* ALTERAR TEMA */}
                     <button
                         type="button"
                         className="perfil-menu-item perfil-menu-tema"
@@ -246,6 +241,7 @@ function Sidebar({ darkMode, setDarkMode }: SidebarProps) {
                         </span>
                     </button>
 
+                    {/* SAIR */}
                     <button
                         type="button"
                         className="perfil-menu-item perfil-sair"
@@ -259,6 +255,7 @@ function Sidebar({ darkMode, setDarkMode }: SidebarProps) {
                     </button>
                 </div>
 
+                {/* BOTÃO DO PERFIL */}
                 <button
                     type="button"
                     className="sidebar-perfil"
@@ -288,6 +285,7 @@ function Sidebar({ darkMode, setDarkMode }: SidebarProps) {
                         aria-hidden="true"
                     />
                 </button>
+
             </div>
         </aside>
     );
