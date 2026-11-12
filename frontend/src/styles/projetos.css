@@ -525,3 +525,19 @@
 .dark-mode .projeto-card-main:focus-visible {
     outline-color: rgba(126, 197, 237, 0.9);
 }
+
+.projetos-filter {
+    display: flex;
+    gap: 8px;
+}
+
+.departamento-confirmacao-corpo {
+    display: flex;
+    align-items: center;
+    min-height: 68px;
+}
+
+.departamento-confirmacao-texto {
+    margin: 0;
+    line-height: 1.5;
+}
