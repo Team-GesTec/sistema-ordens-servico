@@ -112,45 +112,52 @@ function ClientesToolbar({ busca, onBuscaChange, filtroSituacao, onFiltroChange,
 
     const estiloSugestoes: CSSProperties | undefined = posicao
         ? {
-              position: "fixed",
-              left: posicao.left,
-              right: "auto",
-              width: posicao.width,
-              ...(posicao.top !== undefined ? { top: posicao.top } : {}),
-              ...(posicao.bottom !== undefined ? { bottom: posicao.bottom } : {}),
-              maxHeight: posicao.maxHeight,
-              zIndex: 2000,
-          }
+            position: "fixed",
+            left: posicao.left,
+            right: "auto",
+            width: posicao.width,
+            ...(posicao.top !== undefined ? { top: posicao.top } : {}),
+            ...(posicao.bottom !== undefined ? { bottom: posicao.bottom } : {}),
+            maxHeight: posicao.maxHeight,
+            zIndex: 2000,
+        }
         : undefined;
 
     return (
         <section className="projetos-toolbar clientes-toolbar-modern" aria-label="Pesquisar e filtrar clientes">
             <div className="gestec-search-toolbar-row clientes-search-toolbar-row">
-                <div className="projetos-search-wrap clientes-search-wrapper">
-                <span aria-hidden="true">⌕</span>
-                <input
-                    ref={inputRef}
-                    id="clientes-busca"
-                    className="projetos-search clientes-search"
-                    type="search"
-                    placeholder="Pesquisar por nome, razão social ou código"
-                    aria-label="Pesquisar cliente"
-                    autoComplete="off"
-                    role="combobox"
-                    aria-autocomplete="list"
-                    aria-controls="clientes-sugestoes"
-                    aria-activedescendant={menuVisivel && indiceAtivo >= 0 ? `clientes-sugestao-${sugestoes[indiceAtivo]?.id}` : undefined}
-                    aria-expanded={menuVisivel}
-                    value={busca}
-                    onFocus={() => setSugestoesAbertas(true)}
-                    onBlur={() => setSugestoesAbertas(false)}
-                    onChange={(event) => {
-                        onBuscaChange(event.target.value);
-                        setIndiceAtivo(-1);
-                        setSugestoesAbertas(true);
-                    }}
-                    onKeyDown={tratarTecla}
-                />
+                <div className="clientes-search-container">
+                    <span className="clientes-search-icon" aria-hidden="true">
+                        ⌕
+                    </span>
+
+                    <input
+                        ref={inputRef}
+                        id="clientes-busca"
+                        className="projetos-search clientes-search"
+                        type="search"
+                        placeholder="Pesquisar por nome, razão social ou código"
+                        aria-label="Pesquisar cliente"
+                        autoComplete="off"
+                        role="combobox"
+                        aria-autocomplete="list"
+                        aria-controls="clientes-sugestoes"
+                        aria-activedescendant={
+                            menuVisivel && indiceAtivo >= 0
+                                ? `clientes-sugestao-${sugestoes[indiceAtivo]?.id}`
+                                : undefined
+                        }
+                        aria-expanded={menuVisivel}
+                        value={busca}
+                        onFocus={() => setSugestoesAbertas(true)}
+                        onBlur={() => setSugestoesAbertas(false)}
+                        onChange={(event) => {
+                            onBuscaChange(event.target.value);
+                            setIndiceAtivo(-1);
+                            setSugestoesAbertas(true);
+                        }}
+                        onKeyDown={tratarTecla}
+                    />
                 </div>
                 <FilterDrawer activeCount={filtroSituacao === "todos" ? 0 : 1} onClear={() => onFiltroChange("todos")}>
                     <div className="gestec-filter-field">
