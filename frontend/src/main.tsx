@@ -19,6 +19,8 @@ import "./styles/gestec-design.css";
 import "./styles/login.css";
 import "./styles/analises.css";
 import "./styles/feedback.css";
+import "./styles/notificacoes.css";
+import "./styles/modal-os.css";
 
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";

@@ -27,6 +27,7 @@ export interface Funcionario {
     id: number;
     departamento_id: number;
     usuario: string;
+    email?: string | null;
     nome: string;
     tipo: PerfilFuncionario;
     ativo: boolean;
@@ -63,6 +64,7 @@ export interface Departamento {
     id: number;
     nome: string;
     responsavel_id: number | null;
+    ativo: boolean;
 }
 
 export interface DepartamentoInput {
@@ -82,6 +84,7 @@ export interface FuncionarioInput {
     usuario: string;
     senha: string;
     nome: string;
+    email?: string | null;
     tipo: PerfilFuncionario;
 }
 
@@ -205,7 +208,6 @@ export interface ConfiguracaoAnexos {
     tamanho_maximo_relato: number;
 }
 
-/** Registro real e imutável da auditoria de uma O.S. */
 export interface HistoricoOrdemServico {
     id: number;
     os_id: number;
@@ -217,4 +219,27 @@ export interface HistoricoOrdemServico {
     dado_novo: string | null;
     justificativa: string | null;
     funcionarios: Pick<Funcionario, "id" | "nome" | "usuario">;
+}
+
+export interface LancamentoHoras {
+    id: number;
+    data_trabalho: string;
+    minutos: number;
+    duracao: string;
+    status_os: StatusOrdemServico;
+    autor: { id: number; nome: string };
+    registrado_em: string;
+}
+
+export interface HorasOrdem {
+    total_minutos: number;
+    total_duracao: string;
+    lancamentos: LancamentoHoras[];
+}
+
+export interface RegistroHorasInput {
+    /** Formato Jira: "2w 4d 6h 45m". */
+    duracao: string;
+    /** AAAA-MM-DD; não pode estar no futuro. */
+    data_trabalho: string;
 }

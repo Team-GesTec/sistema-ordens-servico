@@ -102,3 +102,328 @@
 .departamento-vinculo-item--link:hover { border-color: #bdd4e2; background: #f6fbfe; }
 .departamento-vinculo-item--link:focus-visible { outline: 2px solid var(--cor-primaria, #21658c); outline-offset: 2px; }
 .departamento-vinculo-item--link.departamento-vinculo-item--inativo:hover { background: #e9eef1; }
+
+
+/* ===== GesTec design consolidado: Página de departamentos segue a mesma base que as demais páginas de gestão. ===== */
+/* Página de departamentos segue a mesma base que as demais páginas de gestão. */
+.gestec-app .equipes-history-toggle {
+  color: #55748c;
+  font-size: 11px;
+}
+
+.gestec-app .equipes-note {
+  margin-top: 18px;
+  padding: 12px 14px;
+  border: 1px solid #d6e8f3;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, .55);
+  color: #627b91;
+  font-size: 11px;
+  line-height: 1.65;
+}
+
+
+
+/* ===== GesTec design consolidado: Card de departamento: hierarquia próxima à referência, com vínculos derivados da API. ===== */
+/* Card de departamento: hierarquia próxima à referência, com vínculos derivados da API. */
+.gestec-app .gestec-department-card {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 14px;
+  padding: 19px;
+  border: 1px solid var(--gestec-line, #d6e8f3);
+  border-radius: 17px;
+  background: var(--gestec-surface, #fff);
+  color: var(--gestec-ink, #15243a);
+  box-shadow: var(--gestec-shadow, 0 8px 26px rgba(15, 69, 114, .065));
+  transition: border-color .16s ease, box-shadow .16s ease, transform .16s ease;
+}
+
+.gestec-app .gestec-department-card:hover {
+  transform: translateY(-2px);
+  border-color: #a9d4eb;
+  box-shadow: 0 12px 28px rgba(15, 69, 114, .11);
+}
+
+.gestec-app .gestec-department-card-top {
+  display: flex;
+  min-height: 42px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.gestec-app .gestec-department-mark {
+  display: grid;
+  width: 43px;
+  height: 43px;
+  flex: 0 0 43px;
+  place-items: center;
+  border: 1px solid #dfebff;
+  border-radius: 13px;
+  background: #eaf1ff;
+  color: #2474dc;
+  font-size: 14px;
+  font-weight: 850;
+}
+
+.gestec-app .gestec-department-more {
+  display: grid;
+  width: 38px;
+  height: 38px;
+  flex: 0 0 38px;
+  place-items: center;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: transparent;
+  color: #72859a;
+  font-size: 17px;
+  cursor: pointer;
+}
+
+.gestec-app .gestec-department-more:hover {
+  border-color: var(--gestec-line);
+  background: var(--gestec-bg);
+  color: var(--gestec-blue);
+}
+
+.gestec-app .gestec-department-heading {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.gestec-app .gestec-department-heading h3 {
+  margin: 0;
+  overflow-wrap: anywhere;
+  color: var(--gestec-ink);
+  font-size: 17px;
+  font-weight: 800;
+  line-height: 1.35;
+}
+
+.gestec-app .gestec-department-heading p {
+  margin: 0;
+  color: var(--gestec-muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.gestec-app .gestec-department-leader {
+  display: grid;
+  gap: 9px;
+  padding: 14px 0;
+  border-top: 1px solid var(--gestec-line);
+  border-bottom: 1px solid var(--gestec-line);
+}
+
+.gestec-app .gestec-department-label {
+  color: var(--gestec-muted);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.gestec-app .gestec-department-leader-person {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 11px;
+}
+
+.gestec-app .gestec-department-leader-person strong {
+  overflow: hidden;
+  color: var(--gestec-ink);
+  font-size: 13px;
+  font-weight: 750;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gestec-app .gestec-department-leader-avatar {
+  display: grid;
+  width: 38px;
+  height: 38px;
+  flex: 0 0 38px;
+  place-items: center;
+  border-radius: 12px;
+  background: #dceaff;
+  color: #2467c7;
+  font-size: 12px;
+  font-weight: 850;
+}
+
+.gestec-app .gestec-department-stats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  padding: 2px 0;
+}
+
+.gestec-app .gestec-department-stats>div {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  padding: 2px 14px 2px 0;
+}
+
+.gestec-app .gestec-department-stats>div+div {
+  padding: 2px 0 2px 16px;
+  border-left: 1px solid var(--gestec-line);
+}
+
+.gestec-app .gestec-department-stats strong {
+  color: var(--gestec-ink);
+  font-size: 22px;
+  font-weight: 850;
+  line-height: 1.15;
+  font-variant-numeric: tabular-nums;
+}
+
+.gestec-app .gestec-department-stats span {
+  color: var(--gestec-muted);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.gestec-app .gestec-department-card-footer {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding-top: 2px;
+}
+
+.gestec-app .gestec-department-avatars {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  padding-left: 2px;
+}
+
+.gestec-app .gestec-department-avatar {
+  display: grid;
+  width: 27px;
+  height: 27px;
+  flex: 0 0 27px;
+  place-items: center;
+  margin-left: -3px;
+  border: 2px solid var(--gestec-surface);
+  border-radius: 50%;
+  background: #dceaff;
+  color: #2766c5;
+  font-size: 9px;
+  font-weight: 850;
+}
+
+.gestec-app .gestec-department-avatar--2 {
+  background: #d8f3e9;
+  color: #087a58;
+}
+
+.gestec-app .gestec-department-avatar--3 {
+  background: #ffebcc;
+  color: #a45b08;
+}
+
+.gestec-app .gestec-department-avatar--more,
+.gestec-app .gestec-department-avatar--loading,
+.gestec-app .gestec-department-avatar--unavailable {
+  background: #edf1f6;
+  color: #64748b;
+}
+
+.gestec-app .gestec-department-orders-link {
+  display: inline-flex;
+  min-height: 36px;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 2px 5px 8px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: #087fb9;
+  font-size: 13px;
+  font-weight: 800;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.gestec-app .gestec-department-orders-link:hover {
+  color: #075e91;
+  text-decoration: underline;
+}
+
+.gestec-app.dark-mode .gestec-department-card {
+  border-color: #29475d;
+  background: #10263b;
+  color: #e5f0fa;
+}
+
+.gestec-app.dark-mode .gestec-department-card:hover {
+  border-color: #397092;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, .24);
+}
+
+.gestec-app.dark-mode .gestec-department-mark {
+  border-color: #274d6d;
+  background: #173b5c;
+  color: #8ddcff;
+}
+
+.gestec-app.dark-mode .gestec-department-heading h3,
+.gestec-app.dark-mode .gestec-department-leader-person strong,
+.gestec-app.dark-mode .gestec-department-stats strong {
+  color: #e8f4ff;
+}
+
+.gestec-app.dark-mode .gestec-department-heading p,
+.gestec-app.dark-mode .gestec-department-label,
+.gestec-app.dark-mode .gestec-department-stats span {
+  color: #b2c7d9;
+}
+
+.gestec-app.dark-mode .gestec-department-leader {
+  border-color: #29475d;
+}
+
+.gestec-app.dark-mode .gestec-department-leader-avatar {
+  background: #173f63;
+  color: #a3e3ff;
+}
+
+.gestec-app.dark-mode .gestec-department-avatar {
+  border-color: #10263b;
+}
+
+.gestec-app.dark-mode .gestec-department-avatar--more,
+.gestec-app.dark-mode .gestec-department-avatar--loading,
+.gestec-app.dark-mode .gestec-department-avatar--unavailable {
+  background: #263f55;
+  color: #c5d9e9;
+}
+
+.gestec-app.dark-mode .gestec-department-orders-link {
+  color: #76d6ff;
+}
+
+.gestec-app.dark-mode .gestec-department-more {
+  color: #b7cde0;
+}
+
+.gestec-app.dark-mode .gestec-department-more:hover {
+  border-color: #345a74;
+  background: #173b54;
+  color: #8be2ff;
+}
+
+@media (max-width: 480px) {
+  .gestec-app .gestec-department-card {
+    padding: 16px;
+  }
+
+  .gestec-app .gestec-department-heading h3 {
+    font-size: 16px;
+  }
+}
+

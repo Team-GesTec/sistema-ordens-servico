@@ -19,14 +19,58 @@ import type {
 const RESPONSAVEL_INVALIDO = 'responsavel_id não corresponde a um funcionário existente';
 
 export class RepositoryDepartamento {
-    /** Lista todos os departamentos (cache → banco). */
-    async listar(): Promise<Departamento[]> {
-        return departamentoCache.obterTodos(() => prisma.departamentos.findMany({ orderBy: { id: 'asc' } }));
+    /** Lista departamentos (cache → banco), filtrando pelo estado quando informado. */
+    async listar(ativo?: boolean): Promise<Departamento[]> {
+        const todos = await departamentoCache.obterTodos(() =>
+            prisma.departamentos.findMany({ orderBy: { id: 'asc' } })
+        );
+
+        if (ativo === undefined) return todos;
+
+        return todos.filter((departamento) => departamento.ativo === ativo);
     }
 
     /** Busca um departamento pelo id (cache → banco). Devolve `null` se não existir. */
     async buscarPorId(id: number): Promise<Departamento | null> {
         return departamentoCache.obterPorId(id, () => prisma.departamentos.findUnique({ where: { id } }));
+    }
+
+    async buscarEquipe(id: number, incluirHistorico = false) {
+        const departamento = await this.buscarPorId(id);
+        if (!departamento) return null;
+
+        const filtroAtivo = incluirHistorico ? {} : { ativo: true };
+        const [projetos, ordens_servico, funcionarios] = await Promise.all([
+            prisma.projetos.findMany({
+                where: {
+                    ...filtroAtivo,
+                    projetos_departamentos: { some: { departamento_id: id } },
+                },
+                select: { id: true, nome: true, ativo: true, status: true, cliente_id: true },
+                orderBy: [{ nome: 'asc' }, { id: 'asc' }],
+            }),
+            prisma.ordens_servico.findMany({
+                where: { departamento_id: id, ...filtroAtivo },
+                select: {
+                    id: true,
+                    titulo: true,
+                    status: true,
+                    ativo: true,
+                    data_criacao: true,
+                    data_limite_sla: true,
+                    responsavel_id: true,
+                    solicitante_id: true,
+                },
+                orderBy: { id: 'desc' },
+            }),
+            prisma.funcionarios.findMany({
+                where: { departamento_id: id, ...filtroAtivo },
+                select: { id: true, nome: true, usuario: true, tipo: true, ativo: true, departamento_id: true },
+                orderBy: [{ nome: 'asc' }, { id: 'asc' }],
+            }),
+        ]);
+
+        return { departamento, projetos, ordens_servico, funcionarios };
     }
 
     /** Cria um departamento; um novo responsável deve continuar ativo até o commit. */
@@ -80,16 +124,36 @@ export class RepositoryDepartamento {
             throw AppError.requisicaoInvalida('responsavel_id não pode corresponder a um funcionário inativo');
         }
     }
-
-    /** Remove um departamento. Bloqueado (409) se ainda houver funcionários, O.S. ou projetos ligados a ele. */
-    async remover(id: number): Promise<void> {
+    /** Altera o estado ativo/inativo sem remover o departamento ou seus vínculos. */
+    async alterarAtivo(id: number, ativo: boolean): Promise<Departamento> {
         try {
-            await prisma.departamentos.delete({ where: { id }, select: { id: true } });
-            departamentoCache.remover(id);
+            const atualizado = await prisma.$transaction(async (tx) => {
+                const departamento = await tx.departamentos.findUnique({
+                    where: { id },
+                    select: { id: true, ativo: true },
+                });
+
+                if (!departamento) {
+                    throw AppError.naoEncontrado('Departamento não encontrado');
+                }
+
+                if (departamento.ativo === ativo) {
+                    throw AppError.requisicaoInvalida(
+                        `Departamento já está ${ativo ? 'ativo' : 'inativo'}`
+                    );
+                }
+
+                return tx.departamentos.update({
+                    where: { id },
+                    data: { ativo },
+                });
+            });
+
+            departamentoCache.definir(atualizado);
+            return atualizado;
         } catch (erro) {
             throw traduzirErroPrisma(erro, {
                 registroNaoEncontrado: 'Departamento não encontrado',
-                referenciaEmUso: 'Não é possível excluir: o departamento ainda tem funcionários, O.S. ou projetos vinculados',
             });
         }
     }

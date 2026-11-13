@@ -56,6 +56,7 @@ model departamentos {
   id                                                       Int                      @id @default(autoincrement())
   responsavel_id                                           Int?
   nome                                                     String
+  ativo                                                    Boolean                  @default(true)
   funcionarios_departamentos_responsavel_idTofuncionarios  funcionarios?            @relation("departamentos_responsavel_idTofuncionarios", fields: [responsavel_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "responsavel_fk")
   funcionarios_funcionarios_departamento_idTodepartamentos funcionarios[]           @relation("funcionarios_departamento_idTodepartamentos")
   ordens_servico                                           ordens_servico[]
@@ -75,6 +76,7 @@ model funcionarios {
   id                                                         Int                  @id @default(autoincrement())
   departamento_id                                            Int
   usuario                                                    String               @unique
+  email                                                      String?              @unique @db.VarChar(255)
   senha_hash                                                 String
   nome                                                       String
   tipo                                                       tipo_perfil         @default(tecnico)
@@ -86,8 +88,26 @@ model funcionarios {
   departamentos_departamentos_responsavel_idTofuncionarios   departamentos[]     @relation("departamentos_responsavel_idTofuncionarios")
   equipes                                                    equipes[]
   departamentos_funcionarios_departamento_idTodepartamentos  departamentos        @relation("funcionarios_departamento_idTodepartamentos", fields: [departamento_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  notificacoes                                                notificacoes[]
   ordens_servico_ordens_servico_responsavel_idTofuncionarios ordens_servico[]     @relation("ordens_servico_responsavel_idTofuncionarios")
   ordens_servico_ordens_servico_solicitante_idTofuncionarios ordens_servico[]     @relation("ordens_servico_solicitante_idTofuncionarios")
+  lancamentos_horas lancamentos_horas[]
+}
+
+model notificacoes {
+  id             String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  os_id          Int
+  funcionario_id Int
+  tipo           String         @db.VarChar(40)
+  titulo         String         @db.VarChar(160)
+  mensagem       String
+  lida           Boolean        @default(false)
+  data_criacao   DateTime       @default(now()) @db.Timestamptz(6)
+  funcionarios   funcionarios   @relation(fields: [funcionario_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  ordens_servico ordens_servico @relation(fields: [os_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([funcionario_id, lida, data_criacao(sort: Desc)], map: "idx_notificacoes_usuario_lida_data")
+  @@index([os_id, tipo], map: "idx_notificacoes_os_tipo")
 }
 
 model locais_operacionais {
@@ -135,8 +155,10 @@ model ordens_servico {
   projetos                                                 projetos?            @relation(fields: [projeto_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   funcionarios_ordens_servico_responsavel_idTofuncionarios funcionarios?        @relation("ordens_servico_responsavel_idTofuncionarios", fields: [responsavel_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   sla_config                                               sla_config?          @relation(fields: [sla_config_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  notificacoes                                             notificacoes[]
   funcionarios_ordens_servico_solicitante_idTofuncionarios funcionarios         @relation("ordens_servico_solicitante_idTofuncionarios", fields: [solicitante_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
+  lancamentos_horas lancamentos_horas[]
   @@index([criticidade, data_limite_sla], map: "idx_os_criticidade_limite")
   @@index([departamento_id, status], map: "idx_os_departamento_status")
   @@index([projeto_id], map: "idx_os_projeto")
@@ -216,6 +238,21 @@ model sla_config {
   ordens_servico   ordens_servico[]
 
   @@unique([tipo, criticidade], map: "config_unica")
+}
+
+model lancamentos_horas {
+  id              Int                   @id @default(autoincrement())
+  os_id           Int
+  funcionario_id  Int
+  minutos         Int
+  data_trabalho   DateTime              @db.Date
+  status_os       status_enum
+  criado_em       DateTime              @default(now()) @db.Timestamptz(6)
+  ordens_servico  ordens_servico        @relation(fields: [os_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  funcionarios   funcionarios   @relation(fields: [funcionario_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+
+  @@index([os_id], map: "idx_lancamentos_horas_os")
 }
 
 enum nivel_criticidade {

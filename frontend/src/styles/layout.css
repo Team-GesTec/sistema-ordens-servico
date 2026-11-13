@@ -578,3 +578,1632 @@
 
     color: var(--text-secondary);
 }
+
+/* ===== GesTec referência consolidado: Composição das telas internas baseada diretamente no sistema de referência GesTec. Esta camada altera somente apresentação; dados e ações continuam vindo dos componentes React existentes. ===== */
+/* Composição das telas internas baseada diretamente no sistema de referência GesTec.
+   Esta camada altera somente apresentação; dados e ações continuam vindo dos componentes React existentes. */
+:root {
+  --gestec-navy: #090c5c;
+  --gestec-blue: #1589ca;
+  --gestec-cyan: #35b4e6;
+  --gestec-ink: #15243a;
+  --gestec-muted: #627b91;
+  --gestec-line: #d6e8f3;
+  --gestec-canvas: #edf8fd;
+  --gestec-green: #168260;
+  --gestec-amber: #a96a08;
+  --gestec-red: #c73d4a;
+  --gestec-purple: #6650bd;
+}
+
+.gestec-app .app-workspace { min-width: 0; }
+.gestec-app .layout { display: block; width: 100%; min-height: calc(100vh - var(--gestec-topbar-height)); max-height: none; background: transparent; }
+.gestec-app .main { width: 100%; min-width: 0; padding: 28px clamp(18px, 2.15vw, 34px) 38px; overflow: visible; background: transparent; }
+.gestec-app .container,
+.gestec-app .projetos-container,
+.gestec-app .projetos-container.clientes-container,
+.gestec-app .projetos-container.funcionarios-container { position: relative; z-index: 1; width: 100%; max-width: 1440px; padding: 0; margin: 0 auto; }
+.gestec-app .container::before { display: none; }
+.gestec-app .projetos-page-header,
+.gestec-app .page-heading { display: flex; align-items: center; justify-content: space-between; gap: 22px; margin: 4px 0 23px; }
+.gestec-app .projetos-page-header h1,
+.gestec-app .page-heading h1 { margin: 3px 0 7px; color: #0b2850; font-size: clamp(27px, 2vw, 34px); font-weight: 800; line-height: 1.16; letter-spacing: -.8px; }
+.gestec-app .projetos-eyebrow,
+.gestec-app .eyebrow { margin: 0 0 5px; color: #087cb7; font-size: 10px; font-weight: 850; letter-spacing: 1.5px; text-transform: uppercase; }
+.gestec-app .projetos-subtitle,
+.gestec-app .page-heading > div > p:not(.projetos-eyebrow):not(.eyebrow) { max-width: 760px; color: #527189; font-size: 13px; line-height: 1.65; }
+.gestec-app .heading-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 10px; }
+.gestec-app .projeto-btn-primary,
+.gestec-app .projeto-btn-secondary,
+.gestec-app .projeto-btn-danger,
+.gestec-app .btn { min-height: 38px; border-radius: 9px; font-size: 12px; font-weight: 750; line-height: 1.25; }
+.gestec-app .projeto-btn-primary,
+.gestec-app .btn-primary { border: 1px solid #1589ca; background: linear-gradient(110deg,#0c70b5,#158fd0 62%,#24a9dd); color: #fff; box-shadow: 0 6px 14px rgba(21,137,202,.19); }
+.gestec-app .projeto-btn-secondary,
+.gestec-app .btn-secondary { border: 1px solid #d3e5f0; background: #fff; color: #31536c; }
+.gestec-app .projeto-btn-danger { border: 1px solid #f0c5cb; background: #fff6f7; color: #bc3547; }
+.gestec-app .projeto-btn-primary:hover,
+.gestec-app .btn-primary:hover { filter: brightness(.97); transform: translateY(-1px); }
+.gestec-app .projeto-btn-secondary:hover,
+.gestec-app .btn-secondary:hover { border-color: #8bc9e8; background: #f5fbfe; }
+.gestec-app .projetos-feedback { margin: 0 0 16px; padding: 12px 14px; border: 1px solid var(--gestec-line); border-radius: 10px; font-size: 12px; }
+.gestec-app .projetos-feedback--success { border-color: #b7e6d4; background: #effbf6; color: #167a59; }
+.gestec-app .projetos-feedback--error { border-color: #f0c5cb; background: #fff5f6; color: #a82f42; }
+
+
+
+/* ===== GesTec referência consolidado: Small screens retain scrollable tables, stacked headers and single-column card layouts. ===== */
+/* Small screens retain scrollable tables, stacked headers and single-column card layouts. */
+@media (max-width: 1180px) {
+  .gestec-app .projetos-grid,
+  .gestec-app .ordens-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .gestec-app .main { padding: 24px 20px 32px; }
+}
+@media (max-width: 900px) {
+  .gestec-kpi-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .gestec-app .dashboard-graficos { grid-template-columns: minmax(0,1fr); }
+  .gestec-app .dashboard-indicadores { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .gestec-app .projetos-page-header,
+  .gestec-app .page-heading { align-items: flex-start; }
+}
+@media (max-width: 620px) {
+  .gestec-app .main { padding: 19px 12px 26px; }
+  .gestec-app .projetos-page-header,
+  .gestec-app .page-heading { flex-direction: column; gap: 14px; margin-bottom: 18px; }
+  .gestec-app .heading-actions { width: 100%; justify-content: flex-start; }
+  .gestec-app .projetos-grid,
+  .gestec-app .ordens-grid { grid-template-columns: minmax(0,1fr); }
+  .gestec-kpi-grid { gap: 9px; }
+  .gestec-kpi-card { min-height: 110px; padding: 14px; }
+  .gestec-kpi-label { max-width: calc(100% - 29px); font-size: 10px; }
+  .gestec-kpi-card > strong { font-size: 24px; }
+  .gestec-kpi-icon { top: 12px; right: 10px; width: 27px; height: 27px; border-radius: 8px; font-size: 13px; }
+  .gestec-table-heading { align-items: flex-start; padding: 14px; }
+  .gestec-app .gestec-data-table { min-width: 690px; }
+  .gestec-table-footer { align-items: flex-start; flex-direction: column; padding: 12px 14px; }
+  .gestec-app .projetos-toolbar { display: flex; align-items: stretch; flex-direction: column; padding: 12px; }
+  .gestec-app .projetos-filter-wrap { flex: 1 1 auto; }
+  .gestec-app .ordens-list-header { align-items: flex-start; flex-direction: column; }
+  .gestec-app .ordens-list-header-actions { width: 100%; align-items: flex-start; justify-content: flex-start; }
+  .gestec-app .ordens-prazo-filtro { align-items: flex-start; flex-direction: column; }
+  .gestec-app .dashboard-indicadores { gap: 9px; }
+  .gestec-app .dashboard-indicador { min-height: 112px; padding: 14px; }
+  .gestec-app .dashboard-indicador > strong { font-size: 24px; }
+}
+
+.gestec-app.dark-mode .projetos-page-header h1,
+.gestec-app.dark-mode .page-heading h1,
+.gestec-app.dark-mode .projetos-list-header h2,
+.gestec-app.dark-mode .gestec-table-heading h2,
+.gestec-app.dark-mode .gestec-entity-cell strong,
+.gestec-app.dark-mode .gestec-department-title,
+.gestec-app.dark-mode .projeto-card-title,
+.gestec-app.dark-mode .dashboard-header h1,
+.gestec-app.dark-mode .dashboard-card-header h2 { color: #eaf5ff; }
+.gestec-app.dark-mode .projetos-subtitle,
+.gestec-app.dark-mode .page-heading > div > p:not(.projetos-eyebrow):not(.eyebrow),
+.gestec-app.dark-mode .projetos-list-header p,
+.gestec-app.dark-mode .gestec-table-heading p,
+.gestec-app.dark-mode .gestec-muted { color: #a9c0d2; }
+.gestec-app.dark-mode .gestec-kpi-card,
+.gestec-app.dark-mode .gestec-data-card,
+.gestec-app.dark-mode .projeto-card,
+.gestec-app.dark-mode .dashboard-card,
+.gestec-app.dark-mode .projetos-toolbar,
+.gestec-app.dark-mode .projetos-empty { border-color: #28475e; background: rgba(13,34,52,.97); color: #e2eef8; }
+.gestec-app.dark-mode .gestec-kpi-label,
+.gestec-app.dark-mode .gestec-kpi-card > small,
+.gestec-app.dark-mode .projeto-card-client,
+.gestec-app.dark-mode .projeto-card-metadata,
+.gestec-app.dark-mode .gestec-department-meta span { color: #a7bdcf; }
+.gestec-app.dark-mode .gestec-kpi-card > strong { color: #edf7ff; }
+.gestec-app.dark-mode .gestec-table-heading { border-bottom-color: #28475e; }
+.gestec-app.dark-mode table.gestec-data-table,
+.gestec-app.dark-mode .gestec-data-table tbody td { color: #d5e5f1; }
+.gestec-app.dark-mode .gestec-data-table thead th { border-color: #28475e; background: #132e47; color: #a8c5d8; }
+.gestec-app.dark-mode .gestec-data-table tbody td { border-color: #223e54; }
+.gestec-app.dark-mode .gestec-data-table tbody tr:hover { background: #173249; }
+.gestec-app.dark-mode .gestec-entity-cell strong { color: #e6f2fb; }
+.gestec-app.dark-mode .gestec-table-footer { border-top-color: #28475e; color: #a7bdcf; }
+.gestec-app.dark-mode .gestec-icon-action,
+.gestec-app.dark-mode .projetos-search,
+.gestec-app.dark-mode .projetos-filter-wrap select,
+.gestec-app.dark-mode .projetos-toolbar input,
+.gestec-app.dark-mode .projetos-toolbar select,
+.gestec-app.dark-mode .ordens-prazo-filtro select { border-color: #2d4a63; background: #0c2033; color: #e5f0fa; }
+.gestec-app.dark-mode .dashboard { color: #e5f0fa; }
+.gestec-app.dark-mode .dashboard-header p,
+.gestec-app.dark-mode .dashboard-card-header p { color: #a1b6c8; }
+.gestec-app.dark-mode .dashboard-indicador { border-color: #28475e; background: #10263b; }
+.gestec-app.dark-mode .dashboard-indicador .indicador-titulo,
+.gestec-app.dark-mode .dashboard-indicador small { color: #a1b6c8; }
+.gestec-app.dark-mode .dashboard-indicador > strong { color: #edf7ff; }
+.gestec-app.dark-mode .dashboard-vazio,
+.gestec-app.dark-mode .dashboard-mensagem { background: #132f45; color: #b6cedd; }
+.gestec-app.dark-mode .projeto-modal,
+.gestec-app.dark-mode .modal,
+.gestec-app.dark-mode .modal-content { border-color: #28475e; background: #10263b; color: #e5f0fa; }
+.gestec-app.dark-mode .projeto-modal-header,
+.gestec-app.dark-mode .modal-header,
+.gestec-app.dark-mode .projeto-modal-actions,
+.gestec-app.dark-mode .modal-actions,
+.gestec-app.dark-mode .modal-footer { border-color: #28475e; }
+.gestec-app.dark-mode .projeto-modal-header h2,
+.gestec-app.dark-mode .modal-header h2 { color: #eaf5ff; }
+.gestec-app.dark-mode .projeto-field input,
+.gestec-app.dark-mode .projeto-field select,
+.gestec-app.dark-mode .projeto-field textarea,
+.gestec-app.dark-mode .form-field input,
+.gestec-app.dark-mode .form-field select,
+.gestec-app.dark-mode .form-field textarea { border-color: #2d4a63; background: #0c2033; color: #e5f0fa; }
+
+@media (prefers-reduced-motion: reduce) {
+  .gestec-app *, .gestec-app *::before, .gestec-app *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; animation-duration: .01ms !important; }
+}
+
+.gestec-app .gestec-orders-table { min-width: 1180px !important; }
+.gestec-app .gestec-table-link { color: #087db8; font-size: 10px; font-weight: 800; text-decoration: none; }
+.gestec-app .gestec-table-link:hover { text-decoration: underline; text-underline-offset: 2px; }
+.gestec-app .gestec-os-status.status-em_andamento { background: #e8f2ff; color: #2d6bc0; }
+.gestec-app .gestec-os-status.status-aguardando { background: #fff3db; color: #98630a; }
+.gestec-app .gestec-os-status.status-validacao_testes { background: #f0eaff; color: #6a4ac2; }
+.gestec-app .gestec-os-status.status-bloqueado { background: #fff0f1; color: #c33b4d; }
+.gestec-app .gestec-os-status.status-concluido { background: #e4f7ef; color: #168260; }
+.gestec-app .gestec-inline-note { display: block; margin-top: 4px; color: #9a6470; font-size: 9px; }
+.gestec-app .gestec-deadline { display: flex; flex-direction: column; gap: 3px; color: #526b82; font-size: 10px; white-space: nowrap; }
+.gestec-app .gestec-deadline.is-late { color: #bf3346; font-weight: 800; }
+.gestec-app .gestec-deadline small { width: fit-content; padding: 3px 5px; border-radius: 4px; background: #fff0f1; font-size: 8px; font-weight: 850; }
+.gestec-app .dashboard-recentes-grid { display: grid; grid-template-columns: minmax(0, 2fr) minmax(260px, 1fr); gap: 15px; margin-top: 15px; }
+.gestec-app .dashboard-recentes-grid .dashboard-card { min-width: 0; }
+.gestec-app .dashboard-recentes-table .dashboard-card-header { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; }
+.gestec-app .dashboard-link-action { display: inline-flex; align-items: center; gap: 5px; color: #087eb9; font-size: 10px; font-weight: 850; text-decoration: none; white-space: nowrap; }
+.gestec-app .dashboard-link-action:hover { text-decoration: underline; text-underline-offset: 3px; }
+.gestec-app .gestec-dashboard-table { min-width: 710px !important; }
+.gestec-app .gestec-dashboard-table thead th { padding: 10px 12px; }
+.gestec-app .gestec-dashboard-table tbody td { padding: 10px 12px; }
+.gestec-app .gestec-cell-subtitle { display: block; margin-top: 3px; color: #8294a8; font-size: 9px; }
+.gestec-app .gestec-dashboard-order-title { display: block; max-width: 290px; overflow: hidden; color: #283e55; font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
+.gestec-app .dashboard-summary-card { display: flex; flex-direction: column; }
+.gestec-app .dashboard-status-summary { display: grid; gap: 0; margin: 3px 0 18px; }
+.gestec-app .dashboard-status-line { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 11px 0; border-bottom: 1px solid #e6f0f6; font-size: 11px; }
+.gestec-app .dashboard-status-line:last-child { border-bottom: 0; }
+.gestec-app .dashboard-status-name { display: inline-flex; align-items: center; gap: 8px; color: #647d93; }
+.gestec-app .dashboard-status-name i { width: 7px; height: 7px; flex: 0 0 7px; border-radius: 50%; }
+.gestec-app .dashboard-status-line > strong { color: #253a52; font-size: 11px; font-variant-numeric: tabular-nums; }
+.gestec-app .dashboard-summary-card .dashboard-link-action { margin-top: auto; }
+.gestec-app.dark-mode .gestec-table-link,
+.gestec-app.dark-mode .dashboard-link-action { color: #6bd1ff; }
+.gestec-app.dark-mode .gestec-dashboard-order-title,
+.gestec-app.dark-mode .dashboard-status-line > strong { color: #e6f2fb; }
+.gestec-app.dark-mode .dashboard-status-line { border-bottom-color: #28475e; }
+.gestec-app.dark-mode .gestec-cell-subtitle,
+.gestec-app.dark-mode .dashboard-status-name { color: #a7bdcf; }
+.gestec-app.dark-mode .gestec-deadline { color: #bbcedb; }
+.gestec-app.dark-mode .gestec-deadline.is-late { color: #ff9eaa; }
+@media (max-width: 900px) { .gestec-app .dashboard-recentes-grid { grid-template-columns: minmax(0,1fr); } }
+
+
+
+/* ===== GesTec design consolidado: GesTec design system — camada de apresentação para o frontend real do SGOS. Não contém mocks nem regras de negócio; aplica tokens sobre os componentes existentes. ===== */
+/* GesTec design system — camada de apresentação para o frontend real do SGOS.
+   Não contém mocks nem regras de negócio; aplica tokens sobre os componentes existentes. */
+:root {
+  --gestec-navy: #090c5c;
+  --gestec-blue: #1589ca;
+  --gestec-blue-bright: #20a9df;
+  --gestec-blue-soft: #e2f4fd;
+  --gestec-ink: #15243a;
+  --gestec-muted: #627b91;
+  --gestec-line: #d6e8f3;
+  --gestec-bg: #edf8fd;
+  --gestec-surface: #ffffff;
+  --gestec-green: #168260;
+  --gestec-amber: #a96a08;
+  --gestec-red: #c73d4a;
+  --gestec-shadow: 0 8px 26px rgba(15, 69, 114, .065);
+  --gestec-radius: 15px;
+  --gestec-sidebar-width: 236px;
+  --gestec-topbar-height: 62px;
+}
+
+html {
+  color-scheme: light;
+  scroll-behavior: smooth;
+}
+
+body {
+  min-width: 320px;
+  background: var(--gestec-bg);
+  color: var(--gestec-ink);
+  font-family: 'Sora', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+button,
+input,
+select,
+textarea {
+  accent-color: var(--gestec-blue);
+  font: inherit;
+}
+
+button {
+  -webkit-tap-highlight-color: transparent;
+}
+
+:focus-visible {
+  outline: 3px solid rgba(21, 137, 202, .55);
+  outline-offset: 2px;
+}
+
+#root {
+  width: 100%;
+  max-width: none;
+  min-height: 100vh;
+  margin: 0;
+  border: 0;
+  display: block;
+  text-align: left;
+}
+
+
+
+/* ===== GesTec design consolidado: Estrutura das páginas operacionais, sem alterar as áreas de detalhe existentes. ===== */
+/* Estrutura das páginas operacionais, sem alterar as áreas de detalhe existentes. */
+.gestec-app .layout {
+  width: 100%;
+  min-height: calc(100vh - var(--gestec-topbar-height));
+  max-height: none;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 0;
+  overflow: visible;
+  transition: grid-template-columns .25s ease;
+}
+
+.gestec-app .layout.details-open {
+  grid-template-columns: minmax(0, 1fr) minmax(300px, 360px);
+}
+
+.gestec-app .layout.details-open .container {
+  width: 100%;
+}
+
+.gestec-app .layout.details-open .filter {
+  right: 360px;
+}
+
+.gestec-app .layout.details-open .cards {
+  gap: 12px;
+}
+
+.gestec-app .main {
+  min-width: 0;
+  min-height: calc(100vh - var(--gestec-topbar-height));
+  padding: 28px clamp(18px, 2vw, 32px) 34px;
+  overflow-x: hidden;
+  overflow-y: visible;
+  background: transparent;
+}
+
+.gestec-app .ordens-main {
+  min-width: 0;
+}
+
+.gestec-app .container,
+.gestec-app .projetos-container,
+.gestec-app .projetos-page {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 1500px;
+  margin: 0 auto;
+}
+
+.gestec-app .container::before {
+  opacity: .025;
+  width: 420px;
+  height: 420px;
+}
+
+.gestec-app .projetos-page-header {
+  align-items: center;
+  gap: 22px;
+  margin-bottom: 25px;
+}
+
+.gestec-app .projetos-page-header h1 {
+  margin: 4px 0 7px;
+  color: #0b2850;
+  font-size: clamp(25px, 2.25vw, 32px);
+  font-weight: 800;
+  letter-spacing: -.8px;
+  line-height: 1.18;
+}
+
+.gestec-app .projetos-eyebrow {
+  color: #087cb7;
+  font-size: 9px;
+  font-weight: 850;
+  letter-spacing: 1.4px;
+}
+
+.gestec-app .projetos-subtitle {
+  max-width: 780px;
+  color: #527189;
+  font-size: 12px;
+  line-height: 1.65;
+}
+
+.gestec-app .projetos-list-header {
+  gap: 12px;
+  margin: 20px 0 14px;
+}
+
+.gestec-app .projetos-list-header h2 {
+  color: #183553;
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: -.2px;
+}
+
+.gestec-app .projetos-list-header p {
+  font-size: 11px;
+}
+
+.gestec-app .projetos-toolbar {
+  gap: 12px;
+  border-color: #d7e9f3;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, .86);
+  box-shadow: 0 4px 14px rgba(15, 69, 114, .025);
+}
+
+.gestec-app .projetos-search,
+.gestec-app .projetos-search-wrap input,
+.gestec-app .projetos-search-autocomplete input {
+  min-height: 40px;
+  border-color: #cfe2ee;
+  border-radius: 9px;
+  background: #fbfdff;
+  color: #15243a;
+  font-size: 12px;
+}
+
+.gestec-app .projeto-count-badge {
+  border-color: #cfe8f6;
+  border-radius: 8px;
+  background: #e4f5fd;
+  color: #087ab4;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.gestec-app .projetos-grid {
+  gap: 16px;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr));
+}
+
+.gestec-app .projeto-card,
+.gestec-app .cliente-card,
+.gestec-app .funcionario-card,
+.gestec-app .dashboard-card,
+.gestec-app .dashboard-indicador,
+.gestec-app .card {
+  border: 1px solid rgba(181, 215, 233, .85);
+  border-radius: var(--gestec-radius);
+  background: rgba(255, 255, 255, .94);
+  box-shadow: var(--gestec-shadow);
+}
+
+.gestec-app .projeto-card,
+.gestec-app .cliente-card {
+  padding: 20px;
+}
+
+.gestec-app .projeto-card:hover,
+.gestec-app .cliente-card:hover,
+.gestec-app .funcionario-card:hover {
+  border-color: #a5d3e9;
+  box-shadow: 0 12px 28px rgba(15, 69, 114, .09);
+}
+
+.gestec-app .projeto-card-title,
+.gestec-app .cliente-card-title,
+.gestec-app .funcionario-card-title {
+  color: #15324e;
+}
+
+.gestec-app .projeto-card-header {
+  gap: 10px;
+}
+
+.gestec-app .projeto-status,
+.gestec-app .cliente-status,
+.gestec-app .funcionario-status {
+  border-radius: 999px;
+  font-weight: 750;
+}
+
+.gestec-app .projeto-btn-primary,
+.gestec-app .projeto-btn-secondary,
+.gestec-app .projeto-btn-danger,
+.gestec-app .btn-primary,
+.gestec-app .btn-secondary {
+  min-height: 37px;
+  border-radius: 9px;
+  font-size: 11px;
+  font-weight: 750;
+  transition: transform .16s ease, box-shadow .16s ease, background .16s ease, border-color .16s ease;
+}
+
+.gestec-app .projeto-btn-primary,
+.gestec-app .btn-primary {
+  border: 1px solid #1489c7;
+  background: linear-gradient(110deg, #0c70b5, #158fd0 62%, #24a9dd);
+  color: #fff;
+  box-shadow: 0 6px 14px rgba(21, 137, 202, .17);
+}
+
+.gestec-app .projeto-btn-primary:hover:not(:disabled),
+.gestec-app .btn-primary:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 18px rgba(21, 137, 202, .24);
+}
+
+.gestec-app .projeto-btn-secondary,
+.gestec-app .btn-secondary {
+  border: 1px solid #d3e5f0;
+  background: #fff;
+  color: #31536c;
+}
+
+.gestec-app .projeto-btn-secondary:hover:not(:disabled),
+.gestec-app .btn-secondary:hover:not(:disabled) {
+  border-color: #8bc9e8;
+  background: #f5fbfe;
+}
+
+.gestec-app .projeto-btn-danger {
+  border-color: #f1cbd0;
+  background: #fff4f5;
+  color: #b42332;
+}
+
+.gestec-app .projetos-empty {
+  min-height: 125px;
+  border: 1px dashed #c6deec;
+  border-radius: 13px;
+  background: rgba(255, 255, 255, .55);
+  color: #627b91;
+}
+
+.gestec-app .projetos-empty strong {
+  color: #183553;
+}
+
+.gestec-app .projetos-feedback {
+  border-radius: 10px;
+  font-size: 12px;
+}
+
+.gestec-app .projeto-modal,
+.gestec-app .ordem-modal,
+.gestec-app .modal-content {
+  border: 1px solid #d6e8f3;
+  border-radius: 16px;
+  background: #fff;
+  color: #15243a;
+  box-shadow: 0 20px 60px rgba(4, 25, 40, .22);
+}
+
+.gestec-app .projeto-modal-header {
+  border-bottom-color: #e0edf5;
+}
+
+.gestec-app .projeto-modal-header h2 {
+  color: #0b2850;
+  font-size: 20px;
+}
+
+.gestec-app .projeto-modal-header p:not(.projeto-modal-eyebrow) {
+  color: #627b91;
+  font-size: 11px;
+}
+
+.gestec-app .projeto-modal-close {
+  border-color: #d9e6ed;
+  border-radius: 9px;
+  color: #4d7187;
+}
+
+.gestec-app .projeto-form-grid input,
+.gestec-app .projeto-form-grid select,
+.gestec-app .projeto-form-grid textarea,
+.gestec-app .projeto-field input,
+.gestec-app .projeto-field select,
+.gestec-app .projeto-field textarea {
+  min-height: 39px;
+  border-color: #cfe2ee;
+  border-radius: 9px;
+  background: #fbfdff;
+  color: #15243a;
+  font-size: 12px;
+}
+
+.gestec-app .projeto-field label {
+  color: #385971;
+  font-size: 11px;
+  font-weight: 750;
+}
+
+.gestec-app .projeto-modal-actions {
+  border-top-color: #e0edf5;
+}
+
+
+
+/* ===== GesTec design consolidado: Ajustes de navegação, densidade, filtros laterais e paginação. ===== */
+/* Ajustes de navegação, densidade, filtros laterais e paginação. */
+.gestec-app {
+  --gestec-sidebar-width: 258px;
+  background: #edf8fd;
+  color: #15243a;
+}
+
+.gestec-app .sidebar {
+  z-index: 1100;
+  width: 258px !important;
+  max-width: min(88vw, 320px);
+  transform: translateX(0);
+  transition: transform .22s ease, box-shadow .22s ease !important;
+  box-shadow: 16px 0 42px rgba(5, 20, 70, .2);
+}
+
+.gestec-app .sidebar.sidebar-fechada {
+  transform: translateX(-105%);
+  pointer-events: none;
+  visibility: hidden;
+}
+
+.gestec-app .sidebar.sidebar-aberta {
+  visibility: visible;
+}
+
+.gestec-app .sidebar .menu-item span {
+  opacity: 1 !important;
+}
+
+.gestec-app .sidebar .menu-item {
+  justify-content: flex-start !important;
+  width: 100% !important;
+}
+
+.gestec-app .sidebar-theme-toggle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 42px;
+  margin: 0 0 18px;
+  padding: 0 10px;
+  border: 1px solid rgba(150, 213, 245, .28);
+  border-radius: 10px;
+  background: rgba(7, 20, 85, .35);
+  color: #e6f7ff;
+  text-align: left;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.gestec-app .sidebar-theme-toggle>i {
+  width: 17px;
+  color: #49dbff;
+  font-size: 15px;
+  text-align: center;
+}
+
+.gestec-app .sidebar-theme-switch {
+  display: flex;
+  align-items: center;
+  width: 30px;
+  height: 17px;
+  margin-left: auto;
+  padding: 2px;
+  border-radius: 99px;
+  background: #536b91;
+}
+
+.gestec-app .sidebar-theme-switch>span {
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  background: white;
+  transition: transform .16s ease;
+}
+
+.gestec-app .sidebar-theme-switch.ligado {
+  background: #19b9f0;
+}
+
+.gestec-app .sidebar-theme-switch.ligado>span {
+  transform: translateX(13px);
+}
+
+.gestec-app .app-workspace {
+  min-width: 0;
+  min-height: 100vh;
+  margin-left: 0 !important;
+}
+
+.gestec-app .app-sidebar-toggle {
+  position: fixed;
+  z-index: 1300;
+  top: 15px;
+  left: 15px;
+  display: inline-grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border: 1px solid #c8e4f2;
+  border-radius: 12px;
+  background: #fff;
+  color: #087fbd;
+  box-shadow: 0 7px 20px rgba(7, 50, 91, .13);
+  cursor: pointer;
+  transition: left .22s ease, color .15s ease, background .15s ease;
+}
+
+.gestec-app .app-sidebar-toggle:hover {
+  background: #e5f7ff;
+  color: #064d91;
+}
+
+.gestec-app.sidebar-is-open .app-sidebar-toggle {
+  left: 270px;
+}
+
+.gestec-app .app-sidebar-toggle i {
+  font-size: 17px;
+}
+
+.gestec-app .app-sidebar-backdrop {
+  position: fixed;
+  z-index: 1050;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  background: rgba(5, 16, 43, .28);
+  backdrop-filter: blur(2px);
+  cursor: default;
+}
+
+.gestec-app .main {
+  min-height: 100vh;
+  padding: 78px clamp(18px, 2.2vw, 42px) 38px;
+  overflow-x: auto;
+}
+
+.gestec-app .container,
+.gestec-app .projetos-container,
+.gestec-app .projetos-page,
+.gestec-app .dashboard {
+  width: 100% !important;
+  max-width: none !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+}
+
+.gestec-app .dashboard {
+  padding: 78px clamp(18px, 2.2vw, 42px) 38px;
+}
+
+.gestec-app .gestec-page-content {
+  min-width: 0;
+}
+
+.gestec-app .projetos-page-header {
+  justify-content: space-between;
+  width: 100%;
+}
+
+.gestec-app .projetos-subtitle {
+  max-width: min(900px, 75vw);
+}
+
+
+
+/* ===== GesTec design consolidado: Ajustes de usabilidade: trilho lateral persistente, tipografia confortável e conteúdo fluido para jornadas operacionais longas. Este bloco prevalece sobre as regras anteriores de responsividade da camada visual. ===== */
+/* Ajustes de usabilidade: trilho lateral persistente, tipografia confortável e
+   conteúdo fluido para jornadas operacionais longas. Este bloco prevalece sobre
+   as regras anteriores de responsividade da camada visual. */
+:root {
+  --gestec-sidebar-width: 76px;
+  --gestec-sidebar-expanded-width: 264px;
+  --gestec-font-body: 16px;
+  --gestec-font-control: 14px;
+}
+
+html {
+  font-size: 16px;
+}
+
+body {
+  font-size: 16px;
+  line-height: 1.55;
+}
+
+.gestec-app .sidebar,
+.gestec-app .sidebar:hover,
+.gestec-app .sidebar:focus-within {
+  position: fixed !important;
+  inset: 0 auto 0 0 !important;
+  z-index: 1200;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: stretch !important;
+  width: var(--gestec-sidebar-width) !important;
+  min-width: var(--gestec-sidebar-width) !important;
+  max-width: var(--gestec-sidebar-width) !important;
+  height: 100vh !important;
+  max-height: 100vh !important;
+  min-height: 100vh !important;
+  grid-template-columns: none !important;
+  grid-template-rows: none !important;
+  gap: 0 !important;
+  padding: 14px 9px 12px !important;
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+  border-right: 1px solid rgba(255, 255, 255, .14) !important;
+  border-bottom: 0 !important;
+  border-radius: 0 !important;
+  transition: width .2s ease, max-width .2s ease, box-shadow .2s ease !important;
+  scrollbar-width: thin;
+}
+
+.gestec-app .sidebar:hover,
+.gestec-app .sidebar:focus-within {
+  width: var(--gestec-sidebar-expanded-width) !important;
+  min-width: var(--gestec-sidebar-expanded-width) !important;
+  max-width: var(--gestec-sidebar-expanded-width) !important;
+  padding-right: 13px !important;
+  padding-left: 13px !important;
+  box-shadow: 12px 0 38px rgba(5, 25, 63, .2) !important;
+}
+
+.gestec-app .sidebar-brand,
+.gestec-app .sidebar:hover .sidebar-brand,
+.gestec-app .sidebar:focus-within .sidebar-brand {
+  display: flex !important;
+  flex: 0 0 auto;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 10px !important;
+  min-height: 48px;
+  width: 100%;
+  margin: 0 0 17px !important;
+  padding: 2px 0 14px !important;
+  border-bottom: 1px solid rgba(255, 255, 255, .2) !important;
+}
+
+.gestec-app .sidebar-brand-mark {
+  flex: 0 0 40px !important;
+  width: 40px !important;
+  height: 40px !important;
+}
+
+.gestec-app .sidebar-brand-mark img {
+  width: 36px !important;
+  height: 27px !important;
+}
+
+.gestec-app .sidebar:not(:hover):not(:focus-within) .sidebar-brand-text,
+.gestec-app .sidebar:not(:hover):not(:focus-within) .sidebar-section-label,
+.gestec-app .sidebar:not(:hover):not(:focus-within) .menu-item span,
+.gestec-app .sidebar:not(:hover):not(:focus-within) .sidebar-theme-toggle span,
+.gestec-app .sidebar:not(:hover):not(:focus-within) .perfil-informacoes,
+.gestec-app .sidebar:not(:hover):not(:focus-within) .sidebar-perfil>i {
+  display: none !important;
+}
+
+.gestec-app .sidebar:hover .sidebar-brand-text,
+.gestec-app .sidebar:focus-within .sidebar-brand-text,
+.gestec-app .sidebar:hover .sidebar-section-label,
+.gestec-app .sidebar:focus-within .sidebar-section-label,
+.gestec-app .sidebar:hover .menu-item span,
+.gestec-app .sidebar:focus-within .menu-item span,
+.gestec-app .sidebar:hover .sidebar-theme-toggle span,
+.gestec-app .sidebar:focus-within .sidebar-theme-toggle span,
+.gestec-app .sidebar:hover .perfil-informacoes,
+.gestec-app .sidebar:focus-within .perfil-informacoes,
+.gestec-app .sidebar:hover .sidebar-perfil>i,
+.gestec-app .sidebar:focus-within .sidebar-perfil>i {
+  display: initial;
+}
+
+.gestec-app .sidebar:hover .sidebar-brand-text,
+.gestec-app .sidebar:focus-within .sidebar-brand-text,
+.gestec-app .sidebar:hover .perfil-informacoes,
+.gestec-app .sidebar:focus-within .perfil-informacoes {
+  display: flex;
+}
+
+.gestec-app .sidebar-brand-text strong {
+  font-size: 18px !important;
+}
+
+.gestec-app .sidebar-brand-text small {
+  font-size: 10px !important;
+  letter-spacing: 1px !important;
+}
+
+.gestec-app .sidebar-nav,
+.gestec-app .sidebar:hover .sidebar-nav,
+.gestec-app .sidebar:focus-within .sidebar-nav {
+  display: flex !important;
+  flex: 0 0 auto;
+  flex-direction: column !important;
+  align-items: stretch !important;
+  gap: 19px !important;
+  width: 100% !important;
+  overflow: visible !important;
+  padding: 0 !important;
+}
+
+.gestec-app .sidebar-nav-section,
+.gestec-app .sidebar:hover .sidebar-nav-section,
+.gestec-app .sidebar:focus-within .sidebar-nav-section {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: stretch !important;
+  gap: 6px !important;
+}
+
+.gestec-app .sidebar-section-label {
+  margin: 0 10px 5px !important;
+  color: #a9dbf5 !important;
+  font-size: 11px !important;
+  font-weight: 800 !important;
+  letter-spacing: 1px !important;
+  line-height: 1.5 !important;
+  white-space: nowrap;
+}
+
+.gestec-app .sidebar .menu-item,
+.gestec-app .sidebar:hover .menu-item,
+.gestec-app .sidebar:focus-within .menu-item {
+  display: flex !important;
+  flex: 0 0 auto;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 13px !important;
+  width: 100% !important;
+  height: 46px !important;
+  min-height: 46px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border-radius: 11px !important;
+  overflow: hidden !important;
+  transition: background .15s ease, color .15s ease, transform .15s ease !important;
+}
+
+.gestec-app .sidebar:hover .menu-item,
+.gestec-app .sidebar:focus-within .menu-item {
+  justify-content: flex-start !important;
+  padding: 0 13px !important;
+}
+
+.gestec-app .sidebar .menu-item i,
+.gestec-app .sidebar:hover .menu-item i,
+.gestec-app .sidebar:focus-within .menu-item i {
+  display: flex !important;
+  flex: 0 0 24px !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 24px !important;
+  min-width: 24px !important;
+  height: 26px !important;
+  margin: 0 !important;
+  font-size: 20px !important;
+  line-height: 1 !important;
+  color: #91e4ff !important;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, .16));
+}
+
+.gestec-app .sidebar .menu-item span,
+.gestec-app .sidebar:hover .menu-item span,
+.gestec-app .sidebar:focus-within .menu-item span {
+  min-width: 0;
+  margin: 0 !important;
+  opacity: 1 !important;
+  overflow: hidden;
+  color: inherit;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 14px !important;
+  font-weight: 650 !important;
+  line-height: 1.35 !important;
+}
+
+.gestec-app .sidebar .menu-item.active i {
+  color: #fff !important;
+}
+
+.gestec-app .sidebar .menu-item:focus-visible {
+  outline: 3px solid #75e3ff !important;
+  outline-offset: -3px;
+}
+
+.gestec-app .sidebar-theme-toggle,
+.gestec-app .sidebar:hover .sidebar-theme-toggle,
+.gestec-app .sidebar:focus-within .sidebar-theme-toggle {
+  display: flex !important;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 46px;
+  margin: 14px 0 10px;
+  padding: 0 9px;
+  border: 1px solid rgba(145, 208, 240, .2);
+  border-radius: 11px;
+  background: rgba(255, 255, 255, .06);
+  color: #f1faff;
+  cursor: pointer;
+}
+
+.gestec-app .sidebar:hover .sidebar-theme-toggle,
+.gestec-app .sidebar:focus-within .sidebar-theme-toggle {
+  justify-content: flex-start;
+}
+
+.gestec-app .sidebar-theme-toggle>i {
+  flex: 0 0 24px;
+  color: #80e1ff !important;
+  font-size: 21px !important;
+  text-align: center;
+}
+
+.gestec-app .sidebar-theme-toggle>span:nth-child(2) {
+  flex: 1;
+  color: #f3faff;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.gestec-app .sidebar-theme-switch {
+  flex: 0 0 34px;
+  width: 34px;
+  height: 20px;
+}
+
+.gestec-app .sidebar-theme-switch>span {
+  width: 14px;
+  height: 14px;
+}
+
+.gestec-app .sidebar-theme-switch.ligado>span {
+  transform: translateX(14px);
+}
+
+.gestec-app .sidebar-perfil-container {
+  flex: 0 0 auto;
+  width: 100%;
+  margin-top: auto;
+  padding-top: 12px;
+}
+
+.gestec-app .sidebar-perfil,
+.gestec-app .sidebar:not(:hover) .sidebar-perfil,
+.gestec-app .sidebar:not(:focus-within) .sidebar-perfil {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  width: 100%;
+  min-height: 50px;
+  padding: 6px 0;
+  border: 1px solid rgba(255, 255, 255, .18);
+  border-radius: 12px;
+}
+
+.gestec-app .sidebar:hover .sidebar-perfil,
+.gestec-app .sidebar:focus-within .sidebar-perfil {
+  justify-content: flex-start;
+  padding: 7px 8px;
+}
+
+.gestec-app .perfil-avatar {
+  display: grid;
+  place-items: center;
+  flex: 0 0 36px;
+  width: 36px;
+  height: 36px;
+  font-size: 14px !important;
+  font-weight: 750;
+}
+
+.gestec-app .perfil-informacoes {
+  min-width: 0;
+  gap: 3px;
+}
+
+.gestec-app .perfil-informacoes strong {
+  font-size: 13px !important;
+}
+
+.gestec-app .perfil-informacoes small {
+  font-size: 12px !important;
+}
+
+.gestec-app .sidebar-perfil>i {
+  color: #8fe7ff !important;
+  font-size: 13px;
+}
+
+.gestec-app .sidebar-perfil-menu {
+  left: calc(100% + 9px);
+  right: auto;
+  width: 232px;
+}
+
+.gestec-app .sidebar:not(:hover):not(:focus-within) .sidebar-perfil-menu {
+  left: calc(100% + 8px);
+}
+
+.gestec-app .sidebar-theme-toggle:focus-visible,
+.gestec-app .sidebar-perfil:focus-visible {
+  outline: 3px solid #75e3ff;
+  outline-offset: 2px;
+}
+
+
+
+/* ===== GesTec design consolidado: Tipografia legível em páginas de alta densidade, com controles confortáveis. ===== */
+/* Tipografia legível em páginas de alta densidade, com controles confortáveis. */
+.gestec-app .projetos-page-header h1,
+.gestec-app .dashboard-header h1,
+.gestec-app .page-header h1,
+.gestec-app .clientes-header h1,
+.gestec-app .funcionarios-header h1,
+.gestec-app .departamentos-header h1,
+.gestec-app .ordens-page-header h1 {
+  font-size: clamp(28px, 2vw, 36px) !important;
+  line-height: 1.2 !important;
+  letter-spacing: -.6px;
+}
+
+.gestec-app .projetos-subtitle,
+.gestec-app .dashboard-header p,
+.gestec-app .dashboard-card-header p,
+.gestec-app .projetos-list-header p {
+  font-size: 14px !important;
+  line-height: 1.6 !important;
+}
+
+.gestec-app .projetos-list-header h2,
+.gestec-app .gestec-table-heading h2,
+.gestec-app .dashboard-card h2 {
+  font-size: 18px !important;
+  line-height: 1.4 !important;
+}
+
+.gestec-app .gestec-kpi-label,
+.gestec-app .gestec-kpi-card small,
+.gestec-app .indicador-titulo {
+  font-size: 13px !important;
+  line-height: 1.45 !important;
+}
+
+.gestec-app .gestec-kpi-card>strong,
+.gestec-app .dashboard-indicador>strong {
+  font-size: clamp(25px, 2vw, 32px) !important;
+  line-height: 1.18 !important;
+}
+
+.gestec-app .projetos-search,
+.gestec-app .projetos-search-wrap input,
+.gestec-app .projetos-search-autocomplete input,
+.gestec-app .gestec-filter-field input,
+.gestec-app .gestec-filter-field select,
+.gestec-app .gestec-filter-field textarea,
+.gestec-app input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
+.gestec-app select,
+.gestec-app textarea {
+  min-height: 44px;
+  font-size: 15px !important;
+  line-height: 1.45;
+}
+
+.gestec-app button,
+.gestec-app .btn,
+.gestec-app .projeto-btn,
+.gestec-app .gestec-filter-trigger,
+.gestec-app .gestec-filter-apply,
+.gestec-app .gestec-filter-clear {
+  font-size: 14px;
+  line-height: 1.35;
+}
+
+.gestec-app .gestec-data-table {
+  font-size: 14px !important;
+}
+
+.gestec-app .gestec-data-table thead th {
+  font-size: 12px !important;
+  line-height: 1.4;
+  padding-top: 15px;
+  padding-bottom: 15px;
+}
+
+.gestec-app .gestec-data-table tbody td {
+  font-size: 14px !important;
+  line-height: 1.45;
+  padding-top: 13px;
+  padding-bottom: 13px;
+}
+
+.gestec-app .gestec-entity-cell strong,
+.gestec-app .gestec-order-title strong,
+.gestec-app .gestec-dashboard-order-title {
+  font-size: 14px !important;
+  line-height: 1.4;
+}
+
+.gestec-app .gestec-cell-subtitle,
+.gestec-app .gestec-order-title small {
+  font-size: 12px !important;
+  line-height: 1.45;
+}
+
+.gestec-app .gestec-os-status,
+.gestec-app .gestec-status-pill,
+.gestec-app .gestec-priority-pill {
+  font-size: 12px !important;
+  line-height: 1.3;
+}
+
+.gestec-app .gestec-icon-action {
+  width: 38px;
+  min-width: 38px;
+  height: 38px;
+  font-size: 16px;
+}
+
+.gestec-app .dashboard-card-icone,
+.gestec-app .indicador-icone,
+.gestec-app .dashboard-atalho-icone {
+  font-size: 21px !important;
+}
+
+.gestec-app .gestec-filter-drawer-header h2 {
+  font-size: 22px !important;
+}
+
+.gestec-app .gestec-filter-drawer-header p,
+.gestec-app .gestec-filter-toggle small,
+.gestec-app .gestec-filter-field>label {
+  font-size: 13px !important;
+}
+
+.gestec-app .gestec-pagination-summary,
+.gestec-app .gestec-pagination-controls button {
+  font-size: 14px !important;
+}
+
+
+
+/* ===== GesTec design consolidado: Refinamento de legibilidade, alinhamento e temas em telas operacionais longas. ===== */
+/* Refinamento de legibilidade, alinhamento e temas em telas operacionais longas. */
+:root {
+  --gestec-sidebar-width: 64px;
+  --gestec-sidebar-expanded-width: 272px;
+}
+
+.gestec-app .sidebar,
+.gestec-app .sidebar:hover,
+.gestec-app .sidebar:focus-within {
+  width: var(--gestec-sidebar-width) !important;
+  min-width: var(--gestec-sidebar-width) !important;
+  max-width: var(--gestec-sidebar-width) !important;
+  padding: 14px 5px 12px !important;
+  transition: width .18s ease, max-width .18s ease, box-shadow .18s ease !important;
+}
+
+.gestec-app .sidebar:hover,
+.gestec-app .sidebar:focus-within {
+  width: var(--gestec-sidebar-expanded-width) !important;
+  min-width: var(--gestec-sidebar-expanded-width) !important;
+  max-width: var(--gestec-sidebar-expanded-width) !important;
+  padding: 14px 12px 12px !important;
+  box-shadow: 14px 0 38px rgba(5, 25, 63, .24) !important;
+}
+
+.gestec-app .sidebar:not(:hover):not(:focus-within) .sidebar-brand {
+  justify-content: center !important;
+  padding-right: 0 !important;
+  padding-left: 0 !important;
+}
+
+.gestec-app .sidebar:not(:hover):not(:focus-within) .sidebar .menu-item,
+.gestec-app .sidebar:not(:hover):not(:focus-within) .menu-item {
+  justify-content: center !important;
+  gap: 0 !important;
+}
+
+.gestec-app .sidebar:not(:hover):not(:focus-within) .sidebar-theme-toggle {
+  min-height: 44px !important;
+  padding: 0 !important;
+}
+
+.gestec-app .sidebar:not(:hover):not(:focus-within) .sidebar-theme-toggle>i {
+  flex-basis: 100% !important;
+}
+
+.gestec-app .sidebar .sidebar-brand-mark {
+  flex-basis: 38px !important;
+  width: 38px !important;
+  height: 38px !important;
+}
+
+.gestec-app .sidebar .menu-item i {
+  font-size: 22px !important;
+}
+
+.gestec-app .app-workspace {
+  width: calc(100% - var(--gestec-sidebar-width)) !important;
+  margin-left: var(--gestec-sidebar-width) !important;
+}
+
+
+
+/* ===== GesTec design consolidado: Escala tipográfica coerente: controles e dados continuam legíveis em monitor grande. ===== */
+/* Escala tipográfica coerente: controles e dados continuam legíveis em monitor grande. */
+.gestec-app {
+  font-size: 16px;
+  line-height: 1.55;
+}
+
+.gestec-app .projetos-page-header h1,
+.gestec-app .dashboard-header h1 {
+  font-size: clamp(30px, 2.25vw, 38px) !important;
+  line-height: 1.18 !important;
+  letter-spacing: -.7px;
+}
+
+.gestec-app .projetos-subtitle,
+.gestec-app .dashboard-header p,
+.gestec-app .page-heading>div>p:not(.eyebrow) {
+  font-size: 15px !important;
+  line-height: 1.65 !important;
+}
+
+.gestec-app .projetos-eyebrow,
+.gestec-app .eyebrow {
+  font-size: 12px !important;
+  letter-spacing: 1.5px !important;
+}
+
+.gestec-app .projetos-list-header h2,
+.gestec-app .dashboard-section-heading h2,
+.gestec-app .gestec-table-heading h2 {
+  font-size: 20px !important;
+  line-height: 1.35 !important;
+}
+
+.gestec-app .projetos-list-header p,
+.gestec-app .gestec-table-heading p {
+  font-size: 14px !important;
+  line-height: 1.5 !important;
+}
+
+.gestec-app .gestec-kpi-label {
+  font-size: 14px !important;
+  line-height: 1.45 !important;
+}
+
+.gestec-app .gestec-kpi-card>strong {
+  font-size: 34px !important;
+  line-height: 1.2 !important;
+}
+
+.gestec-app .gestec-kpi-card small {
+  font-size: 13px !important;
+  line-height: 1.5 !important;
+}
+
+.gestec-app .gestec-data-table thead th {
+  font-size: 13px !important;
+  line-height: 1.45 !important;
+}
+
+.gestec-app .gestec-data-table tbody td {
+  font-size: 14px !important;
+  line-height: 1.5 !important;
+}
+
+.gestec-app .gestec-data-table tbody td small,
+.gestec-app .gestec-cell-subtitle,
+.gestec-app .gestec-inline-note {
+  font-size: 12.5px !important;
+  line-height: 1.45 !important;
+}
+
+.gestec-app .gestec-status-pill,
+.gestec-app .gestec-priority-pill,
+.gestec-app .projeto-status,
+.gestec-app .cliente-status,
+.gestec-app .funcionario-status {
+  font-size: 12.5px !important;
+  min-height: 26px;
+}
+
+.gestec-app .projeto-btn-primary,
+.gestec-app .projeto-btn-secondary,
+.gestec-app .projeto-btn-danger,
+.gestec-app .btn-primary,
+.gestec-app .btn-secondary,
+.gestec-app .gestec-filter-trigger,
+.gestec-app .gestec-icon-action {
+  font-size: 14px !important;
+}
+
+.gestec-app .projeto-btn-primary,
+.gestec-app .projeto-btn-secondary,
+.gestec-app .projeto-btn-danger,
+.gestec-app .btn-primary,
+.gestec-app .btn-secondary {
+  min-height: 44px !important;
+  padding: 0 16px !important;
+}
+
+.gestec-app .projetos-toolbar input,
+.gestec-app .projetos-toolbar select,
+.gestec-app .projetos-toolbar textarea,
+.gestec-app .gestec-filter-drawer input,
+.gestec-app .gestec-filter-drawer select,
+.gestec-app .gestec-filter-drawer textarea {
+  min-height: 44px !important;
+  font-size: 15px !important;
+}
+
+.gestec-app .projetos-toolbar label,
+.gestec-app .gestec-filter-drawer label,
+.gestec-app .gestec-filter-drawer .gestec-filter-toggle {
+  font-size: 14px !important;
+}
+
+.gestec-app .gestec-icon-action {
+  width: 38px !important;
+  height: 38px !important;
+}
+
+.gestec-app .gestec-row-actions {
+  gap: 7px !important;
+}
+
+
+
+/* ===== GesTec design consolidado: Correção de especificidade final: largura da sidebar definida pelo viewport, independentemente das folhas legadas importadas por cada página. ===== */
+/* Correção de especificidade final: largura da sidebar definida pelo viewport,
+   independentemente das folhas legadas importadas por cada página. */
+.gestec-app {
+  --gestec-sidebar-width: clamp(66px, 7.6923vw, 120px);
+  --gestec-sidebar-expanded-width: clamp(260px, 31.6456vw, 500px);
+}
+
+.gestec-app #gestec-primary-sidebar,
+.gestec-app #gestec-primary-sidebar:not(:hover):not(:focus-within) {
+  position: fixed !important;
+  top: 0 !important;
+  right: auto !important;
+  bottom: 0 !important;
+  left: 0 !important;
+  width: var(--gestec-sidebar-width) !important;
+  min-width: var(--gestec-sidebar-width) !important;
+  max-width: var(--gestec-sidebar-width) !important;
+  height: 100vh !important;
+  height: 100dvh !important;
+  padding: 14px 4px 12px !important;
+  margin: 0 !important;
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+  transform: none !important;
+  visibility: visible !important;
+  pointer-events: auto !important;
+  box-sizing: border-box !important;
+  flex-direction: column !important;
+  align-items: stretch !important;
+  transition: width .18s ease, max-width .18s ease, box-shadow .18s ease !important;
+}
+
+.gestec-app #gestec-primary-sidebar:hover,
+.gestec-app #gestec-primary-sidebar:focus-within {
+  width: var(--gestec-sidebar-expanded-width) !important;
+  min-width: var(--gestec-sidebar-expanded-width) !important;
+  max-width: var(--gestec-sidebar-expanded-width) !important;
+  padding: 14px 12px 12px !important;
+  box-shadow: 14px 0 38px rgba(5, 25, 63, .28) !important;
+}
+
+.gestec-app .app-workspace {
+  width: calc(100% - var(--gestec-sidebar-width)) !important;
+  min-width: 0 !important;
+  margin-left: var(--gestec-sidebar-width) !important;
+  overflow-x: clip;
+}
+
+.gestec-app #gestec-primary-sidebar:not(:hover):not(:focus-within) .sidebar-brand {
+  display: flex !important;
+  justify-content: center !important;
+  gap: 0 !important;
+  padding: 2px 0 14px !important;
+}
+
+.gestec-app #gestec-primary-sidebar:not(:hover):not(:focus-within) .sidebar-brand-text,
+.gestec-app #gestec-primary-sidebar:not(:hover):not(:focus-within) .sidebar-section-label,
+.gestec-app #gestec-primary-sidebar:not(:hover):not(:focus-within) .menu-item span,
+.gestec-app #gestec-primary-sidebar:not(:hover):not(:focus-within) .sidebar-theme-toggle>span,
+.gestec-app #gestec-primary-sidebar:not(:hover):not(:focus-within) .perfil-informacoes,
+.gestec-app #gestec-primary-sidebar:not(:hover):not(:focus-within) .sidebar-perfil>i {
+  display: none !important;
+}
+
+.gestec-app #gestec-primary-sidebar:not(:hover):not(:focus-within) .menu-item {
+  width: 100% !important;
+  min-width: 0 !important;
+  justify-content: center !important;
+  gap: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+.gestec-app #gestec-primary-sidebar:not(:hover):not(:focus-within) .menu-item i {
+  display: inline-flex !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  flex: 0 0 100% !important;
+  justify-content: center !important;
+  font-size: 22px !important;
+  color: #75e0ff !important;
+}
+
+.gestec-app #gestec-primary-sidebar:not(:hover):not(:focus-within) .sidebar-nav {
+  gap: 12px !important;
+}
+
+.gestec-app #gestec-primary-sidebar:not(:hover):not(:focus-within) .sidebar-theme-toggle {
+  min-height: 44px !important;
+  justify-content: center !important;
+  padding: 0 !important;
+}
+
+.gestec-app #gestec-primary-sidebar:not(:hover):not(:focus-within) .sidebar-theme-toggle>i {
+  display: inline-flex !important;
+  flex: 0 0 auto !important;
+  justify-content: center !important;
+  font-size: 21px !important;
+  color: #7ce2ff !important;
+}
+
+.gestec-app #gestec-primary-sidebar:not(:hover):not(:focus-within) .sidebar-theme-switch {
+  display: none !important;
+}
+
+.gestec-app #gestec-primary-sidebar:not(:hover):not(:focus-within) .sidebar-perfil-container {
+  padding-top: 10px !important;
+}
+
+.gestec-app #gestec-primary-sidebar:not(:hover):not(:focus-within) .sidebar-perfil {
+  min-height: 44px !important;
+  justify-content: center !important;
+  gap: 0 !important;
+  padding: 3px 0 !important;
+}
+
+.gestec-app #gestec-primary-sidebar:hover .sidebar-brand-text,
+.gestec-app #gestec-primary-sidebar:focus-within .sidebar-brand-text,
+.gestec-app #gestec-primary-sidebar:hover .sidebar-section-label,
+.gestec-app #gestec-primary-sidebar:focus-within .sidebar-section-label,
+.gestec-app #gestec-primary-sidebar:hover .menu-item span,
+.gestec-app #gestec-primary-sidebar:focus-within .menu-item span,
+.gestec-app #gestec-primary-sidebar:hover .sidebar-theme-toggle>span,
+.gestec-app #gestec-primary-sidebar:focus-within .sidebar-theme-toggle>span,
+.gestec-app #gestec-primary-sidebar:hover .perfil-informacoes,
+.gestec-app #gestec-primary-sidebar:focus-within .perfil-informacoes,
+.gestec-app #gestec-primary-sidebar:hover .sidebar-perfil>i,
+.gestec-app #gestec-primary-sidebar:focus-within .sidebar-perfil>i {
+  display: flex !important;
+}
+
+.gestec-app #gestec-primary-sidebar:hover .menu-item,
+.gestec-app #gestec-primary-sidebar:focus-within .menu-item {
+  width: 100% !important;
+  justify-content: flex-start !important;
+  gap: 12px !important;
+  padding: 0 12px !important;
+}
+
+.gestec-app #gestec-primary-sidebar:hover .menu-item i,
+.gestec-app #gestec-primary-sidebar:focus-within .menu-item i {
+  width: 22px !important;
+  min-width: 22px !important;
+  flex: 0 0 22px !important;
+  font-size: 19px !important;
+  color: #7ce2ff !important;
+}
+
+.gestec-app #gestec-primary-sidebar:hover .menu-item span,
+.gestec-app #gestec-primary-sidebar:focus-within .menu-item span {
+  font-size: 15px !important;
+}
+
+
+
+/* ===== GesTec design consolidado: Ajustes desta revisão: sidebar em proporção 1:12 recolhida / 2:12 expandida, escala tipográfica maior e composição atualizada dos cards de detalhes. ===== */
+/* Ajustes desta revisão: sidebar em proporção 1:12 recolhida / 2:12 expandida,
+   escala tipográfica maior e composição atualizada dos cards de detalhes. */
+.gestec-app {
+  --gestec-sidebar-width: clamp(56px, 8.333333vw, 112px);
+  --gestec-sidebar-expanded-width: clamp(170px, 16.666667vw, 320px);
+}
+
+.gestec-app #gestec-primary-sidebar,
+.gestec-app #gestec-primary-sidebar:not(:hover):not(:focus-within) {
+  width: var(--gestec-sidebar-width) !important;
+  min-width: var(--gestec-sidebar-width) !important;
+  max-width: var(--gestec-sidebar-width) !important;
+}
+
+.gestec-app #gestec-primary-sidebar:hover,
+.gestec-app #gestec-primary-sidebar:focus-within {
+  width: var(--gestec-sidebar-expanded-width) !important;
+  min-width: var(--gestec-sidebar-expanded-width) !important;
+  max-width: var(--gestec-sidebar-expanded-width) !important;
+}
+
+.gestec-app .app-workspace {
+  width: calc(100% - var(--gestec-sidebar-width)) !important;
+  margin-left: var(--gestec-sidebar-width) !important;
+}
+
+@media (max-width: 650px) {
+  .gestec-app {
+    --gestec-sidebar-width: clamp(52px, 8.333333vw, 64px);
+    --gestec-sidebar-expanded-width: min(250px, max(190px, 16.666667vw));
+  }
+}
+
+
+
+/* ===== GesTec design consolidado: Texto base maior para leitura prolongada, sem aumentar ícones decorativos por herança. ===== */
+/* Texto base maior para leitura prolongada, sem aumentar ícones decorativos por herança. */
+.gestec-app .main {
+  font-size: 16px !important;
+  line-height: 1.6;
+}
+
+.gestec-app .main :is(input, select, textarea) {
+  min-height: 46px;
+  font-size: 15px !important;
+}
+
+.gestec-app .main :is(table th, table td) {
+  font-size: 14px !important;
+  line-height: 1.5 !important;
+  padding-top: 14px !important;
+  padding-bottom: 14px !important;
+}
+
+.gestec-app .main :is(.modal, [role="dialog"], .card, [class*="-card"]) {
+  line-height: 1.55;
+}
+
+.gestec-app .main :is(.modal, [role="dialog"]) :is(label, p, li) {
+  font-size: 15px;
+  line-height: 1.6;
+}
+

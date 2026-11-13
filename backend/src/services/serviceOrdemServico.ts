@@ -43,6 +43,7 @@
  */
 
 import { prisma } from '../prisma/client';
+import { serviceLancamentoHoras } from './serviceLancamentoHoras';
 import type { Prisma } from '../prisma/generated/client';
 import { AppError } from '../errors/AppError';
 import { repositoryOrdemServico, type RepositoryOrdemServico } from '../repositories/repositoryOrdemServico';
@@ -50,6 +51,7 @@ import { repositoryFuncionario, type RepositoryFuncionario } from '../repositori
 import { serviceAuditoria } from './serviceAuditoria';
 import { calcularEstadoSla, type EstadoSla } from '../utils/estadoSla';
 import { serviceSla } from './serviceSla';
+import { serviceNotificacao } from './serviceNotificacao';
 import type { DadosRegistroAuditoria } from '../models/modelAuditoria';
 import { bloquearOrdemServico, bloquearProjetosRelacionados, validarProjetoDaOrdem } from '../utils/projetoOsInvariant';
 import type { PerfilFuncionario, Funcionario } from '../models/modelFuncionario';
@@ -366,6 +368,24 @@ export class ServiceOrdemServico {
 
         // Atualiza o cache só depois que a transação terminou
         this.repositorio.atualizarCache(criada);
+        const destinatarios = await prisma.funcionarios.findMany({
+            where: { departamento_id: criada.departamento_id, ativo: true },
+            select: { id: true },
+        });
+        await serviceNotificacao.notificarOrdem(
+            criada,
+            'departamento_definido',
+            `A O.S. ${criada.id} (${criada.titulo}) foi atribuída ao seu departamento.`,
+            destinatarios.map((funcionario) => funcionario.id),
+        );
+        if (criada.responsavel_id !== null) {
+            await serviceNotificacao.notificarOrdem(
+                criada,
+                'responsavel_definido',
+                `Você foi definido como responsável técnico da O.S. ${criada.id} (${criada.titulo}).`,
+                [criada.responsavel_id],
+            );
+        }
         return criada;
     }
 
@@ -469,6 +489,22 @@ export class ServiceOrdemServico {
 
             const projetosBloqueados = await bloquearProjetosRelacionados(conexao, [ordemAtual.projeto_id]);
             validarProjetoDaOrdem(ordemAtual.projeto_id, ordemAtual.ativo, novoStatus, projetosBloqueados);
+
+            const informouHoras = [dados.duracao, dados.data_trabalho].some(
+                (valor) => valor !== undefined && valor !== null && valor !== '',
+            );
+
+            if (ehResponsavel && usuario.tipo !== 'gestor' && !informouHoras) {
+                throw new AppError(
+                    'Informe as horas trabalhadas para alterar o status da O.S.',
+                    422,
+                );
+            }
+
+            if (ehResponsavel && informouHoras) {
+                await serviceLancamentoHoras.gravarNaTransacao(ordemAtual, usuario.id, dados, conexao);
+            }
+
             const ordemAtualizada = await this.repositorio.atualizarStatus(idOS, dadosStatus, conexao);
 
             await serviceAuditoria.registrar(
@@ -487,7 +523,12 @@ export class ServiceOrdemServico {
         });
 
         // 7. Atualiza o cache só depois que a transação terminou
-        this.repositorio.atualizarCache(atualizada)
+        this.repositorio.atualizarCache(atualizada);
+        await serviceNotificacao.notificarOrdem(
+            atualizada,
+            'status_alterado',
+            `O status da O.S. ${atualizada.id} (${atualizada.titulo}) foi alterado para ${atualizada.status}.`,
+        );
         return atualizada;
     }
 
@@ -501,6 +542,7 @@ export class ServiceOrdemServico {
      */
     async atualizar(id: number, corpo: unknown, parcial: boolean, usuarioId: number): Promise<OrdemServico> {
         const idOS = exigirInteiroPositivo(id, 'id');
+        let departamentoAnterior: number | null = null;
 
         const atualizada = await prisma.$transaction(async (conexao) => {
             // Mantém existência e estado antes da validação do corpo, como no contrato anterior,
@@ -508,6 +550,7 @@ export class ServiceOrdemServico {
             await bloquearOrdemServico(conexao, idOS);
             const ordemAtual = await conexao.ordens_servico.findUnique({ where: { id: idOS } });
             if (!ordemAtual) throw AppError.naoEncontrado('OS não encontrada');
+            departamentoAnterior = ordemAtual.departamento_id;
             if (ordemAtual.status === 'concluido') {
                 throw AppError.requisicaoInvalida('OS concluída não pode ser editada');
             }
@@ -563,6 +606,18 @@ export class ServiceOrdemServico {
         });
 
         this.repositorio.atualizarCache(atualizada);
+        if (departamentoAnterior !== null && departamentoAnterior !== atualizada.departamento_id) {
+            const destinatarios = await prisma.funcionarios.findMany({
+                where: { departamento_id: atualizada.departamento_id, ativo: true },
+                select: { id: true },
+            });
+            await serviceNotificacao.notificarOrdem(
+                atualizada,
+                'departamento_definido',
+                `A O.S. ${atualizada.id} (${atualizada.titulo}) foi atribuída ao seu departamento.`,
+                destinatarios.map((funcionario) => funcionario.id),
+            );
+        }
         return atualizada;
     }
 
@@ -618,12 +673,19 @@ export class ServiceOrdemServico {
             throw AppError.conflito('Não é possível atribuir uma O.S. a um funcionário inativo');
         }
 
-        return this.repositorio.atribuirResponsavel({
+        const atualizada = await this.repositorio.atribuirResponsavel({
             osId,
             responsavelId,
             solicitanteId,
             permitirTroca: solicitante.tipo === 'gestor',
         });
+        await serviceNotificacao.notificarOrdem(
+            atualizada,
+            'responsavel_definido',
+            `Você foi definido como responsável técnico da O.S. ${atualizada.id} (${atualizada.titulo}).`,
+            [responsavelId],
+        );
+        return atualizada;
     }
 
     /**
@@ -685,6 +747,11 @@ export class ServiceOrdemServico {
         });
 
         this.repositorio.atualizarCache(atualizada);
+        await serviceNotificacao.notificarOrdem(
+            atualizada,
+            'status_alterado',
+            `O status da O.S. ${atualizada.id} (${atualizada.titulo}) foi alterado para ${atualizada.status}.`,
+        );
 
         return atualizada;
     }
@@ -699,7 +766,13 @@ export class ServiceOrdemServico {
             throw AppError.requisicaoInvalida('A O.S. já está desbloqueada');
         }
 
-        return this.repositorio.atualizar(id, { status: STATUS_PADRAO });
+        const atualizada = await this.repositorio.atualizar(id, { status: STATUS_PADRAO });
+        await serviceNotificacao.notificarOrdem(
+            atualizada,
+            'status_alterado',
+            `O status da O.S. ${atualizada.id} (${atualizada.titulo}) foi alterado para ${atualizada.status}.`,
+        );
+        return atualizada;
     }
 
     /**

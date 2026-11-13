@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState, type ChangeEvent } from "react";
 import { Link } from "react-router-dom";
 import Autocomplete, { type AutocompleteOption } from "../common/Autocomplete";
 import OrdemServicoHistorico from "./OrdemServicoHistorico";
+import CamposHoras from "./CamposHoras";
 import type {
     Cliente,
     Departamento,
@@ -10,7 +11,12 @@ import type {
     StatusOrdemServico,
     OrdemServicoInput,
     Projeto,
+    HorasOrdem,
+    RegistroHorasInput,
 } from "../../types/api";
+
+import { formatarDataTrabalho, hojeNoBrasil, validarDataTrabalho, validarDuracao } from "../../utils/horasUtils";
+
 import {
     CRITICIDADE_LABELS,
     STATUS_LABELS,
@@ -85,7 +91,11 @@ interface OrdemServicoDetalhesModalProps {
     podeReatribuirResponsavel: boolean;
     onAtribuirResponsavel: (funcionarioId: number) => Promise<boolean>;
     onFechar: () => void;
-    onAlterarStatus: (status: StatusOrdemServico, parecerTecnico?: string) => void;
+    onAlterarStatus: (
+        status: StatusOrdemServico,
+        parecerTecnico?: string,
+        horas?: RegistroHorasInput,
+    ) => void;
     // Recebe a data (AAAA-MM-DD) e o motivo da alteração
     onAlterarPrazo?: (dataLimite: string, justificativa: string) => Promise<boolean>;
     statusSugerido?: StatusOrdemServico | null;
@@ -109,6 +119,13 @@ interface OrdemServicoDetalhesModalProps {
         dados: Partial<OrdemServicoInput> & { justificativa: string },
     ) => Promise<boolean>;
     onAlteracoesNaoSalvasChange?: (temAlteracoes: boolean) => void;
+    // Horas da O.S. vindas de GET /ordens-servico/:id/horas (US#2.7).
+    horas?: HorasOrdem | null;
+    carregandoHoras?: boolean;
+    erroHoras?: string | null;
+    // Só o técnico responsável pode lançar horas (POST /ordens-servico/:id/horas).
+    podeRegistrarHoras?: boolean;
+    onRegistrarHoras?: (dados: RegistroHorasInput) => Promise<void>;
 }
 
 const STATUS_EDITAVEIS: StatusOrdemServico[] = [
@@ -172,6 +189,11 @@ function OrdemServicoDetalhesModal({
     tiposPermitidos = [],
     onEnviarAnexo,
     onBaixarAnexo,
+    horas = null,
+    carregandoHoras = false,
+    erroHoras = null,
+    podeRegistrarHoras = false,
+    onRegistrarHoras,
 }: OrdemServicoDetalhesModalProps) {
     const [parecerTemporario, setParecerTemporario] = useState("");
     const [edicaoDiretaAberta, setEdicaoDiretaAberta] = useState(false);
@@ -220,14 +242,13 @@ function OrdemServicoDetalhesModal({
         { id: 1, iniciais: "MC", autor: "Mariana Costa", quando: "Hoje, 08:52", texto: "O cliente confirmou a janela para execução entre 9h e 16h. Avisem por aqui quando o teste de conectividade começar.", tom: "azul" },
         { id: 2, iniciais: "AL", autor: "André Lima", quando: "Hoje, 09:04", texto: "Instalação física iniciada. Todos os equipamentos foram conferidos, sem divergências no recebimento.", tom: "verde" },
     ]);
-    const [horasDemo, setHorasDemo] = useState([
-        { id: 1, horas: 3.5, descricao: "Diagnóstico e instalação em campo", quando: "Hoje, 09:42", autor: "André Lima" },
-        { id: 2, horas: 1, descricao: "Preparação do local e equipamentos", quando: "Hoje, 10:15", autor: "André Lima" },
-        { id: 3, horas: 1, descricao: "Testes de conectividade", quando: "Hoje, 11:15", autor: "André Lima" },
-    ]);
     const [lancarHorasAberto, setLancarHorasAberto] = useState(false);
-    const [horasDigitadas, setHorasDigitadas] = useState("1");
-    const [descricaoHoras, setDescricaoHoras] = useState("");
+    const [duracaoHoras, setDuracaoHoras] = useState("");
+    const [dataHoras, setDataHoras] = useState(() => hojeNoBrasil());
+    const [erroFormHoras, setErroFormHoras] = useState<string | null>(null);
+    const [registrandoHoras, setRegistrandoHoras] = useState(false);
+    const [duracaoStatus, setDuracaoStatus] = useState("");
+    const [dataStatus, setDataStatus] = useState(() => hojeNoBrasil());
     const prazoAtual = paraInputData((ordem as OrdemComSla | null)?.data_limite_sla);
     useEffect(() => {
         onAlteracoesNaoSalvasChange?.(
@@ -267,6 +288,12 @@ function OrdemServicoDetalhesModal({
         setResponsavelPainelAberto(false);
         setComentarioNovo("");
         setLancarHorasAberto(false);
+        setDuracaoHoras("");
+        setDataHoras(hojeNoBrasil());
+        setErroFormHoras(null);
+        setRegistrandoHoras(false);
+        setDuracaoStatus("");
+        setDataStatus(hojeNoBrasil());
         envioEmAndamento.current = false;
     }, [aberto, ordem?.id]);
 
@@ -524,9 +551,38 @@ function OrdemServicoDetalhesModal({
     const projetoAtual = ordem?.projeto_id
         ? projetos.find((item) => item.id === ordem.projeto_id)
         : undefined;
-    const horasRegistradasDemo = horasDemo.reduce((soma, item) => soma + item.horas, 0);
+    const lancamentosHoras = horas?.lancamentos ?? [];
+    const horasRegistradas = (horas?.total_minutos ?? 0) / 60;
     const horasEstimadas = Math.max(1, ordem?.prazo_horas || 12);
-    const progressoHorasDemo = Math.min(100, (horasRegistradasDemo / horasEstimadas) * 100);
+    const progressoHoras = Math.min(100, (horasRegistradas / horasEstimadas) * 100);
+    const informouHorasStatus = podeRegistrarHoras && duracaoStatus.trim() !== "";
+    const erroHorasStatus = informouHorasStatus
+        ? validarDuracao(duracaoStatus) ?? validarDataTrabalho(dataStatus)
+        : null;
+    const horasDoStatus = informouHorasStatus
+        ? { duracao: duracaoStatus.trim(), data_trabalho: dataStatus }
+        : undefined;
+    async function registrarHoras() {
+        if (!onRegistrarHoras || registrandoHoras) return;
+        const erroValidacao = validarDuracao(duracaoHoras) ?? validarDataTrabalho(dataHoras);
+        if (erroValidacao) {
+            setErroFormHoras(erroValidacao);
+            return;
+        }
+        setRegistrandoHoras(true);
+        setErroFormHoras(null);
+        try {
+            await onRegistrarHoras({ duracao: duracaoHoras.trim(), data_trabalho: dataHoras });
+            setAbaAcompanhamento("horas");
+            setLancarHorasAberto(false);
+            setDuracaoHoras("");
+            setDataHoras(hojeNoBrasil());
+        } catch (error) {
+            setErroFormHoras(error instanceof Error ? error.message : "Não foi possível registrar as horas.");
+        } finally {
+            setRegistrandoHoras(false);
+        }
+    }
     const responsavelOptions: AutocompleteOption[] = funcionariosElegiveis.map((funcionario) => ({
         value: funcionario.id,
         label: funcionario.nome || `Funcionário #${funcionario.id}`,
@@ -663,7 +719,6 @@ function OrdemServicoDetalhesModal({
                                                 <button type="button" role="menuitem" onClick={() => { setAbaAcompanhamento("anexos"); setAcoesMenuAberto(false); }}><i className="fa-solid fa-paperclip" aria-hidden="true" /> Consultar anexos</button>
                                             </div>}
                                         </div>
-
                                         {modoPagina && podeEditarOrdem && (
                                             <button
                                                 type="button"
@@ -686,11 +741,14 @@ function OrdemServicoDetalhesModal({
                                             type="button"
                                             className="os-detail-btn os-detail-btn--primary"
                                             onClick={() => setLancarHorasAberto(true)}
+                                            disabled={!podeRegistrarHoras}
+                                            title={podeRegistrarHoras ? undefined : "Apenas o técnico responsável pela O.S. lança horas"}
                                         >
                                             <i className="fa-solid fa-plus" aria-hidden="true" />
                                             Lançar horas
-                                        </button></div>
-                                </div>
+                                        </button>
+                                    </div>
+                                </div >
                                 <h2>{ordem.titulo}</h2>
                                 <p className="os-detail-summary-description">{ordem.descricao || "Sem descrição cadastrada."}</p>
                                 <div className="os-detail-summary-meta">
@@ -698,574 +756,721 @@ function OrdemServicoDetalhesModal({
                                     <span><i className="fa-regular fa-calendar" aria-hidden="true" /> Criada em {formatarData(ordem.data_criacao)}</span>
                                     <span><i className="fa-solid fa-user" aria-hidden="true" /> Aberta por {solicitanteAtual?.nome || "Mariana Costa"}</span>
                                 </div>
-                            </section>
+                            </section >
 
-                            {edicaoDiretaAberta && (
-                                <section className="os-detail-inline-panel">
-                                    <div>
-                                        <h2>Editar ordem de serviço</h2>
-                                        <p>
-                                            Altere os dados da ordem. A justificativa será registrada no histórico.
-                                        </p>
-                                    </div>
+        { edicaoDiretaAberta && (
+            <section className="os-detail-inline-panel">
+                <div>
+                    <h2>Editar ordem de serviço</h2>
+                    <p>
+                        Altere os dados da ordem. A justificativa será registrada no histórico.
+                    </p>
+                </div>
 
-                                    <label className="os-detail-field">
-                                        <span>Título</span>
-                                        <input
-                                            type="text"
-                                            value={dadosEdicao.titulo ?? ""}
-                                            onChange={(event) =>
-                                                setDadosEdicao((atual) => ({
-                                                    ...atual,
-                                                    titulo: event.target.value,
-                                                }))
-                                            }
-                                        />
-                                    </label>
+                <label className="os-detail-field">
+                    <span>Título</span>
+                    <input
+                        type="text"
+                        value={dadosEdicao.titulo ?? ""}
+                        onChange={(event) =>
+                            setDadosEdicao((atual) => ({
+                                ...atual,
+                                titulo: event.target.value,
+                            }))
+                        }
+                    />
+                </label>
 
-                                    <label className="os-detail-field">
-                                        <span>Tipo</span>
-                                        <select
-                                            value={dadosEdicao.tipo ?? ""}
-                                            onChange={(event) =>
-                                                setDadosEdicao((atual) => ({
-                                                    ...atual,
-                                                    tipo: event.target.value as OrdemServicoInput["tipo"],
-                                                }))
-                                            }
-                                        >
-                                            <option value="instalacao">Instalação</option>
-                                            <option value="manutencao">Manutenção</option>
-                                        </select>
-                                    </label>
+                <label className="os-detail-field">
+                    <span>Tipo</span>
+                    <select
+                        value={dadosEdicao.tipo ?? ""}
+                        onChange={(event) =>
+                            setDadosEdicao((atual) => ({
+                                ...atual,
+                                tipo: event.target.value as OrdemServicoInput["tipo"],
+                            }))
+                        }
+                    >
+                        <option value="instalacao">Instalação</option>
+                        <option value="manutencao">Manutenção</option>
+                    </select>
+                </label>
 
+                <label className="os-detail-field os-detail-field--wide">
+                    <span>Descrição</span>
+                    <textarea
+                        rows={4}
+                        value={dadosEdicao.descricao ?? ""}
+                        onChange={(event) =>
+                            setDadosEdicao((atual) => ({
+                                ...atual,
+                                descricao: event.target.value,
+                            }))
+                        }
+                    />
+                </label>
+
+                <label className="os-detail-field">
+                    <span>Cliente</span>
+                    <select
+                        value={dadosEdicao.cliente_id ?? ""}
+                        onChange={(event) =>
+                            setDadosEdicao((atual) => ({
+                                ...atual,
+                                cliente_id: event.target.value
+                                    ? Number(event.target.value)
+                                    : undefined,
+                                projeto_id: null,
+                            }))
+                        }
+                    >
+                        <option value="">Selecione um cliente</option>
+                        {clientes.map((clienteItem) => (
+                            <option key={clienteItem.id} value={clienteItem.id}>
+                                {clienteItem.nome}
+                            </option>
+                        ))}
+                    </select>
+                </label>
+
+                <label className="os-detail-field">
+                    <span>Departamento</span>
+                    <select
+                        value={dadosEdicao.departamento_id ?? ""}
+                        onChange={(event) =>
+                            setDadosEdicao((atual) => ({
+                                ...atual,
+                                departamento_id: Number(event.target.value),
+                            }))
+                        }
+                    >
+                        <option value="">Selecione um departamento</option>
+                        {departamentos.map((departamentoItem) => (
+                            <option
+                                key={departamentoItem.id}
+                                value={departamentoItem.id}
+                            >
+                                {departamentoItem.nome}
+                            </option>
+                        ))}
+                    </select>
+                </label>
+
+                <label className="os-detail-field">
+                    <span>Projeto</span>
+                    <select
+                        value={dadosEdicao.projeto_id ?? ""}
+                        onChange={(event) =>
+                            setDadosEdicao((atual) => ({
+                                ...atual,
+                                projeto_id: event.target.value
+                                    ? Number(event.target.value)
+                                    : null,
+                            }))
+                        }
+                    >
+                        <option value="">Nenhum projeto</option>
+                        {projetos
+                            .filter((projeto) =>
+                                !dadosEdicao.cliente_id ||
+                                projeto.cliente_id === dadosEdicao.cliente_id
+                            )
+                            .map((projeto) => (
+                                <option key={projeto.id} value={projeto.id}>
+                                    {projeto.nome}
+                                </option>
+                            ))}
+                    </select>
+                </label>
+
+                <label className="os-detail-field">
+                    <span>Responsável</span>
+                    <Autocomplete
+                        id="ordem-responsavel-edicao-direta"
+                        options={responsavelOptions}
+                        value={responsavelNovoId ?? ordem.responsavel_id}
+                        onChange={(value) =>
+                            setResponsavelNovoId(
+                                value === null || value === "" ? null : Number(value),
+                            )
+                        }
+                        placeholder="Selecione um responsável"
+                    />
+                </label>
+
+                <label className="os-detail-field">
+                    <span>Prazo final</span>
+                    <input
+                        type="date"
+                        value={prazoSelecionado}
+                        onChange={(event) =>
+                            setPrazoSelecionado(event.target.value)
+                        }
+                    />
+                </label>
+
+                <div className="os-detail-edit-layout">
+                    <label className="os-detail-field">
+                        <span>Motivo da atualização (obrigatório)</span>
+                        <textarea
+                            rows={3}
+                            value={justificativaEdicao}
+                            onChange={(event) =>
+                                setJustificativaEdicao(event.target.value)
+                            }
+                            placeholder="Descreva o que foi alterado e o motivo."
+                        />
+                    </label>
+
+                    <div className="os-detail-edit-side">
+                        <label className="os-detail-field">
+                            <span>Criticidade</span>
+                            <select
+                                value={dadosEdicao.criticidade ?? ""}
+                                onChange={(event) =>
+                                    setDadosEdicao((atual) => ({
+                                        ...atual,
+                                        criticidade: event.target.value || null,
+                                    }))
+                                }
+                            >
+                                <option value="">Não definida</option>
+                                {Object.entries(CRITICIDADE_LABELS).map(
+                                    ([valor, rotulo]) => (
+                                        <option key={valor} value={valor}>
+                                            {rotulo}
+                                        </option>
+                                    ),
+                                )}
+                            </select>
+                        </label>
+
+                        <div className="os-detail-inline-actions">
+                            <button
+                                type="button"
+                                className="os-detail-btn os-detail-btn--secondary"
+                                onClick={confirmarSaidaEdicao}
+                                disabled={salvandoEdicaoDireta}
+                            >
+                                Cancelar
+                            </button>
+
+                            <button
+                                type="button"
+                                className="os-detail-btn os-detail-btn--primary"
+                                onClick={salvarEdicaoDireta}
+                                disabled={
+                                    salvandoEdicaoDireta ||
+                                    !justificativaEdicao.trim()
+                                }
+                            >
+                                {salvandoEdicaoDireta
+                                    ? "Salvando..."
+                                    : "Salvar alterações"}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        )
+}
+
+{
+    statusPainelAberto && ordem.ativo && <section className="os-detail-inline-panel">
+        <div><h2>Alterar status</h2><p>A atualização será enviada à API do SGOS.</p></div>
+                                <label className="os-detail-field">
+                                    <span>Novo status</span>
+                                    <select
+                                        value={statusSelecionado}
+                                        onChange={(event) => setStatusSelecionado(event.target.value as StatusOrdemServico)}
+                                        disabled={!ordem.ativo || !podeAlterarStatus || alterandoStatusId !== null}
+                                    >
+                                        {statusEditaveis.map((status) => (
+                                            <option key={status} value={status}>
+                                                {STATUS_LABELS[status]}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </label>
+
+                                {podeRegistrarHoras && (
+                                    <CamposHoras
+                                        idBase="os-status-horas"
+                                        duracao={duracaoStatus}
+                                        dataTrabalho={dataStatus}
+                                        onDuracao={setDuracaoStatus}
+                                        onDataTrabalho={setDataStatus}
+                                        desabilitado={!podeAlterarStatus || alterandoStatusId !== null}
+                                        opcional
+                                    />
+                                )}
+
+                                {erroHorasStatus && (
+                                    <p role="alert" className="os-detail-form-error os-detail-field--wide">
+                                        {erroHorasStatus}
+                                    </p>
+                                )}
+
+                                {statusSelecionado === "concluido" && (
                                     <label className="os-detail-field os-detail-field--wide">
-                                        <span>Descrição</span>
+                                        <span>Parecer técnico obrigatório</span>
                                         <textarea
-                                            rows={4}
-                                            value={dadosEdicao.descricao ?? ""}
-                                            onChange={(event) =>
-                                                setDadosEdicao((atual) => ({
-                                                    ...atual,
-                                                    descricao: event.target.value,
-                                                }))
-                                            }
+                                            rows={3}
+                                            value={parecerTemporario}
+                                            onChange={(event) => setParecerTemporario(event.target.value)}
+                                            placeholder="Descreva o trabalho realizado e os testes concluídos…"
                                         />
                                     </label>
+                                )}
 
-                                    <label className="os-detail-field">
-                                        <span>Cliente</span>
-                                        <select
-                                            value={dadosEdicao.cliente_id ?? ""}
-                                            onChange={(event) =>
-                                                setDadosEdicao((atual) => ({
-                                                    ...atual,
-                                                    cliente_id: event.target.value
-                                                        ? Number(event.target.value)
-                                                        : undefined,
-                                                    projeto_id: null,
-                                                }))
-                                            }
-                                        >
-                                            <option value="">Selecione um cliente</option>
-                                            {clientes.map((clienteItem) => (
-                                                <option key={clienteItem.id} value={clienteItem.id}>
-                                                    {clienteItem.nome}
-                                                </option>
-                                            ))}
-                                        </select>
-                                    </label>
+                                <div className="os-detail-inline-actions">
+                                    <button
+                                        type="button"
+                                        className="os-detail-btn os-detail-btn--secondary"
+                                        onClick={() => setStatusPainelAberto(false)}
+                                    >
+                                        Cancelar
+                                    </button>
 
-                                    <label className="os-detail-field">
-                                        <span>Departamento</span>
-                                        <select
-                                            value={dadosEdicao.departamento_id ?? ""}
-                                            onChange={(event) =>
-                                                setDadosEdicao((atual) => ({
-                                                    ...atual,
-                                                    departamento_id: Number(event.target.value),
-                                                }))
-                                            }
-                                        >
-                                            <option value="">Selecione um departamento</option>
-                                            {departamentos.map((departamentoItem) => (
-                                                <option
-                                                    key={departamentoItem.id}
-                                                    value={departamentoItem.id}
-                                                >
-                                                    {departamentoItem.nome}
-                                                </option>
-                                            ))}
-                                        </select>
-                                    </label>
-
-                                    <label className="os-detail-field">
-                                        <span>Projeto</span>
-                                        <select
-                                            value={dadosEdicao.projeto_id ?? ""}
-                                            onChange={(event) =>
-                                                setDadosEdicao((atual) => ({
-                                                    ...atual,
-                                                    projeto_id: event.target.value
-                                                        ? Number(event.target.value)
-                                                        : null,
-                                                }))
-                                            }
-                                        >
-                                            <option value="">Nenhum projeto</option>
-                                            {projetos
-                                                .filter((projeto) =>
-                                                    !dadosEdicao.cliente_id ||
-                                                    projeto.cliente_id === dadosEdicao.cliente_id
-                                                )
-                                                .map((projeto) => (
-                                                    <option key={projeto.id} value={projeto.id}>
-                                                        {projeto.nome}
-                                                    </option>
-                                                ))}
-                                        </select>
-                                    </label>
-
-                                    <label className="os-detail-field">
-                                        <span>Responsável</span>
-                                        <Autocomplete
-                                            id="ordem-responsavel-edicao-direta"
-                                            options={responsavelOptions}
-                                            value={responsavelNovoId ?? ordem.responsavel_id}
-                                            onChange={(value) =>
-                                                setResponsavelNovoId(
-                                                    value === null || value === "" ? null : Number(value),
-                                                )
-                                            }
-                                            placeholder="Selecione um responsável"
-                                        />
-                                    </label>
-
-                                    <label className="os-detail-field">
-                                        <span>Prazo final</span>
-                                        <input
-                                            type="date"
-                                            value={prazoSelecionado}
-                                            onChange={(event) =>
-                                                setPrazoSelecionado(event.target.value)
-                                            }
-                                        />
-                                    </label>
-
-                                    <div className="os-detail-edit-layout">
-                                        <label className="os-detail-field">
-                                            <span>Motivo da atualização (obrigatório)</span>
-                                            <textarea
-                                                rows={3}
-                                                value={justificativaEdicao}
-                                                onChange={(event) =>
-                                                    setJustificativaEdicao(event.target.value)
-                                                }
-                                                placeholder="Descreva o que foi alterado e o motivo."
-                                            />
-                                        </label>
-
-                                        <div className="os-detail-edit-side">
-                                            <label className="os-detail-field">
-                                                <span>Criticidade</span>
-                                                <select
-                                                    value={dadosEdicao.criticidade ?? ""}
-                                                    onChange={(event) =>
-                                                        setDadosEdicao((atual) => ({
-                                                            ...atual,
-                                                            criticidade: event.target.value || null,
-                                                        }))
-                                                    }
-                                                >
-                                                    <option value="">Não definida</option>
-                                                    {Object.entries(CRITICIDADE_LABELS).map(
-                                                        ([valor, rotulo]) => (
-                                                            <option key={valor} value={valor}>
-                                                                {rotulo}
-                                                            </option>
-                                                        ),
-                                                    )}
-                                                </select>
-                                            </label>
-
-                                            <div className="os-detail-inline-actions">
-                                                <button
-                                                    type="button"
-                                                    className="os-detail-btn os-detail-btn--secondary"
-                                                    onClick={confirmarSaidaEdicao}
-                                                    disabled={salvandoEdicaoDireta}
-                                                >
-                                                    Cancelar
-                                                </button>
-
-                                                <button
-                                                    type="button"
-                                                    className="os-detail-btn os-detail-btn--primary"
-                                                    onClick={salvarEdicaoDireta}
-                                                    disabled={
-                                                        salvandoEdicaoDireta ||
-                                                        !justificativaEdicao.trim()
-                                                    }
-                                                >
-                                                    {salvandoEdicaoDireta
-                                                        ? "Salvando..."
-                                                        : "Salvar alterações"}
-                                                </button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </section>
-                            )}
-
-                            {statusPainelAberto && ordem.ativo && <section className="os-detail-inline-panel">
-                                <div><h2>Alterar status</h2><p>A atualização será enviada à API do SGOS.</p></div>
-                                <label className="os-detail-field"><span>Novo status</span><select value={statusSelecionado} onChange={(event) => setStatusSelecionado(event.target.value as StatusOrdemServico)} disabled={!ordem.ativo || !podeAlterarStatus || alterandoStatusId !== null}>{statusEditaveis.map((status) => <option key={status} value={status}>{STATUS_LABELS[status]}</option>)}</select></label>
-                                {statusSelecionado === "concluido" && <label className="os-detail-field os-detail-field--wide"><span>Parecer técnico obrigatório</span><textarea rows={3} value={parecerTemporario} onChange={(event) => setParecerTemporario(event.target.value)} placeholder="Descreva o trabalho realizado e os testes concluídos…" /></label>}
-                                <div className="os-detail-inline-actions"><button type="button" className="os-detail-btn os-detail-btn--secondary" onClick={() => setStatusPainelAberto(false)}>Cancelar</button><button type="button" className="os-detail-btn os-detail-btn--primary" onClick={() => { onAlterarStatus(statusSelecionado, statusSelecionado === "concluido" ? parecerTemporario : undefined); setStatusPainelAberto(false); }} disabled={!ordem.ativo || !podeAlterarStatus || alterandoStatusId !== null || statusSelecionado === ordem.status || (statusSelecionado === "concluido" && !parecerTemporario.trim())}>{alterandoStatusId === ordem.id ? "Atualizando…" : "Salvar status"}</button></div>
-                            </section>}
-
-                            {prazoPainelAberto && ordem.ativo && !podeEditar && <section className="os-detail-inline-panel">
-                                <div><h2>Alterar prazo</h2><p>O motivo será solicitado antes de enviar a alteração.</p></div>
-                                <label className="os-detail-field"><span>Novo prazo final</span><input type="date" value={prazoSelecionado} onChange={(event) => setPrazoSelecionado(event.target.value)} disabled={alterandoPrazo} /></label>
-                                <div className="os-detail-inline-actions"><button type="button" className="os-detail-btn os-detail-btn--secondary" onClick={() => setPrazoPainelAberto(false)}>Cancelar</button><button type="button" className="os-detail-btn os-detail-btn--primary" onClick={() => { setPrazoPainelAberto(false); setJustificativaAberta(true); }} disabled={!ordem.ativo || !podeAlterarPrazo || alterandoPrazo || !prazoSelecionado || prazoSelecionado === prazoAtual}>Continuar</button></div>
-                            </section>}
-
-                            {responsavelPainelAberto && ordem.ativo && !podeEditar && <section className="os-detail-inline-panel">
-                                <div><h2>Alterar responsável</h2><p>Somente funcionários elegíveis são listados.</p></div>
-                                <label className="os-detail-field os-detail-field--wide"><span>Responsável técnico</span><Autocomplete id="ordem-responsavel-novo" options={responsavelOptions} value={responsavelNovoId} onChange={(value) => setResponsavelNovoId(value === null ? null : Number(value))} placeholder="Pesquisar funcionário ativo" clearable disabled={atribuindoResponsavel} emptyMessage="Nenhum funcionário ativo encontrado." /></label>
-                                <div className="os-detail-inline-actions"><button type="button" className="os-detail-btn os-detail-btn--secondary" onClick={() => setResponsavelPainelAberto(false)}>Cancelar</button><button type="button" className="os-detail-btn os-detail-btn--primary" onClick={() => { if (responsavelNovoId !== null) onAtribuirResponsavel(responsavelNovoId); setResponsavelPainelAberto(false); }} disabled={atribuindoResponsavel || responsavelNovoId === null || responsavelNovoId === ordem.responsavel_id}>{atribuindoResponsavel ? "Salvando…" : "Salvar responsável"}</button></div>
-                            </section>}
-
-                            <section className="os-detail-facts" aria-label="Resumo da ordem">
-                                <article><span>Cliente</span><strong>{cliente?.nome || (ordem.cliente_id ? `Cliente #${ordem.cliente_id}` : "Não associado")}</strong><small>{cliente?.razao_social || "contato@altave.com.br"}</small></article>
-                                <article><span>Responsável técnico</span><strong>{responsavelAtual?.nome || (ordem.responsavel_id ? `Funcionário #${ordem.responsavel_id}` : "André Lima")}</strong><small>{responsavelAtual ? `${responsavelAtual.tipo === "tecnico" ? "Operações" : responsavelAtual.tipo} · ${responsavelAtual.ativo ? "Ativo" : "Inativo"}` : "Operações · Técnico sênior (demo)"}</small></article>
-                                <article><span>Projeto</span><strong>{projetoAtual?.nome || (ordem.projeto_id ? `Projeto #${ordem.projeto_id}` : "Infraestrutura de rede")}</strong><small>{ordem.projeto_id ? `PRJ-${String(ordem.projeto_id).padStart(4, "0")}-008` : "Informação de demonstração"}</small></article>
-                                <article className="os-detail-time-fact"><span>Tempo registrado</span><strong>{Math.floor(horasRegistradasDemo)}h {Math.round((horasRegistradasDemo % 1) * 60)}min <small>/ {horasEstimadas}h estimadas</small></strong><div className="os-detail-progress"><span style={{ width: `${progressoHorasDemo}%` }} /></div></article>
-                            </section>
-
-                            {lancarHorasAberto && <div className="os-detail-demo-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setLancarHorasAberto(false); }}><section className="os-detail-demo-dialog" role="dialog" aria-modal="true" aria-labelledby="os-detail-hours-title"><header><div><span className="os-detail-eyebrow">REGISTRO DE EXEMPLO</span><h2 id="os-detail-hours-title">Lançar horas</h2></div><button type="button" aria-label="Fechar" onClick={() => setLancarHorasAberto(false)}>×</button></header><p>O backend do SGOS não possui lançamento de horas. Este registro é demonstrativo e ficará somente nesta tela.</p><label className="os-detail-field"><span>Horas trabalhadas</span><input type="number" min="0.25" max="24" step="0.25" value={horasDigitadas} onChange={(event) => setHorasDigitadas(event.target.value)} /></label><label className="os-detail-field"><span>Descrição</span><textarea rows={3} value={descricaoHoras} onChange={(event) => setDescricaoHoras(event.target.value)} placeholder="O que foi realizado?" /></label><footer><button type="button" className="os-detail-btn os-detail-btn--secondary" onClick={() => setLancarHorasAberto(false)}>Cancelar</button><button type="button" className="os-detail-btn os-detail-btn--primary" onClick={() => { const quantidade = Number(horasDigitadas); if (!Number.isFinite(quantidade) || quantidade <= 0 || quantidade > 24) return; setHorasDemo((atuais) => [...atuais, { id: Date.now(), horas: quantidade, descricao: descricaoHoras.trim() || "Atividade registrada (demo)", quando: "Agora", autor: "Você" }]); setAbaAcompanhamento("horas"); setLancarHorasAberto(false); setDescricaoHoras(""); }} disabled={!Number.isFinite(Number(horasDigitadas)) || Number(horasDigitadas) <= 0 || Number(horasDigitadas) > 24}>Registrar (local)</button></footer></section></div>}
-
-                            <div className="os-detail-content-grid">
-                                <div className="os-detail-primary-column">
-                                    <section className="os-detail-card os-detail-activity-card">
-                                        <header className="os-detail-card-heading"><div><h2>Acompanhamento da ordem</h2><p>Histórico de atividades e atualizações</p></div><button type="button" className="os-detail-btn os-detail-btn--secondary" onClick={() => { comentarioRef.current?.focus(); document.querySelector(".os-detail-comments-card")?.scrollIntoView({ block: "nearest", behavior: "smooth" }); }}><i className="fa-solid fa-plus" aria-hidden="true" /> Adicionar atualização</button></header>
-                                        <div className="os-detail-tabs" role="tablist" aria-label="Atividades da ordem">
-                                            <button type="button" role="tab" aria-selected={abaAcompanhamento === "historico"} className={abaAcompanhamento === "historico" ? "ativo" : ""} onClick={() => setAbaAcompanhamento("historico")}>Histórico <span>API</span></button>
-                                            <button type="button" role="tab" aria-selected={abaAcompanhamento === "horas"} className={abaAcompanhamento === "horas" ? "ativo" : ""} onClick={() => setAbaAcompanhamento("horas")}>Horas registradas <span>{horasDemo.length}</span></button>
-                                            <button type="button" role="tab" aria-selected={abaAcompanhamento === "anexos"} className={abaAcompanhamento === "anexos" ? "ativo" : ""} onClick={() => setAbaAcompanhamento("anexos")}>Anexos <span>{anexos.length}</span></button>
-                                        </div>
-                                        {abaAcompanhamento === "historico" && <div className="os-detail-history-content"><OrdemServicoHistorico osId={ordem.id} usarFallbackDemonstrativo /></div>}
-                                        {abaAcompanhamento === "horas" && <div className="os-detail-timeline-list">{horasDemo.slice().reverse().map((item) => <article key={item.id} className="os-detail-timeline-item"><span className="os-detail-timeline-icon os-detail-timeline-icon--violet"><i className="fa-regular fa-clock" aria-hidden="true" /></span><div><strong>{item.horas.toLocaleString("pt-BR")}h · {item.descricao}</strong><p>Registro demonstrativo local · {item.quando} · {item.autor}</p></div></article>)}<p className="os-detail-demo-note">Horas de demonstração; ainda não são persistidas no SGOS.</p></div>}
-                                        {abaAcompanhamento === "anexos" && <div className="os-detail-attachments-content">{carregandoAnexos ? <p role="status">Carregando anexos…</p> : erroAnexos ? <p role="alert">{erroAnexos}</p> : anexos.length === 0 ? <div className="os-detail-empty"><i className="fa-regular fa-file-lines" aria-hidden="true" /><strong>Nenhum anexo registrado</strong><span>Adicione arquivos para consultar nesta seção.</span></div> : <ul>{anexos.map((anexo) => <li key={anexo.id}><i className="fa-regular fa-file-lines" aria-hidden="true" /><span><strong>{anexo.nome}</strong><small>{anexo.autor || "Usuário"}{anexo.data_envio ? ` · ${formatarData(anexo.data_envio)}` : ""}</small></span><button type="button" className="os-detail-btn os-detail-btn--secondary" onClick={() => void baixarAnexo(anexo)}>Baixar</button></li>)}</ul>}<button type="button" className="os-detail-btn os-detail-btn--primary" onClick={() => setAnexoAberto(true)}><i className="fa-solid fa-paperclip" aria-hidden="true" /> Anexar arquivo</button></div>}
-                                    </section>
-
-                                    <section className="os-detail-card os-detail-technical-opinion-card">
-                                        <header className="os-detail-card-heading">
-                                            <div><h2>Parecer técnico</h2><p>Registro técnico da execução e conclusão da ordem</p></div>
-                                            <span className={`os-detail-count ${ordem.parecer_tecnico?.trim() ? "os-detail-count--success" : ""}`}>{ordem.parecer_tecnico?.trim() ? "Registrado" : "Pendente"}</span>
-                                        </header>
-                                        {ordem.parecer_tecnico?.trim() ? (
-                                            <div className="os-detail-opinion-content">
-                                                <span className="os-detail-opinion-icon"><i className="fa-solid fa-file-circle-check" aria-hidden="true" /></span>
-                                                <div><strong>Parecer registrado no SGOS</strong><p>{ordem.parecer_tecnico}</p></div>
-                                            </div>
-                                        ) : (
-                                            <div className="os-detail-opinion-empty">
-                                                <span className="os-detail-opinion-icon"><i className="fa-regular fa-file-lines" aria-hidden="true" /></span>
-                                                <div><strong>Nenhum parecer técnico registrado</strong><p>O parecer será salvo no SGOS quando a ordem for concluída.</p></div>
-                                            </div>
-                                        )}
-                                        {ordem.ativo && !ordem.parecer_tecnico?.trim() && podeConcluir && ordem.status !== "concluido" && (
-                                            <div className="os-detail-opinion-editor">
-                                                <label className="os-detail-field" htmlFor="os-detail-opinion-draft"><span>Preparar parecer técnico</span>
-                                                    <textarea id="os-detail-opinion-draft" rows={4} value={parecerTemporario} onChange={(event) => setParecerTemporario(event.target.value)} placeholder="Descreva o trabalho realizado, os testes executados e o resultado…" />
-                                                </label>
-                                                <button type="button" className="os-detail-btn os-detail-btn--primary" disabled={!parecerTemporario.trim() || alterandoStatusId !== null} onClick={() => { setStatusSelecionado("concluido"); setStatusPainelAberto(true); document.querySelector(".gestec-os-detail-main")?.scrollIntoView({ behavior: "smooth", block: "start" }); }}><i className="fa-solid fa-clipboard-check" aria-hidden="true" /> Revisar conclusão e salvar</button>
-                                                <small className="os-detail-demo-note">O parecer só será persistido após confirmar a conclusão na etapa seguinte.</small>
-                                            </div>
-                                        )}
-                                    </section>
+                                    <button
+                                        type="button"
+                                        className="os-detail-btn os-detail-btn--primary"
+                                        onClick={() => {
+                                            onAlterarStatus(
+                                                statusSelecionado,
+                                                statusSelecionado === "concluido" ? parecerTemporario : undefined,
+                                                horasDoStatus,
+                                            );
+                                            setStatusPainelAberto(false);
+                                        }}
+                                        disabled={
+                                            !ordem.ativo ||
+                                            !podeAlterarStatus ||
+                                            alterandoStatusId !== null ||
+                                            statusSelecionado === ordem.status ||
+                                            erroHorasStatus !== null ||
+                                            (statusSelecionado === "concluido" && !parecerTemporario.trim())
+                                        }
+                                    >
+                                        {alterandoStatusId === ordem.id ? "Atualizando…" : "Salvar status"}
+                                    </button>
                                 </div>
+                            </section >}
 
-                                <aside className="os-detail-aside-column">
-                                    <section className="os-detail-card os-detail-comments-card">
-                                        <header className="os-detail-card-heading"><div><h2>Comentários</h2><p>Troca de informações da equipe</p></div><span className="os-detail-count">{comentariosDemo.length} comentários</span></header>
-                                        <div className="os-detail-comments-list">{comentariosDemo.map((comentario) => <article key={comentario.id} className="os-detail-comment"><span className={`os-detail-avatar os-detail-avatar--${comentario.tom}`}>{comentario.iniciais}</span><div className="os-detail-comment-body"><div className="os-detail-comment-meta"><strong>{comentario.autor}</strong><time>{comentario.quando}</time></div><p>{comentario.texto}</p></div></article>)}</div>
-                                        <form className="os-detail-comment-form" onSubmit={(event) => { event.preventDefault(); const texto = comentarioNovo.trim(); if (!texto) return; const userText = "Você"; setComentariosDemo((atuais) => [...atuais, { id: Date.now(), iniciais: "VC", autor: userText, quando: "Agora", texto, tom: "azul" }]); setComentarioNovo(""); }}>
-                                            <textarea ref={comentarioRef} rows={2} value={comentarioNovo} onChange={(event) => setComentarioNovo(event.target.value)} placeholder="Escreva uma atualização para a equipe…" aria-label="Escrever comentário demonstrativo" />
-                                            <button type="submit" className="os-detail-btn os-detail-btn--primary" disabled={!comentarioNovo.trim()}><i className="fa-solid fa-check" aria-hidden="true" /> Enviar atualização</button>
-                                        </form>
-                                        <small className="os-detail-demo-note">Comentários demonstrativos: não são enviados nem salvos no backend.</small>
-                                    </section>
+{
+    prazoPainelAberto && ordem.ativo && !podeEditar && <section className="os-detail-inline-panel">
+        <div><h2>Alterar prazo</h2><p>O motivo será solicitado antes de enviar a alteração.</p></div>
+        <label className="os-detail-field"><span>Novo prazo final</span><input type="date" value={prazoSelecionado} onChange={(event) => setPrazoSelecionado(event.target.value)} disabled={alterandoPrazo} /></label>
+        <div className="os-detail-inline-actions"><button type="button" className="os-detail-btn os-detail-btn--secondary" onClick={() => setPrazoPainelAberto(false)}>Cancelar</button><button type="button" className="os-detail-btn os-detail-btn--primary" onClick={() => { setPrazoPainelAberto(false); setJustificativaAberta(true); }} disabled={!ordem.ativo || !podeAlterarPrazo || alterandoPrazo || !prazoSelecionado || prazoSelecionado === prazoAtual}>Continuar</button></div>
+    </section>
+}
 
-                                    <section className="os-detail-card os-detail-people-card"><header className="os-detail-card-heading"><div><h2>Pessoas envolvidas</h2></div><button type="button" aria-label="Alterar pessoa responsável" onClick={() => setResponsavelPainelAberto((aberto) => !aberto)} disabled={!ordem.ativo || !podeReatribuirResponsavel || podeEditar}><i className="fa-solid fa-plus" aria-hidden="true" /></button></header><div className="os-detail-people-list">
-                                        <article><span className="os-detail-avatar os-detail-avatar--blue">{(responsavelAtual?.nome || "André Lima").split(/\s+/).slice(0, 2).map((parte) => parte[0]).join("").toUpperCase()}</span><div><strong>{responsavelAtual?.nome || "André Lima"}</strong><small>Responsável técnico{!responsavelAtual ? " · demonstração" : ""}</small></div><i className={`os-detail-presence${responsavelAtual?.ativo === false ? " inativo" : ""}`} aria-label={responsavelAtual?.ativo === false ? "Inativo" : "Ativo"} /></article>
-                                        <article><span className="os-detail-avatar os-detail-avatar--violet">JF</span><div><strong>Juliana Ferreira</strong><small>Apoio técnico · demonstração</small></div><i className="os-detail-presence" aria-label="Ativo (demonstração)" /></article>
-                                        <article><span className="os-detail-avatar os-detail-avatar--blue">MC</span><div><strong>Mariana Costa</strong><small>Gestora da ordem · demonstração</small></div><i className="os-detail-presence inativo" aria-label="Disponibilidade não informada" /></article>
-                                    </div></section>
-                                </aside>
-                            </div>
+{
+    responsavelPainelAberto && ordem.ativo && !podeEditar && <section className="os-detail-inline-panel">
+        <div><h2>Alterar responsável</h2><p>Somente funcionários elegíveis são listados.</p></div>
+        <label className="os-detail-field os-detail-field--wide"><span>Responsável técnico</span><Autocomplete id="ordem-responsavel-novo" options={responsavelOptions} value={responsavelNovoId} onChange={(value) => setResponsavelNovoId(value === null ? null : Number(value))} placeholder="Pesquisar funcionário ativo" clearable disabled={atribuindoResponsavel} emptyMessage="Nenhum funcionário ativo encontrado." /></label>
+        <div className="os-detail-inline-actions"><button type="button" className="os-detail-btn os-detail-btn--secondary" onClick={() => setResponsavelPainelAberto(false)}>Cancelar</button><button type="button" className="os-detail-btn os-detail-btn--primary" onClick={() => { if (responsavelNovoId !== null) onAtribuirResponsavel(responsavelNovoId); setResponsavelPainelAberto(false); }} disabled={atribuindoResponsavel || responsavelNovoId === null || responsavelNovoId === ordem.responsavel_id}>{atribuindoResponsavel ? "Salvando…" : "Salvar responsável"}</button></div>
+    </section>
+}
+
+<section className="os-detail-facts" aria-label="Resumo da ordem">
+    <article><span>Cliente</span><strong>{cliente?.nome || (ordem.cliente_id ? `Cliente #${ordem.cliente_id}` : "Não associado")}</strong><small>{cliente?.razao_social || "contato@altave.com.br"}</small></article>
+    <article><span>Responsável técnico</span><strong>{responsavelAtual?.nome || (ordem.responsavel_id ? `Funcionário #${ordem.responsavel_id}` : "André Lima")}</strong><small>{responsavelAtual ? `${responsavelAtual.tipo === "tecnico" ? "Operações" : responsavelAtual.tipo} · ${responsavelAtual.ativo ? "Ativo" : "Inativo"}` : "Operações · Técnico sênior (demo)"}</small></article>
+    <article><span>Projeto</span><strong>{projetoAtual?.nome || (ordem.projeto_id ? `Projeto #${ordem.projeto_id}` : "Infraestrutura de rede")}</strong><small>{ordem.projeto_id ? `PRJ-${String(ordem.projeto_id).padStart(4, "0")}-008` : "Informação de demonstração"}</small></article>
+    <article className="os-detail-time-fact"><span>Tempo registrado</span><strong>{horas?.total_duracao ?? "0m"} <small>/ {horasEstimadas}h estimadas</small></strong><div className="os-detail-progress"><span style={{ width: `${progressoHoras}%` }} /></div></article>
+</section>
+
+{
+    lancarHorasAberto && (
+        <div className="os-detail-demo-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget && !registrandoHoras) setLancarHorasAberto(false); }}>
+            <section className="os-detail-demo-dialog" role="dialog" aria-modal="true" aria-labelledby="os-detail-hours-title">
+                <header>
+                    <div><span className="os-detail-eyebrow">REGISTRO DE HORAS</span><h2 id="os-detail-hours-title">Lançar horas</h2></div>
+                    <button type="button" aria-label="Fechar" onClick={() => setLancarHorasAberto(false)} disabled={registrandoHoras}>×</button>
+                </header>
+                <p>Informe o tempo gasto e o dia em que o trabalho foi feito. O lançamento fica gravado na O.S. com o status atual.</p>
+                <CamposHoras idBase="os-lancar-horas" duracao={duracaoHoras} dataTrabalho={dataHoras} onDuracao={setDuracaoHoras} onDataTrabalho={setDataHoras} desabilitado={registrandoHoras} />
+                {erroFormHoras && <p role="alert" className="os-detail-form-error">{erroFormHoras}</p>}
+                <footer>
+                    <button type="button" className="os-detail-btn os-detail-btn--secondary" onClick={() => setLancarHorasAberto(false)} disabled={registrandoHoras}>Cancelar</button>
+                    <button type="button" className="os-detail-btn os-detail-btn--primary" onClick={() => void registrarHoras()} disabled={registrandoHoras || !podeRegistrarHoras || !onRegistrarHoras} aria-busy={registrandoHoras}>{registrandoHoras ? "Registrando…" : "Registrar horas"}</button>
+                </footer>
+            </section>
+        </div>
+    )
+}
+
+<div className="os-detail-content-grid">
+    <div className="os-detail-primary-column">
+        <section className="os-detail-card os-detail-activity-card">
+            <header className="os-detail-card-heading"><div><h2>Acompanhamento da ordem</h2><p>Histórico de atividades e atualizações</p></div><button type="button" className="os-detail-btn os-detail-btn--secondary" onClick={() => { comentarioRef.current?.focus(); document.querySelector(".os-detail-comments-card")?.scrollIntoView({ block: "nearest", behavior: "smooth" }); }}><i className="fa-solid fa-plus" aria-hidden="true" /> Adicionar atualização</button></header>
+            <div className="os-detail-tabs" role="tablist" aria-label="Atividades da ordem">
+                <button type="button" role="tab" aria-selected={abaAcompanhamento === "historico"} className={abaAcompanhamento === "historico" ? "ativo" : ""} onClick={() => setAbaAcompanhamento("historico")}>Histórico <span>API</span></button>
+                <button type="button" role="tab" aria-selected={abaAcompanhamento === "horas"} className={abaAcompanhamento === "horas" ? "ativo" : ""} onClick={() => setAbaAcompanhamento("horas")}>Horas registradas <span>{lancamentosHoras.length}</span></button>
+                <button type="button" role="tab" aria-selected={abaAcompanhamento === "anexos"} className={abaAcompanhamento === "anexos" ? "ativo" : ""} onClick={() => setAbaAcompanhamento("anexos")}>Anexos <span>{anexos.length}</span></button>
+            </div>
+            {abaAcompanhamento === "historico" && <div className="os-detail-history-content"><OrdemServicoHistorico osId={ordem.id} usarFallbackDemonstrativo /></div>}
+            {abaAcompanhamento === "horas" && (
+                <div className="os-detail-timeline-list">
+                    {carregandoHoras ? (
+                        <p role="status">Carregando horas…</p>
+                    ) : erroHoras ? (
+                        <p role="alert">{erroHoras}</p>
+                    ) : lancamentosHoras.length === 0 ? (
+                        <div className="os-detail-empty">
+                            <i className="fa-regular fa-clock" aria-hidden="true" />
+                            <strong>Nenhuma hora registrada</strong>
+                            <span>{podeRegistrarHoras ? 'Use "Lançar horas" para registrar o tempo gasto nesta O.S.' : "O técnico responsável registra o tempo gasto nesta O.S."}</span>
+                        </div>
+                    ) : (
+                        <>
+                            {lancamentosHoras.map((item) => (
+                                <article key={item.id} className="os-detail-timeline-item">
+                                    <span className="os-detail-timeline-icon os-detail-timeline-icon--violet"><i className="fa-regular fa-clock" aria-hidden="true" /></span>
+                                    <div>
+                                        <strong>{item.duracao} · {formatarDataTrabalho(item.data_trabalho)}</strong>
+                                        <p>{item.autor.nome} · status {STATUS_LABELS[item.status_os] ?? item.status_os} · registrado em {formatarData(item.registrado_em)}</p>
+                                    </div>
+                                </article>
+                            ))}
+                            <p className="os-detail-demo-note">Total registrado: <strong>{horas?.total_duracao ?? "0m"}</strong></p>
                         </>
                     )}
-                    {!ordem && !carregando && !erro && <div className="os-detail-empty"><strong>Ordem não encontrada</strong><span>Volte à lista e selecione uma ordem válida.</span><button type="button" className="os-detail-btn os-detail-btn--primary" onClick={onFechar}>Voltar às ordens</button></div>}
-                </section>
-            ) : (
-                <section
-                    className={`ordem-modal ordem-modal--detalhes${modoPagina ? " ordem-modal--pagina" : ""}`}
-                    role={modoPagina ? "region" : "dialog"}
-                    aria-modal={modoPagina ? undefined : true}
-                    aria-label={modoPagina ? "Detalhes da ordem de serviço" : undefined}
-                    aria-labelledby={modoPagina ? undefined : "ordem-detalhes-titulo"}
-                >
-                    <header className="ordem-modal-header">
-                        <div>
-                            <span className="ordem-card-id">
-                                {ordem ? `OS #${ordem.id}` : "Ordem de serviço"}
-                            </span>
+                </div>
+            )}
+            {abaAcompanhamento === "anexos" && <div className="os-detail-attachments-content">{carregandoAnexos ? <p role="status">Carregando anexos…</p> : erroAnexos ? <p role="alert">{erroAnexos}</p> : anexos.length === 0 ? <div className="os-detail-empty"><i className="fa-regular fa-file-lines" aria-hidden="true" /><strong>Nenhum anexo registrado</strong><span>Adicione arquivos para consultar nesta seção.</span></div> : <ul>{anexos.map((anexo) => <li key={anexo.id}><i className="fa-regular fa-file-lines" aria-hidden="true" /><span><strong>{anexo.nome}</strong><small>{anexo.autor || "Usuário"}{anexo.data_envio ? ` · ${formatarData(anexo.data_envio)}` : ""}</small></span><button type="button" className="os-detail-btn os-detail-btn--secondary" onClick={() => void baixarAnexo(anexo)}>Baixar</button></li>)}</ul>}<button type="button" className="os-detail-btn os-detail-btn--primary" onClick={() => setAnexoAberto(true)}><i className="fa-solid fa-paperclip" aria-hidden="true" /> Anexar arquivo</button></div>}
+        </section>
 
-                            <h2 id="ordem-detalhes-titulo">
-                                {ordem?.titulo ?? "Detalhes da ordem de serviço"}
-                            </h2>
+        <section className="os-detail-card os-detail-technical-opinion-card">
+            <header className="os-detail-card-heading">
+                <div><h2>Parecer técnico</h2><p>Registro técnico da execução e conclusão da ordem</p></div>
+                <span className={`os-detail-count ${ordem.parecer_tecnico?.trim() ? "os-detail-count--success" : ""}`}>{ordem.parecer_tecnico?.trim() ? "Registrado" : "Pendente"}</span>
+            </header>
+            {ordem.parecer_tecnico?.trim() ? (
+                <div className="os-detail-opinion-content">
+                    <span className="os-detail-opinion-icon"><i className="fa-solid fa-file-circle-check" aria-hidden="true" /></span>
+                    <div><strong>Parecer registrado no SGOS</strong><p>{ordem.parecer_tecnico}</p></div>
+                </div>
+            ) : (
+                <div className="os-detail-opinion-empty">
+                    <span className="os-detail-opinion-icon"><i className="fa-regular fa-file-lines" aria-hidden="true" /></span>
+                    <div><strong>Nenhum parecer técnico registrado</strong><p>O parecer será salvo no SGOS quando a ordem for concluída.</p></div>
+                </div>
+            )}
+            {ordem.ativo && !ordem.parecer_tecnico?.trim() && podeConcluir && ordem.status !== "concluido" && (
+                <div className="os-detail-opinion-editor">
+                    <label className="os-detail-field" htmlFor="os-detail-opinion-draft"><span>Preparar parecer técnico</span>
+                        <textarea id="os-detail-opinion-draft" rows={4} value={parecerTemporario} onChange={(event) => setParecerTemporario(event.target.value)} placeholder="Descreva o trabalho realizado, os testes executados e o resultado…" />
+                    </label>
+                    <button type="button" className="os-detail-btn os-detail-btn--primary" disabled={!parecerTemporario.trim() || alterandoStatusId !== null} onClick={() => { setStatusSelecionado("concluido"); setStatusPainelAberto(true); document.querySelector(".gestec-os-detail-main")?.scrollIntoView({ behavior: "smooth", block: "start" }); }}><i className="fa-solid fa-clipboard-check" aria-hidden="true" /> Revisar conclusão e salvar</button>
+                    <small className="os-detail-demo-note">O parecer só será persistido após confirmar a conclusão na etapa seguinte.</small>
+                </div>
+            )}
+        </section>
+    </div>
+
+    <aside className="os-detail-aside-column">
+        <section className="os-detail-card os-detail-comments-card">
+            <header className="os-detail-card-heading"><div><h2>Comentários</h2><p>Troca de informações da equipe</p></div><span className="os-detail-count">{comentariosDemo.length} comentários</span></header>
+            <div className="os-detail-comments-list">{comentariosDemo.map((comentario) => <article key={comentario.id} className="os-detail-comment"><span className={`os-detail-avatar os-detail-avatar--${comentario.tom}`}>{comentario.iniciais}</span><div className="os-detail-comment-body"><div className="os-detail-comment-meta"><strong>{comentario.autor}</strong><time>{comentario.quando}</time></div><p>{comentario.texto}</p></div></article>)}</div>
+            <form className="os-detail-comment-form" onSubmit={(event) => { event.preventDefault(); const texto = comentarioNovo.trim(); if (!texto) return; const userText = "Você"; setComentariosDemo((atuais) => [...atuais, { id: Date.now(), iniciais: "VC", autor: userText, quando: "Agora", texto, tom: "azul" }]); setComentarioNovo(""); }}>
+                <textarea ref={comentarioRef} rows={2} value={comentarioNovo} onChange={(event) => setComentarioNovo(event.target.value)} placeholder="Escreva uma atualização para a equipe…" aria-label="Escrever comentário demonstrativo" />
+                <button type="submit" className="os-detail-btn os-detail-btn--primary" disabled={!comentarioNovo.trim()}><i className="fa-solid fa-check" aria-hidden="true" /> Enviar atualização</button>
+            </form>
+            <small className="os-detail-demo-note">Comentários demonstrativos: não são enviados nem salvos no backend.</small>
+        </section>
+
+        <section className="os-detail-card os-detail-people-card"><header className="os-detail-card-heading"><div><h2>Pessoas envolvidas</h2></div><button type="button" aria-label="Alterar pessoa responsável" onClick={() => setResponsavelPainelAberto((aberto) => !aberto)} disabled={!ordem.ativo || !podeReatribuirResponsavel || podeEditar}><i className="fa-solid fa-plus" aria-hidden="true" /></button></header><div className="os-detail-people-list">
+        <article><span className="os-detail-avatar os-detail-avatar--blue">{(responsavelAtual?.nome || "André Lima").split(/\s+/).slice(0, 2).map((parte) => parte[0]).join("").toUpperCase()}</span><div><strong>{responsavelAtual?.nome || "André Lima"}</strong><small>Responsável técnico{!responsavelAtual ? " · demonstração" : ""}</small></div><i className={`os-detail-presence${responsavelAtual?.ativo === false ? " inativo" : ""}`} aria-label={responsavelAtual?.ativo === false ? "Inativo" : "Ativo"} /></article>
+        <article><span className="os-detail-avatar os-detail-avatar--violet">JF</span><div><strong>Juliana Ferreira</strong><small>Apoio técnico · demonstração</small></div><i className="os-detail-presence" aria-label="Ativo (demonstração)" /></article>
+        <article><span className="os-detail-avatar os-detail-avatar--blue">MC</span><div><strong>Mariana Costa</strong><small>Gestora da ordem · demonstração</small></div><i className="os-detail-presence inativo" aria-label="Disponibilidade não informada" /></article>
+    </div></section>
+</aside>
+</div>
+                        </>
+                    )}
+{ !ordem && !carregando && !erro && <div className="os-detail-empty"><strong>Ordem não encontrada</strong><span>Volte à lista e selecione uma ordem válida.</span><button type="button" className="os-detail-btn os-detail-btn--primary" onClick={onFechar}>Voltar às ordens</button></div> }
+                </section >
+            ) : (
+    <section
+        className={`ordem-modal ordem-modal--detalhes${modoPagina ? " ordem-modal--pagina" : ""}`}
+        role={modoPagina ? "region" : "dialog"}
+        aria-modal={modoPagina ? undefined : true}
+        aria-label={modoPagina ? "Detalhes da ordem de serviço" : undefined}
+        aria-labelledby={modoPagina ? undefined : "ordem-detalhes-titulo"}
+    >
+        <header className="ordem-modal-header">
+            <div>
+                <span className="ordem-card-id">
+                    {ordem ? `OS #${ordem.id}` : "Ordem de serviço"}
+                </span>
+
+                <h2 id="ordem-detalhes-titulo">
+                    {ordem?.titulo ?? "Detalhes da ordem de serviço"}
+                </h2>
+            </div>
+
+            <button
+                type="button"
+                className="ordem-modal-close"
+                onClick={onFechar}
+                aria-label="Fechar detalhes"
+            >
+                ×
+            </button>
+        </header>
+
+        <div className="ordem-modal-body">
+            {carregando && (
+                <p className="ordens-feedback" role="status">
+                    Carregando detalhes...
+                </p>
+            )}
+
+            {erro && (
+                <p
+                    className="ordens-feedback ordens-feedback--error"
+                    role="alert"
+                >
+                    {erro}
+                </p>
+            )}
+
+            {!ordem && !carregando && !erro && (
+                <p>Não há detalhes disponíveis para esta ordem.</p>
+            )}
+
+            {ordem && (
+                <>
+                    <div className="ordem-detalhes-resumo">
+                        <div className="ordem-detalhe">
+                            <span>Cliente</span>
+                            <strong>
+                                {cliente ? (
+                                    <Link
+                                        to={`/clientes?visualizar=${cliente.id}`}
+                                        className="ordem-relacionamento-link"
+                                    >
+                                        {cliente.nome}
+                                    </Link>
+                                ) : ordem.cliente_id ? (
+                                    `Cliente #${ordem.cliente_id}`
+                                ) : (
+                                    "Não associado"
+                                )}
+                            </strong>
                         </div>
 
-                        <button
-                            type="button"
-                            className="ordem-modal-close"
-                            onClick={onFechar}
-                            aria-label="Fechar detalhes"
-                        >
-                            ×
-                        </button>
-                    </header>
+                        <div className="ordem-detalhe">
+                            <span>Departamento</span>
+                            <strong>
+                                {departamento ? (
+                                    <Link
+                                        to={`/departamentos?visualizar=${departamento.id}`}
+                                        className="ordem-relacionamento-link"
+                                    >
+                                        {departamento.nome}
+                                    </Link>
+                                ) : (
+                                    `Departamento #${ordem.departamento_id}`
+                                )}
+                            </strong>
+                        </div>
 
-                    <div className="ordem-modal-body">
-                        {carregando && (
-                            <p className="ordens-feedback" role="status">
-                                Carregando detalhes...
-                            </p>
-                        )}
+                        <div className="ordem-detalhe">
+                            <span>Tipo</span>
+                            <strong>{TIPO_LABELS[ordem.tipo]}</strong>
+                        </div>
 
-                        {erro && (
-                            <p
-                                className="ordens-feedback ordens-feedback--error"
-                                role="alert"
+                        <div className="ordem-detalhe">
+                            <span>Status</span>
+                            <strong
+                                className={`ordem-status-badge ordem-status-badge--${ordem.status}`}
                             >
-                                {erro}
+                                {STATUS_LABELS[ordem.status]}
+                            </strong>
+                        </div>
+
+                        <div className="ordem-detalhe">
+                            <span>Criticidade</span>
+                            <strong>
+                                {ordem.criticidade
+                                    ? CRITICIDADE_LABELS[ordem.criticidade]
+                                    : "Não definida"}
+                            </strong>
+                        </div>
+
+                        <div className="ordem-detalhe">
+                            <span>Data de criação</span>
+                            <strong>
+                                {formatarData(ordem.data_criacao)}
+                            </strong>
+                        </div>
+
+                        <div className="ordem-detalhe">
+                            <span>Projeto</span>
+                            <strong>
+                                {ordem.projeto_id
+                                    ? `Projeto #${ordem.projeto_id}`
+                                    : "Sem projeto associado"}
+                            </strong>
+                        </div>
+
+                        <div className="ordem-detalhe">
+                            <span>Prazo do SLA</span>
+                            <strong>
+                                {"data_limite_sla" in ordem
+                                    ? formatarData(
+                                        (ordem as OrdemComSla)
+                                            .data_limite_sla,
+                                    )
+                                    : "Não informado"}
+                            </strong>
+                        </div>
+                    </div>
+
+                    <section className="ordem-detalhes-descricao ordem-responsavel-edicao">
+                        <h3>Responsável</h3>
+                        <p className="ordem-responsavel-atual">
+                            {responsavelAtual
+                                ? `${responsavelAtual.nome} (${responsavelAtual.usuario})`
+                                : ordem.responsavel_id !== null
+                                    ? `Funcionário #${ordem.responsavel_id}`
+                                    : "Sem responsável atribuído"}
+                            {responsavelAtual && !responsavelAtual.ativo && <span className="ordem-responsavel-inativo"> · Inativo — vínculo histórico preservado</span>}
+                        </p>
+                        {podeReatribuirResponsavel && ordem.ativo && ordem.status !== "concluido" && (
+                            <div className="ordem-reatribuicao-controles">
+                                <div className="ordem-reatribuicao-campo">
+                                    <label htmlFor="ordem-responsavel-novo">Atribuir ou reatribuir para funcionário ativo</label>
+                                    <Autocomplete
+                                        id="ordem-responsavel-novo"
+                                        options={responsavelOptions}
+                                        value={responsavelNovoId}
+                                        onChange={(value) => setResponsavelNovoId(value === null ? null : Number(value))}
+                                        placeholder="Pesquisar funcionário ativo"
+                                        clearable
+                                        disabled={atribuindoResponsavel}
+                                        emptyMessage="Nenhum funcionário ativo encontrado."
+                                    />
+                                </div>
+                                <button
+                                    type="button"
+                                    className="ordens-btn-primary ordem-responsavel-atualizar"
+                                    onClick={() => { if (responsavelNovoId !== null) onAtribuirResponsavel(responsavelNovoId); }}
+                                    disabled={atribuindoResponsavel || responsavelNovoId === null || responsavelNovoId === ordem.responsavel_id}
+                                    aria-busy={atribuindoResponsavel}
+                                >
+                                    {atribuindoResponsavel ? "Salvando..." : ordem.responsavel_id === null ? "Atribuir responsável" : "Reatribuir responsável"}
+                                </button>
+                            </div>
+                        )}
+                    </section>
+
+                    {ordem.ativo && podeAlterarStatus && (
+        <section className="ordem-detalhes-descricao ordem-status-edicao">
+            <h3>Alterar status</h3>
+
+            <div className="ordem-status-controls">
+                <div className="ordem-status-field">
+                    <label htmlFor="ordem-status-select">Novo status</label>
+                    <select
+                        id="ordem-status-select"
+                        className="ordem-status-select"
+                        value={statusSelecionado}
+                        onChange={(event) =>
+                            setStatusSelecionado(
+                                event.target.value as StatusOrdemServico,
+                            )
+                        }
+                        disabled={alterandoStatusId !== null}
+                    >
+                        {statusEditaveis.map((status) => (
+                            <option key={status} value={status}>
+                                {STATUS_LABELS[status]}
+                            </option>
+                        ))}
+                    </select>
+                </div>
+                        {podeRegistrarHoras && (
+                            <CamposHoras
+                                idBase="ordem-status-horas"
+                                duracao={duracaoStatus}
+                                dataTrabalho={dataStatus}
+                                onDuracao={setDuracaoStatus}
+                                onDataTrabalho={setDataStatus}
+                                desabilitado={alterandoStatusId !== null}
+                                classeCampo="ordem-status-field"
+                                opcional
+                            />
+                        )}
+
+                        {erroHorasStatus && (
+                            <p className="ordens-feedback ordens-feedback--error" role="alert">
+                                {erroHorasStatus}
                             </p>
                         )}
+    <button
+        type="button"
+        className="ordens-btn-primary ordem-status-atualizar"
+        onClick={() => onAlterarStatus(
+            statusSelecionado,
+            statusSelecionado === "concluido" ? parecerTemporario : undefined,
+            horasDoStatus,
+        )}
+        disabled={
+            alterandoStatusId !== null ||
+            statusSelecionado === ordem.status ||
+            erroHorasStatus !== null
+        }
+        aria-busy={alterandoStatusId === ordem.id}
+    >
+        {alterandoStatusId === ordem.id
+            ? "Atualizando..."
+            : statusSelecionado === "concluido"
+                ? "Concluir O.S."
+                : "Atualizar status"}
+    </button>
+                                        </div >
+                                    </section >
+                                )
+}
 
-                        {!ordem && !carregando && !erro && (
-                            <p>Não há detalhes disponíveis para esta ordem.</p>
-                        )}
+{
+    prazoPainelAberto && ordem.ativo && podeAlterarPrazo && !podeEditar && (
+        <section className="ordem-detalhes-descricao ordem-status-edicao">
+            <h3>Alterar prazo final</h3>
 
-                        {ordem && (
-                            <>
-                                <div className="ordem-detalhes-resumo">
-                                    <div className="ordem-detalhe">
-                                        <span>Cliente</span>
-                                        <strong>
-                                            {cliente ? (
-                                                <Link
-                                                    to={`/clientes?visualizar=${cliente.id}`}
-                                                    className="ordem-relacionamento-link"
-                                                >
-                                                    {cliente.nome}
-                                                </Link>
-                                            ) : ordem.cliente_id ? (
-                                                `Cliente #${ordem.cliente_id}`
-                                            ) : (
-                                                "Não associado"
-                                            )}
-                                        </strong>
-                                    </div>
+            <input
+                id="ordem-prazo-input"
+                type="date"
+                className="ordem-status-select"
+                aria-label="Selecionar novo prazo final"
+                value={prazoSelecionado}
+                onChange={(event) =>
+                    setPrazoSelecionado(event.target.value)
+                }
+                disabled={alterandoPrazo}
+            />
 
-                                    <div className="ordem-detalhe">
-                                        <span>Departamento</span>
-                                        <strong>
-                                            {departamento ? (
-                                                <Link
-                                                    to={`/departamentos?visualizar=${departamento.id}`}
-                                                    className="ordem-relacionamento-link"
-                                                >
-                                                    {departamento.nome}
-                                                </Link>
-                                            ) : (
-                                                `Departamento #${ordem.departamento_id}`
-                                            )}
-                                        </strong>
-                                    </div>
-
-                                    <div className="ordem-detalhe">
-                                        <span>Tipo</span>
-                                        <strong>{TIPO_LABELS[ordem.tipo]}</strong>
-                                    </div>
-
-                                    <div className="ordem-detalhe">
-                                        <span>Status</span>
-                                        <strong
-                                            className={`ordem-status-badge ordem-status-badge--${ordem.status}`}
-                                        >
-                                            {STATUS_LABELS[ordem.status]}
-                                        </strong>
-                                    </div>
-
-                                    <div className="ordem-detalhe">
-                                        <span>Criticidade</span>
-                                        <strong>
-                                            {ordem.criticidade
-                                                ? CRITICIDADE_LABELS[ordem.criticidade]
-                                                : "Não definida"}
-                                        </strong>
-                                    </div>
-
-                                    <div className="ordem-detalhe">
-                                        <span>Data de criação</span>
-                                        <strong>
-                                            {formatarData(ordem.data_criacao)}
-                                        </strong>
-                                    </div>
-
-                                    <div className="ordem-detalhe">
-                                        <span>Projeto</span>
-                                        <strong>
-                                            {ordem.projeto_id
-                                                ? `Projeto #${ordem.projeto_id}`
-                                                : "Sem projeto associado"}
-                                        </strong>
-                                    </div>
-
-                                    <div className="ordem-detalhe">
-                                        <span>Prazo do SLA</span>
-                                        <strong>
-                                            {"data_limite_sla" in ordem
-                                                ? formatarData(
-                                                    (ordem as OrdemComSla)
-                                                        .data_limite_sla,
-                                                )
-                                                : "Não informado"}
-                                        </strong>
-                                    </div>
-                                </div>
-
-                                <section className="ordem-detalhes-descricao ordem-responsavel-edicao">
-                                    <h3>Responsável</h3>
-                                    <p className="ordem-responsavel-atual">
-                                        {responsavelAtual
-                                            ? `${responsavelAtual.nome} (${responsavelAtual.usuario})`
-                                            : ordem.responsavel_id !== null
-                                                ? `Funcionário #${ordem.responsavel_id}`
-                                                : "Sem responsável atribuído"}
-                                        {responsavelAtual && !responsavelAtual.ativo && <span className="ordem-responsavel-inativo"> · Inativo — vínculo histórico preservado</span>}
-                                    </p>
-                                    {podeReatribuirResponsavel && ordem.ativo && ordem.status !== "concluido" && (
-                                        <div className="ordem-reatribuicao-controles">
-                                            <div className="ordem-reatribuicao-campo">
-                                                <label htmlFor="ordem-responsavel-novo">Atribuir ou reatribuir para funcionário ativo</label>
-                                                <Autocomplete
-                                                    id="ordem-responsavel-novo"
-                                                    options={responsavelOptions}
-                                                    value={responsavelNovoId}
-                                                    onChange={(value) => setResponsavelNovoId(value === null ? null : Number(value))}
-                                                    placeholder="Pesquisar funcionário ativo"
-                                                    clearable
-                                                    disabled={atribuindoResponsavel}
-                                                    emptyMessage="Nenhum funcionário ativo encontrado."
-                                                />
-                                            </div>
-                                            <button
-                                                type="button"
-                                                className="ordens-btn-primary ordem-responsavel-atualizar"
-                                                onClick={() => { if (responsavelNovoId !== null) onAtribuirResponsavel(responsavelNovoId); }}
-                                                disabled={atribuindoResponsavel || responsavelNovoId === null || responsavelNovoId === ordem.responsavel_id}
-                                                aria-busy={atribuindoResponsavel}
-                                            >
-                                                {atribuindoResponsavel ? "Salvando..." : ordem.responsavel_id === null ? "Atribuir responsável" : "Reatribuir responsável"}
-                                            </button>
-                                        </div>
-                                    )}
-                                </section>
-
-                                {ordem.ativo && podeAlterarStatus && (
-                                    <section className="ordem-detalhes-descricao ordem-status-edicao">
-                                        <h3>Alterar status</h3>
-
-                                        <div className="ordem-status-controls">
-                                            <div className="ordem-status-field">
-                                                <label htmlFor="ordem-status-select">Novo status</label>
-                                                <select
-                                                    id="ordem-status-select"
-                                                    className="ordem-status-select"
-                                                    value={statusSelecionado}
-                                                    onChange={(event) =>
-                                                        setStatusSelecionado(
-                                                            event.target.value as StatusOrdemServico,
-                                                        )
-                                                    }
-                                                    disabled={alterandoStatusId !== null}
-                                                >
-                                                    {statusEditaveis.map((status) => (
-                                                        <option key={status} value={status}>
-                                                            {STATUS_LABELS[status]}
-                                                        </option>
-                                                    ))}
-                                                </select>
-                                            </div>
-
-                                            <button
-                                                type="button"
-                                                className="ordens-btn-primary ordem-status-atualizar"
-                                                onClick={() => onAlterarStatus(
-                                                    statusSelecionado,
-                                                    statusSelecionado === "concluido" ? parecerTemporario : undefined,
-                                                )}
-                                                disabled={
-                                                    alterandoStatusId !== null ||
-                                                    statusSelecionado === ordem.status
-                                                }
-                                                aria-busy={alterandoStatusId === ordem.id}
-                                            >
-                                                {alterandoStatusId === ordem.id
-                                                    ? "Atualizando..."
-                                                    : statusSelecionado === "concluido"
-                                                        ? "Concluir O.S."
-                                                        : "Atualizar status"}
-                                            </button>
-                                        </div>
-                                    </section>
-                                )}
-
-                                {prazoPainelAberto && ordem.ativo && !podeEditar && (
-                                    <section className="ordem-detalhes-descricao ordem-status-edicao">
-                                        <h3>Alterar prazo final</h3>
-
-                                        <input
-                                            id="ordem-prazo-input"
-                                            type="date"
-                                            className="ordem-status-select"
-                                            aria-label="Selecionar novo prazo final"
-                                            value={prazoSelecionado}
-                                            onChange={(event) =>
-                                                setPrazoSelecionado(event.target.value)
-                                            }
-                                            disabled={alterandoPrazo}
-                                        />
-
-                                        <button
-                                            type="button"
-                                            className="ordens-btn-primary ordem-status-atualizar"
-                                            onClick={() => setJustificativaAberta(true)}
-                                            disabled={
-                                                alterandoPrazo ||
-                                                !prazoSelecionado ||
-                                                prazoSelecionado === prazoAtual
-                                            }
-                                        >
-                                            {alterandoPrazo
-                                                ? "Atualizando..."
-                                                : "Confirmar alteração"}
-                                        </button>
-                                    </section>
-                                )}
+            <button
+                type="button"
+                className="ordens-btn-primary ordem-status-atualizar"
+                onClick={() => setJustificativaAberta(true)}
+                disabled={
+                    alterandoPrazo ||
+                    !prazoSelecionado ||
+                    prazoSelecionado === prazoAtual
+                }
+            >
+                {alterandoPrazo
+                    ? "Atualizando..."
+                    : "Confirmar alteração"}
+            </button>
+        </section>
+    )
+}
 
                                 <section className="ordem-detalhes-descricao">
                                     <h3>Descrição da solicitação</h3>
@@ -1314,330 +1519,337 @@ function OrdemServicoDetalhesModal({
                                 </section>
                             </>
                         )}
+                    </div >
+
+    <footer className="ordem-modal-actions">
+        <button
+            type="button"
+            className="ordens-btn-secondary"
+            onClick={onFechar}
+        >
+            Fechar
+        </button>
+
+        {ordem && (
+            <button
+                type="button"
+                className="ordens-btn-secondary"
+                onClick={() => setAnexoAberto(true)}
+            >
+                Anexar arquivos
+            </button>
+        )}
+
+                    </footer >
+                </section >
+            )}
+
+
+{
+    anexoAberto && (
+        <div
+            className="ordem-modal-overlay ordem-modal-overlay--sobreposto"
+            onMouseDown={(event) => {
+                if (event.target === event.currentTarget && !enviandoAnexo) {
+                    cancelarAnexo();
+                }
+            }}
+        >
+            <section
+                className="ordem-modal ordem-modal--anexo"
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="ordem-anexo-titulo"
+            >
+                <header className="ordem-modal-header">
+                    <div>
+                        <span className="ordem-card-id">ANEXOS E RELATO</span>
+                        <h2 id="ordem-anexo-titulo">
+                            Anexar à OS #{ordem?.id}
+                        </h2>
                     </div>
 
-                    <footer className="ordem-modal-actions">
-                        <button
-                            type="button"
-                            className="ordens-btn-secondary"
-                            onClick={onFechar}
-                        >
-                            Fechar
-                        </button>
+                    <button
+                        type="button"
+                        className="ordem-modal-close"
+                        onClick={cancelarAnexo}
+                        disabled={enviandoAnexo}
+                        aria-label="Fechar anexos"
+                    >
+                        ×
+                    </button>
+                </header>
 
-                        {ordem && (
-                            <button
-                                type="button"
-                                className="ordens-btn-secondary"
-                                onClick={() => setAnexoAberto(true)}
-                            >
-                                Anexar arquivos
-                            </button>
-                        )}
-                    </footer>
-                </section>
-            )}
+                <div className="ordem-modal-body ordem-parecer-rascunho">
+                    <label htmlFor="ordem-anexo-relato">Relato</label>
+                    <textarea
+                        id="ordem-anexo-relato"
+                        className="ordem-parecer-textarea"
+                        rows={5}
+                        maxLength={2000}
+                        value={relatoAnexo}
+                        onChange={(event) => setRelatoAnexo(event.target.value)}
+                        placeholder="Descreva a implementação realizada ou o impedimento encontrado..."
+                        disabled={enviandoAnexo}
+                    />
 
-
-            {anexoAberto && (
-                <div
-                    className="ordem-modal-overlay ordem-modal-overlay--sobreposto"
-                    onMouseDown={(event) => {
-                        if (event.target === event.currentTarget && !enviandoAnexo) {
-                            cancelarAnexo();
+                    <label htmlFor="ordem-anexo-arquivos">
+                        Arquivos (máx. {LIMITE_ARQUIVO_MB} MB cada
+                        {extensoesPermitidas.length > 0
+                            ? `; aceitos: ${extensoesPermitidas.join(", ")}`
+                            : ""}
+                        )
+                    </label>
+                    <input
+                        id="ordem-anexo-arquivos"
+                        type="file"
+                        multiple
+                        accept={
+                            extensoesPermitidas.length > 0
+                                ? extensoesPermitidas.map((e) => `.${e}`).join(",")
+                                : undefined
                         }
-                    }}
-                >
-                    <section
-                        className="ordem-modal ordem-modal--anexo"
-                        role="dialog"
-                        aria-modal="true"
-                        aria-labelledby="ordem-anexo-titulo"
-                    >
-                        <header className="ordem-modal-header">
-                            <div>
-                                <span className="ordem-card-id">ANEXOS E RELATO</span>
-                                <h2 id="ordem-anexo-titulo">
-                                    Anexar à OS #{ordem?.id}
-                                </h2>
-                            </div>
+                        onChange={selecionarArquivos}
+                        disabled={enviandoAnexo}
+                    />
 
-                            <button
-                                type="button"
-                                className="ordem-modal-close"
-                                onClick={cancelarAnexo}
-                                disabled={enviandoAnexo}
-                                aria-label="Fechar anexos"
-                            >
-                                ×
-                            </button>
-                        </header>
+                    {arquivosAnexo.length > 0 && (
+                        <ul className="ordem-anexo-lista">
+                            {arquivosAnexo.map((arquivo, indice) => (
+                                <li key={`${arquivo.name}-${arquivo.size}`}>
+                                    <span>
+                                        {arquivo.name} · {formatarTamanho(arquivo.size)}
+                                    </span>
+                                    <button
+                                        type="button"
+                                        className="ordens-btn-secondary"
+                                        onClick={() => removerArquivo(indice)}
+                                        disabled={enviandoAnexo}
+                                        aria-label={`Remover ${arquivo.name}`}
+                                    >
+                                        Remover
+                                    </button>
+                                </li>
+                            ))}
+                        </ul>
+                    )}
 
-                        <div className="ordem-modal-body ordem-parecer-rascunho">
-                            <label htmlFor="ordem-anexo-relato">Relato</label>
-                            <textarea
-                                id="ordem-anexo-relato"
-                                className="ordem-parecer-textarea"
-                                rows={5}
-                                maxLength={2000}
-                                value={relatoAnexo}
-                                onChange={(event) => setRelatoAnexo(event.target.value)}
-                                placeholder="Descreva a implementação realizada ou o impedimento encontrado..."
-                                disabled={enviandoAnexo}
-                            />
-
-                            <label htmlFor="ordem-anexo-arquivos">
-                                Arquivos (máx. {LIMITE_ARQUIVO_MB} MB cada
-                                {extensoesPermitidas.length > 0
-                                    ? `; aceitos: ${extensoesPermitidas.join(", ")}`
-                                    : ""}
-                                )
-                            </label>
-                            <input
-                                id="ordem-anexo-arquivos"
-                                type="file"
-                                multiple
-                                accept={
-                                    extensoesPermitidas.length > 0
-                                        ? extensoesPermitidas.map((e) => `.${e}`).join(",")
-                                        : undefined
-                                }
-                                onChange={selecionarArquivos}
-                                disabled={enviandoAnexo}
-                            />
-
-                            {arquivosAnexo.length > 0 && (
-                                <ul className="ordem-anexo-lista">
-                                    {arquivosAnexo.map((arquivo, indice) => (
-                                        <li key={`${arquivo.name}-${arquivo.size}`}>
-                                            <span>
-                                                {arquivo.name} · {formatarTamanho(arquivo.size)}
-                                            </span>
-                                            <button
-                                                type="button"
-                                                className="ordens-btn-secondary"
-                                                onClick={() => removerArquivo(indice)}
-                                                disabled={enviandoAnexo}
-                                                aria-label={`Remover ${arquivo.name}`}
-                                            >
-                                                Remover
-                                            </button>
-                                        </li>
-                                    ))}
-                                </ul>
-                            )}
-
-                            {erroAnexo && (
-                                <p className="ordens-feedback ordens-feedback--error" role="alert">
-                                    {erroAnexo}
-                                </p>
-                            )}
-
-                            {enviandoAnexo && (
-                                <div className="ordem-anexo-progresso" role="status">
-                                    <progress
-                                        value={progressoAnexo}
-                                        max={100}
-                                        aria-label="Progresso do envio"
-                                    />
-                                    <span>Enviando... {progressoAnexo}%</span>
-                                </div>
-                            )}
-
-                            {sucessoAnexo && (
-                                <p className="ordens-feedback" role="status">
-                                    {sucessoAnexo}
-                                </p>
-                            )}
-
-                            <h3>Anexos desta OS</h3>
-
-                            {carregandoAnexos ? (
-                                <p className="ordens-feedback" role="status">
-                                    Carregando anexos...
-                                </p>
-                            ) : erroAnexos ? (
-                                <p className="ordens-feedback ordens-feedback--error" role="alert">
-                                    {erroAnexos}
-                                </p>
-                            ) : anexos.length === 0 ? (
-                                <p>Nenhum anexo enviado para esta O.S.</p>
-                            ) : (
-                                <ul className="ordem-anexo-lista">
-                                    {anexos.map((anexo) => (
-                                        <li key={anexo.id}>
-                                            <span>
-                                                {anexo.url ? (
-                                                    <a
-                                                        href={anexo.url}
-                                                        target="_blank"
-                                                        rel="noopener noreferrer"
-                                                        onClick={(event) => {
-                                                            // O download exige o token: baixa pela API em vez de abrir o link.
-                                                            if (onBaixarAnexo) {
-                                                                event.preventDefault();
-                                                                void baixarAnexo(anexo);
-                                                            }
-                                                        }}
-                                                    >
-                                                        {anexo.nome}
-                                                    </a>
-                                                ) : (
-                                                    anexo.nome
-                                                )}
-                                                {anexo.tamanho_bytes
-                                                    ? ` · ${formatarTamanho(anexo.tamanho_bytes)}`
-                                                    : ""}
-                                                {anexo.data_envio
-                                                    ? ` · ${formatarData(anexo.data_envio)}`
-                                                    : ""}
-                                                {anexo.autor ? ` · ${anexo.autor}` : ""}
-                                                {anexo.relato ? ` — ${anexo.relato}` : ""}
-                                            </span>
-                                        </li>
-                                    ))}
-                                </ul>
-                            )}
-                        </div>
-
-                        <footer className="ordem-modal-actions">
-                            <button
-                                type="button"
-                                className="ordens-btn-secondary"
-                                onClick={cancelarAnexo}
-                                disabled={enviandoAnexo}
-                            >
-                                Fechar
-                            </button>
-
-                            <button
-                                type="button"
-                                className="ordens-btn-primary"
-                                onClick={enviarAnexo}
-                                disabled={enviandoAnexo || arquivosAnexo.length === 0}
-                                aria-busy={enviandoAnexo}
-                            >
-                                {enviandoAnexo ? "Enviando..." : "Enviar"}
-                            </button>
-                        </footer>
-                    </section>
-                </div>
-            )}
-
-            {justificativaAberta && (
-                <div
-                    className="ordem-modal-overlay ordem-modal-overlay--sobreposto"
-                    onMouseDown={(event) => {
-                        if (event.target === event.currentTarget) {
-                            cancelarJustificativa();
-                        }
-                    }}
-                >
-                    <section
-                        className="ordem-modal ordem-modal--justificativa"
-                        role="dialog"
-                        aria-modal="true"
-                        aria-labelledby="ordem-justificativa-titulo"
-                    >
-                        <header className="ordem-modal-header">
-                            <div>
-                                <span className="ordem-card-id">
-                                    MOTIVO DA ALTERAÇÃO
-                                </span>
-
-                                <h2 id="ordem-justificativa-titulo">
-                                    Alterar prazo da OS #{ordem?.id}
-                                </h2>
-                            </div>
-
-                            <button
-                                type="button"
-                                className="ordem-modal-close"
-                                onClick={cancelarJustificativa}
-                                aria-label="Fechar motivo da alteração"
-                            >
-                                ×
-                            </button>
-                        </header>
-
-                        <div className="ordem-modal-body ordem-parecer-rascunho">
-                            <label htmlFor="ordem-justificativa-prazo">
-                                Explique o motivo da alteração
-                            </label>
-
-                            <textarea
-                                id="ordem-justificativa-prazo"
-                                className="ordem-parecer-textarea"
-                                rows={5}
-                                maxLength={1000}
-                                autoFocus
-                                value={justificativaPrazo}
-                                onChange={(event) =>
-                                    setJustificativaPrazo(event.target.value)
-                                }
-                                placeholder="Descreva o motivo da alteração do prazo..."
-                            />
-                        </div>
-
-                        <footer className="ordem-modal-actions">
-                            <button
-                                type="button"
-                                className="ordens-btn-secondary"
-                                onClick={cancelarJustificativa}
-                            >
-                                Cancelar
-                            </button>
-
-                            <button
-                                type="button"
-                                className="ordens-btn-primary"
-                                disabled={!justificativaPrazo.trim()}
-                                onClick={confirmarJustificativa}
-                            >
-                                Confirmar alteração
-                            </button>
-                        </footer>
-                    </section>
-                </div>
-            )}
-
-            {confirmacaoSaidaAberta && (
-                <div className="projeto-modal-overlay" role="presentation">
-                    <section
-                        className="projeto-modal"
-                        role="alertdialog"
-                        aria-modal="true"
-                        aria-labelledby="ordem-confirmar-saida"
-                    >
-                        <h2 id="ordem-confirmar-saida">
-                            Alterações não salvas
-                        </h2>
-                        <p>
-                            Você tem alterações que ainda não foram salvas.
-                            Deseja descartá-las?
+                    {erroAnexo && (
+                        <p className="ordens-feedback ordens-feedback--error" role="alert">
+                            {erroAnexo}
                         </p>
+                    )}
 
-                        <footer className="projeto-modal-actions">
-                            <button
-                                type="button"
-                                className="projeto-btn-secondary"
-                                onClick={() => setConfirmacaoSaidaAberta(false)}
-                            >
-                                Continuar editando
-                            </button>
+                    {enviandoAnexo && (
+                        <div className="ordem-anexo-progresso" role="status">
+                            <progress
+                                value={progressoAnexo}
+                                max={100}
+                                aria-label="Progresso do envio"
+                            />
+                            <span>Enviando... {progressoAnexo}%</span>
+                        </div>
+                    )}
 
-                            <button
-                                type="button"
-                                className="projeto-btn-primary"
-                                onClick={descartarEdicaoDireta}
-                            >
-                                Descartar alterações
-                            </button>
-                        </footer>
-                    </section>
+                    {sucessoAnexo && (
+                        <p className="ordens-feedback" role="status">
+                            {sucessoAnexo}
+                        </p>
+                    )}
+
+                    <h3>Anexos desta OS</h3>
+
+                    {carregandoAnexos ? (
+                        <p className="ordens-feedback" role="status">
+                            Carregando anexos...
+                        </p>
+                    ) : erroAnexos ? (
+                        <p className="ordens-feedback ordens-feedback--error" role="alert">
+                            {erroAnexos}
+                        </p>
+                    ) : anexos.length === 0 ? (
+                        <p>Nenhum anexo enviado para esta O.S.</p>
+                    ) : (
+                        <ul className="ordem-anexo-lista">
+                            {anexos.map((anexo) => (
+                                <li key={anexo.id}>
+                                    <span>
+                                        {anexo.url ? (
+                                            <a
+                                                href={anexo.url}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                onClick={(event) => {
+                                                    // O download exige o token: baixa pela API em vez de abrir o link.
+                                                    if (onBaixarAnexo) {
+                                                        event.preventDefault();
+                                                        void baixarAnexo(anexo);
+                                                    }
+                                                }}
+                                            >
+                                                {anexo.nome}
+                                            </a>
+                                        ) : (
+                                            anexo.nome
+                                        )}
+                                        {anexo.tamanho_bytes
+                                            ? ` · ${formatarTamanho(anexo.tamanho_bytes)}`
+                                            : ""}
+                                        {anexo.data_envio
+                                            ? ` · ${formatarData(anexo.data_envio)}`
+                                            : ""}
+                                        {anexo.autor ? ` · ${anexo.autor}` : ""}
+                                        {anexo.relato ? ` — ${anexo.relato}` : ""}
+                                    </span>
+                                </li>
+                            ))}
+                        </ul>
+                    )}
                 </div>
-            )}
+
+                <footer className="ordem-modal-actions">
+                    <button
+                        type="button"
+                        className="ordens-btn-secondary"
+                        onClick={cancelarAnexo}
+                        disabled={enviandoAnexo}
+                    >
+                        Fechar
+                    </button>
+
+                    <button
+                        type="button"
+                        className="ordens-btn-primary"
+                        onClick={enviarAnexo}
+                        disabled={enviandoAnexo || arquivosAnexo.length === 0}
+                        aria-busy={enviandoAnexo}
+                    >
+                        {enviandoAnexo ? "Enviando..." : "Enviar"}
+                    </button>
+                </footer>
+            </section>
         </div>
+    )
+}
+
+{
+    justificativaAberta && (
+        <div
+            className="ordem-modal-overlay ordem-modal-overlay--sobreposto"
+            onMouseDown={(event) => {
+                if (event.target === event.currentTarget) {
+                    cancelarJustificativa();
+                }
+            }}
+        >
+            <section
+                className="ordem-modal ordem-modal--justificativa"
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="ordem-justificativa-titulo"
+            >
+                <header className="ordem-modal-header">
+                    <div>
+                        <span className="ordem-card-id">
+                            MOTIVO DA ALTERAÇÃO
+                        </span>
+
+                        <h2 id="ordem-justificativa-titulo">
+                            Alterar prazo da OS #{ordem?.id}
+                        </h2>
+                    </div>
+
+                    <button
+                        type="button"
+                        className="ordem-modal-close"
+                        onClick={cancelarJustificativa}
+                        aria-label="Fechar motivo da alteração"
+                    >
+                        ×
+                    </button>
+                </header>
+
+                <div className="ordem-modal-body ordem-parecer-rascunho">
+                    <label htmlFor="ordem-justificativa-prazo">
+                        Explique o motivo da alteração
+                    </label>
+
+                    <textarea
+                        id="ordem-justificativa-prazo"
+                        className="ordem-parecer-textarea"
+                        rows={5}
+                        maxLength={1000}
+                        autoFocus
+                        value={justificativaPrazo}
+                        onChange={(event) =>
+                            setJustificativaPrazo(event.target.value)
+                        }
+                        placeholder="Descreva o motivo da alteração do prazo..."
+                    />
+                </div>
+
+                <footer className="ordem-modal-actions">
+                    <button
+                        type="button"
+                        className="ordens-btn-secondary"
+                        onClick={cancelarJustificativa}
+                    >
+                        Cancelar
+                    </button>
+
+                    <button
+                        type="button"
+                        className="ordens-btn-primary"
+                        disabled={!justificativaPrazo.trim()}
+                        onClick={confirmarJustificativa}
+                    >
+                        Confirmar alteração
+                    </button>
+                </footer>
+            </section>
+        </div>
+    )
+}
+
+{
+    confirmacaoSaidaAberta && (
+        <div className="projeto-modal-overlay" role="presentation">
+            <section
+                className="projeto-modal"
+                role="alertdialog"
+                aria-modal="true"
+                aria-labelledby="ordem-confirmar-saida"
+            >
+                <h2 id="ordem-confirmar-saida">
+                    Alterações não salvas
+                </h2>
+                <p>
+                    Você tem alterações que ainda não foram salvas.
+                    Deseja descartá-las?
+                </p>
+
+                <footer className="projeto-modal-actions">
+                    <button
+                        type="button"
+                        className="projeto-btn-secondary"
+                        onClick={() => setConfirmacaoSaidaAberta(false)}
+                    >
+                        Continuar editando
+                    </button>
+
+                    <button
+                        type="button"
+                        className="projeto-btn-primary"
+                        onClick={descartarEdicaoDireta}
+                    >
+                        Descartar alterações
+                    </button>
+                </footer>
+            </section>
+        </div>
+    )
+}
+        </div >
     );
 }
 

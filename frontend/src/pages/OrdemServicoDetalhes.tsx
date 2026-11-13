@@ -5,6 +5,8 @@ import OrdemServicoFormModal from "../components/ordens/OrdemServicoFormModal";
 import { useAnexosOrdem } from "../hooks/useAnexosOrdem";
 import OrdemServicoAtivoModal from "../components/ordens/OrdemServicoAtivoModal";
 import { useOrdens } from "../hooks/useOrdens";
+import { useHorasOrdem } from "../hooks/useHorasOrdem";
+
 /** Página de detalhes da O.S.; usa os mesmos serviços e controles já existentes na listagem. */
 function OrdemServicoDetalhes() {
     const { id: idParam } = useParams<{ id: string }>();
@@ -39,6 +41,8 @@ function OrdemServicoDetalhes() {
             window.removeEventListener("beforeunload", avisarAntesDeSair);
         };
     }, [temAlteracoesNaoSalvas]);
+
+    const horasOrdem = useHorasOrdem(ordens.ordemSelecionada);
 
     useEffect(() => {
         if (!idValido) {
@@ -100,6 +104,11 @@ function OrdemServicoDetalhes() {
                         tiposPermitidos={anexosOrdem.tiposPermitidos}
                         onEnviarAnexo={anexosOrdem.enviarAnexo}
                         onBaixarAnexo={anexosOrdem.baixarAnexo}
+                        horas={horasOrdem.horas}
+                        carregandoHoras={horasOrdem.carregandoHoras}
+                        erroHoras={horasOrdem.erroHoras}
+                        onRegistrarHoras={horasOrdem.registrarHoras}
+                        podeRegistrarHoras={ordens.podeRegistrarHoras}
                         podeAlterarPrazo={ordens.podeGerenciar}
                         alterandoPrazo={ordens.alterandoPrazo}
                         onAlterarPrazo={ordens.alterarPrazoOrdem}

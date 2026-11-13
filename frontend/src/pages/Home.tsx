@@ -14,7 +14,7 @@ import {
     CartesianGrid,
 } from "recharts";
 
-import { ApiError, apiRequest } from "../services/api";
+import { ApiError } from "../services/api";
 import { getStoredUser } from "../services/auth";
 import { ordemServicoService } from "../services/ordemServico";
 import { departamentoService } from "../services/departamento";
@@ -30,8 +30,6 @@ import type {
     StatusOrdemServico,
 } from "../types/api";
 
-import NotificacoesSla from "../components/NotificacoesSla";
-import type { NotificacaoSla } from "../types/notificacao";
 import { formatarDataOrdem, parseDataOrdem, STATUS_LABELS } from "../utils/ordemServicoUtils";
 
 const CORES_STATUS: Record<StatusOrdemServico, string> = {
@@ -100,17 +98,6 @@ function Dashboard() {
 
     const [carregando, setCarregando] = useState(true);
     const [erro, setErro] = useState<string | null>(null);
-    const [notificacoes, setNotificacoes] = useState<NotificacaoSla[]>([]);
-
-    // Carrega as notificações de SLA.
-    useEffect(() => {
-        apiRequest<NotificacaoSla[]>("/notificacoes")
-            .then(setNotificacoes)
-            .catch((error: unknown) => {
-                console.error("Erro ao carregar notificações de SLA:", error);
-            });
-    }, []);
-
     const carregarDados = useCallback(async (inicial = false) => {
         if (inicial) {
             setCarregando(true);
@@ -306,29 +293,6 @@ function Dashboard() {
 
     return (
         <main className="dashboard">
-            <NotificacoesSla
-                notificacoes={notificacoes}
-                onDispensar={async (id) => {
-                    try {
-                        await apiRequest<void>(
-                            `/notificacoes/${encodeURIComponent(id)}`,
-                            { method: "DELETE" },
-                        );
-
-                        setNotificacoes((atuais) =>
-                            atuais.filter(
-                                (notificacao) => notificacao.id !== id,
-                            ),
-                        );
-                        return true;
-                    } catch (error: unknown) {
-                        // O cliente HTTP global já apresenta um toast quando a operação falha.
-                        console.error("Erro ao dispensar notificação:", error);
-                        return false;
-                    }
-                }}
-            />
-
             <header className="dashboard-header page-heading">
                 <div>
                     <span className="dashboard-eyebrow projetos-eyebrow eyebrow">{dataHoje}</span>

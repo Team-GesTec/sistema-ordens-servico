@@ -22,7 +22,11 @@ import type {
     Funcionario,
     Projeto,
     StatusOrdemServico,
+    RegistroHorasInput,
 } from "../types/api";
+
+import { validarDataTrabalho, validarDuracao } from "../utils/horasUtils";
+
 import {
     correspondeBuscaOrdem,
     type FiltroResponsavelOrdem,
@@ -75,6 +79,8 @@ export function useOrdens() {
     const [perfilGestor, setPerfilGestor] = useState(
         () => getStoredUser()?.tipo === "gestor",
     );
+
+
 
     const [usuarioAtualId, setUsuarioAtualId] = useState<number | null>(
         () => getStoredUser()?.id ?? null,
@@ -529,6 +535,7 @@ export function useOrdens() {
         ordem: OrdemServico,
         novoStatus: StatusOrdemServico,
         parecerTecnico?: string,
+        horas?: RegistroHorasInput,
     ): Promise<void> {
         const ehResponsavel = ordem.responsavel_id === usuarioAtualId;
 
@@ -559,6 +566,15 @@ export function useOrdens() {
         }
         if (ordem.status === novoStatus) return;
 
+        // As horas são opcionais na troca de status; quando informadas, precisam ser válidas.
+        if (horas) {
+            const erroHoras = validarDuracao(horas.duracao) ?? validarDataTrabalho(horas.data_trabalho);
+            if (erroHoras) {
+                setErro(erroHoras);
+                return;
+            }
+        }
+
         setAlterandoStatusId(ordem.id);
         setErro(null);
         setMensagem(null);
@@ -567,6 +583,7 @@ export function useOrdens() {
                 ordem.id,
                 novoStatus,
                 novoStatus === "concluido" ? parecerFinal : undefined,
+                horas,
             );
             const fallbackDetalhe = { ...ordem, ...atualizada };
             setOrdens((atuais) => atuais.map((item) => item.id === atualizada.id ? atualizada : item));
@@ -588,9 +605,10 @@ export function useOrdens() {
     async function alterarStatusOrdem(
         novoStatus: StatusOrdemServico,
         parecerTecnico?: string,
+        horas?: RegistroHorasInput,
     ): Promise<void> {
         if (!ordemSelecionada) return;
-        await executarAlteracaoStatus(ordemSelecionada, novoStatus, parecerTecnico);
+        await executarAlteracaoStatus(ordemSelecionada, novoStatus, parecerTecnico, horas);
     }
 
     function podeMoverOrdemParaStatus(ordem: OrdemServico, destino: StatusOrdemServico): boolean {
@@ -931,6 +949,12 @@ export function useOrdens() {
             ordemSelecionada.status !== "concluido",
         ),
         ordemSelecionada,
+        podeRegistrarHoras: Boolean(
+            ordemSelecionada &&
+            ordemSelecionada.ativo &&
+            usuarioAtualId !== null &&
+            ordemSelecionada.responsavel_id === usuarioAtualId,
+        ),
         abrirDetalhes,
         abrirDetalhesPorId,
         fecharDetalhes,

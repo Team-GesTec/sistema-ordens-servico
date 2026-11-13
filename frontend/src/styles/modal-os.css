@@ -554,3 +554,115 @@
         width: 100%;
     }
 }
+
+/* ===== GesTec referência consolidado: Real modal components use the radius, border, header and footer system from modais.html. ===== */
+/* Real modal components use the radius, border, header and footer system from modais.html. */
+.gestec-app .projeto-modal,
+.gestec-app .modal,
+.gestec-app .modal-content { border: 1px solid #c8e2f1; border-radius: 16px; background: #fff; box-shadow: 0 20px 70px rgba(9,44,91,.22); }
+.gestec-app .projeto-modal-overlay,
+.gestec-app .modal-overlay { background: rgba(5,22,47,.52); backdrop-filter: blur(3px); }
+.gestec-app .projeto-modal-header,
+.gestec-app .modal-header { padding: 20px 22px; border-bottom: 1px solid #e1edf5; }
+.gestec-app .projeto-modal-header h2,
+.gestec-app .modal-header h2 { color: #153451; font-size: 19px; font-weight: 800; }
+.gestec-app .projeto-modal-actions,
+.gestec-app .modal-actions,
+.gestec-app .modal-footer { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 9px; padding: 15px 22px; border-top: 1px solid #e1edf5; }
+.gestec-app .projeto-field input,
+.gestec-app .projeto-field select,
+.gestec-app .projeto-field textarea,
+.gestec-app .form-field input,
+.gestec-app .form-field select,
+.gestec-app .form-field textarea { border-radius: 9px; border-color: #cfe2ee; background: #fbfdff; }
+
+
+
+/* ===== GesTec design consolidado: Superfícies dos modais de cadastro/detalhe também respeitam o tema escuro. ===== */
+/* Superfícies dos modais de cadastro/detalhe também respeitam o tema escuro. */
+.gestec-app.dark-mode .projeto-modal-overlay,
+.gestec-app.dark-mode .cliente-modal-overlay,
+.gestec-app.dark-mode .funcionario-modal-overlay {
+  background: rgba(2, 9, 19, .76) !important;
+}
+
+.gestec-app.dark-mode .projeto-modal,
+.gestec-app.dark-mode .projeto-modal-header,
+.gestec-app.dark-mode .projeto-modal-actions,
+.gestec-app.dark-mode .projeto-modal-body,
+.gestec-app.dark-mode .modal-content,
+.gestec-app.dark-mode .modal-header,
+.gestec-app.dark-mode .modal-footer,
+.gestec-app.dark-mode .cliente-modal-actions {
+  background-color: #142638 !important;
+  color: #edf6ff !important;
+  border-color: #304a60 !important;
+}
+
+.gestec-app.dark-mode .projeto-modal-header h2,
+.gestec-app.dark-mode .projeto-modal h3,
+.gestec-app.dark-mode .projeto-modal strong,
+.gestec-app.dark-mode .projeto-modal label,
+.gestec-app.dark-mode .projeto-modal .projeto-field label,
+.gestec-app.dark-mode .modal-content h2,
+.gestec-app.dark-mode .modal-content h3 {
+  color: #f0f8ff !important;
+}
+
+.gestec-app.dark-mode .projeto-modal p,
+.gestec-app.dark-mode .projeto-modal small,
+.gestec-app.dark-mode .projeto-modal .projeto-modal-header p:not(.projeto-modal-eyebrow),
+.gestec-app.dark-mode .modal-content p {
+  color: #b8cada;
+}
+
+.gestec-app.dark-mode .projeto-modal input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
+.gestec-app.dark-mode .projeto-modal select,
+.gestec-app.dark-mode .projeto-modal textarea,
+.gestec-app.dark-mode .projeto-modal .custom-select-button,
+.gestec-app.dark-mode .projeto-modal .autocomplete-input,
+.gestec-app.dark-mode .modal-content input,
+.gestec-app.dark-mode .modal-content select,
+.gestec-app.dark-mode .modal-content textarea {
+  background: #0d1d2c !important;
+  border-color: #3c5a72 !important;
+  color: #edf6ff !important;
+}
+
+.gestec-app.dark-mode .projeto-modal .projeto-modal-close,
+.gestec-app.dark-mode .projeto-modal .ordens-views-close {
+  background: #20394e !important;
+  border-color: #3c5a72 !important;
+  color: #dbf4ff !important;
+}
+
+.gestec-app.dark-mode .projeto-modal .projeto-btn-secondary,
+.gestec-app.dark-mode .projeto-modal .btn-secondary {
+  background: #20394e !important;
+  border-color: #3c5a72 !important;
+  color: #e7f5ff !important;
+}
+
+.gestec-app.dark-mode .projeto-modal .projeto-status,
+.gestec-app.dark-mode .projeto-modal .gestec-record-count {
+  background: #183c53;
+  color: #aeeaff;
+  border-color: #315b74;
+}
+
+@media (max-width: 700px) {
+
+  .gestec-app .sidebar:hover,
+  .gestec-app .sidebar:focus-within {
+    width: var(--gestec-sidebar-expanded-width) !important;
+    min-width: var(--gestec-sidebar-expanded-width) !important;
+    max-width: var(--gestec-sidebar-expanded-width) !important;
+  }
+
+  .gestec-app .main,
+  .gestec-app .dashboard {
+    padding-left: 14px !important;
+    padding-right: 14px !important;
+  }
+}
+

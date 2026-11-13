@@ -26,6 +26,12 @@ body {
   color: var(--gestec-ink);
   font-family: 'Sora', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 }
+
+/* Registro de horas (US#2.7) */
+.gestec-app .os-detail-field small { color: var(--gestec-muted); font-size: 11px; font-weight: 500; line-height: 1.4; }
+.gestec-app .os-detail-demo-dialog .os-detail-field { margin-bottom: 14px; }
+.gestec-app .os-detail-form-error { margin: 0 0 14px; padding: 10px 12px; border: 1px solid #e5484d; border-radius: 9px; color: #e5484d; font-size: 13px; font-weight: 600; }
+
 button, input, select, textarea { accent-color: var(--gestec-blue); font: inherit; }
 button { -webkit-tap-highlight-color: transparent; }
 :focus-visible { outline: 3px solid rgba(21, 137, 202, .55); outline-offset: 2px; }
@@ -689,20 +695,18 @@ button { -webkit-tap-highlight-color: transparent; }
   width: 100%;
   padding: 14px;
 }
-.gestec-app .clientes-search-wrapper,
+
 .gestec-app .funcionarios-search-wrap,
 .gestec-app .gestec-search-toolbar > .projetos-search-wrap,
 .gestec-app .projetos-toolbar > .projetos-search-wrap,
 .gestec-app .projetos-toolbar > .projetos-search-autocomplete,
 .gestec-app .projetos-toolbar > .projetos-search-wrap { flex: 1 1 auto; min-width: 0; }
-.gestec-app .clientes-search-wrapper > span { color: #078ed2; }
 .gestec-app .ordens-toolbar-modern {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: end;
   gap: 12px;
   width: 100%;
-  padding: 14px;
 }
 .gestec-app .ordens-toolbar-top { display: contents; }
 .gestec-app .ordens-search-field { min-width: 0; width: 100%; }
@@ -1779,12 +1783,10 @@ body { font-size: 16px; line-height: 1.55; }
 .gestec-app .sidebar .perfil-informacoes small { font-size: 12px !important; }
 
 /* Ícones de busca têm área própria; o texto nunca fica por baixo do glifo. */
-.gestec-app .clientes-search-wrapper,
 .gestec-app .projetos-search-autocomplete .projetos-search-wrap {
   position: relative !important;
   min-width: 0 !important;
 }
-.gestec-app .clientes-search-wrapper > span,
 .gestec-app .projetos-search-autocomplete .projetos-search-wrap > span {
   top: 50% !important;
   left: 14px !important;
@@ -1795,14 +1797,13 @@ body { font-size: 16px; line-height: 1.55; }
   font-size: 21px !important;
   color: #087fbd !important;
 }
-.gestec-app .clientes-search-wrapper .projetos-search,
+.projetos-search,
 .gestec-app .projetos-search-autocomplete .projetos-search-wrap input {
   display: block !important;
   width: 100% !important;
   padding-left: 46px !important;
   text-indent: 0 !important;
 }
-.gestec-app.dark-mode .clientes-search-wrapper > span,
 .gestec-app.dark-mode .projetos-search-autocomplete .projetos-search-wrap > span { color: #75e0ff !important; }
 
 /* Tela dedicada de detalhes da ordem, baseada na referência enviada. */
