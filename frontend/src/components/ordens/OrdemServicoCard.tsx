@@ -32,7 +32,6 @@ interface OrdemServicoCardProps {
     onInicioArrasto?: (ordem: OrdemServico) => void;
     onFimArrasto?: () => void;
     onAbrir: (ordem: OrdemServico) => void;
-    onEditar: (ordem: OrdemServico) => void;
     onAlterarAtivo: (ordem: OrdemServico, acao: AcaoAtivoOrdem) => void;
 }
 
@@ -49,14 +48,10 @@ function OrdemServicoCard({
     onInicioArrasto,
     onFimArrasto,
     onAbrir,
-    onEditar,
     onAlterarAtivo,
 }: OrdemServicoCardProps) {
     const [statusDestino, setStatusDestino] = useState<StatusOrdemServico | "">("");
     const seletorDestinoRef = useRef<HTMLSelectElement>(null);
-
-    const podeEditarEstaOrdem =
-        podeEditar && ordem.ativo && ordem.status !== "concluido" && ordem.status !== "bloqueado";
     const criticidade = ordem.criticidade ?? "indefinida";
     const criticidadeLabel = ordem.criticidade
         ? CRITICIDADE_LABELS[ordem.criticidade]
@@ -147,8 +142,8 @@ function OrdemServicoCard({
                     Responsável: {responsavel
                         ? `${responsavel.nome || `Funcionário #${responsavel.id}`}${!responsavel.ativo ? " (inativo)" : ""}`
                         : ordem.responsavel_id !== null
-                          ? `Funcionário #${ordem.responsavel_id}`
-                          : "Não atribuído"}
+                            ? `Funcionário #${ordem.responsavel_id}`
+                            : "Não atribuído"}
                 </span>
             </div>
 
@@ -156,17 +151,22 @@ function OrdemServicoCard({
                 <div className={`ordem-card-actions${modoKanban ? " ordem-card-actions--kanban" : ""}`}>
                     {podeEditar && (
                         <>
-                            {podeEditarEstaOrdem && (
-                                <button type="button" className="projeto-btn-secondary" onClick={() => onEditar(ordem)} disabled={bloqueado}>
-                                    Editar
-                                </button>
-                            )}
                             {ordem.ativo ? (
-                                <button type="button" className="projeto-btn-secondary" onClick={() => onAlterarAtivo(ordem, "inativar")} disabled={bloqueado}>
+                                <button
+                                    type="button"
+                                    className="projeto-btn-secondary"
+                                    onClick={() => onAlterarAtivo(ordem, "inativar")}
+                                    disabled={bloqueado}
+                                >
                                     Inativar
                                 </button>
                             ) : (
-                                <button type="button" className="projeto-btn-primary" onClick={() => onAlterarAtivo(ordem, "reativar")} disabled={bloqueado}>
+                                <button
+                                    type="button"
+                                    className="projeto-btn-primary"
+                                    onClick={() => onAlterarAtivo(ordem, "reativar")}
+                                    disabled={bloqueado}
+                                >
                                     Reativar
                                 </button>
                             )}

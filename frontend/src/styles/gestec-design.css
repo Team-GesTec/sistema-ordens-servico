@@ -335,7 +335,6 @@ button { -webkit-tap-highlight-color: transparent; }
 .gestec-app .projeto-field select,
 .gestec-app .projeto-field textarea { min-height: 39px; border-color: #cfe2ee; border-radius: 9px; background: #fbfdff; color: #15243a; font-size: 12px; }
 .gestec-app .projeto-field label { color: #385971; font-size: 11px; font-weight: 750; }
-.gestec-app .projeto-modal-actions { border-top-color: #e0edf5; }
 
 /* Dashboard real: seus dados, KPIs e gráficos continuam calculados pelos serviços existentes. */
 .gestec-app .dashboard { width: 100%; max-width: 1500px; margin: 0 auto; padding: 26px clamp(18px, 2vw, 32px) 34px; color: #15243a; }
@@ -583,8 +582,8 @@ button { -webkit-tap-highlight-color: transparent; }
   .gestec-app .dashboard-indicadores { grid-template-columns: minmax(0,1fr); }
   .gestec-app .dashboard-indicador { min-height: 116px; }
   .gestec-app .projeto-modal { padding: 17px; }
-  .gestec-app .projeto-modal-actions { flex-direction: column-reverse; }
-  .gestec-app .projeto-modal-actions > button { width: 100%; }}
+  .gestec-app .projeto-modal-toolbar { flex-direction: column-reverse; }
+  .gestec-app .projeto-modal-toolbar > button { width: 100%; }}
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }}
 
@@ -1630,7 +1629,7 @@ body { font-size: 16px; line-height: 1.55; }
 .gestec-app.dark-mode .funcionario-modal-overlay { background: rgba(2, 9, 19, .76) !important; }
 .gestec-app.dark-mode .projeto-modal,
 .gestec-app.dark-mode .projeto-modal-header,
-.gestec-app.dark-mode .projeto-modal-actions,
+.gestec-app.dark-mode .projeto-modal-toolbar,
 .gestec-app.dark-mode .projeto-modal-body,
 .gestec-app.dark-mode .modal-content,
 .gestec-app.dark-mode .modal-header,
@@ -2903,3 +2902,252 @@ body { font-size: 16px; line-height: 1.55; }
 }
 
 .gestec-app .funcionarios-container .gestec-data-table { min-width: 900px; }
+
+.gestec-app .os-detail-edit-layout {
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: minmax(0, 2fr) minmax(220px, 1fr);
+    align-items: start;
+    gap: 14px;
+}
+
+.gestec-app .os-detail-edit-side {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    min-width: 0;
+}
+
+.gestec-app .os-detail-edit-side .os-detail-inline-actions {
+    justify-content: flex-start;
+    flex-wrap: nowrap;
+}
+
+@media (max-width: 650px) {
+    .gestec-app .os-detail-edit-layout {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .gestec-app .os-detail-edit-side .os-detail-inline-actions {
+        flex-wrap: wrap;
+    }
+}
+
+.gestec-app .projeto-modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+}
+
+.gestec-app .projeto-modal-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 10px;
+    flex-shrink: 0;
+}
+
+
+/* Edição direta de projetos */
+.gestec-app .projeto-edit-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+}
+
+.gestec-app .projeto-edit-grid .projeto-details-full {
+    grid-column: 1 / -1;
+}
+
+.gestec-app .projeto-edit-field {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+    min-width: 0;
+    padding: 13px 15px;
+    border: 1px solid #dceaf2;
+    border-radius: 11px;
+    background: #fbfdff;
+}
+
+.gestec-app .projeto-edit-field > label {
+    color: #385971;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.gestec-app .projeto-edit-field input:not([type="checkbox"]),
+.gestec-app .projeto-edit-field select {
+    width: 100%;
+    min-height: 40px;
+    padding: 8px 11px;
+    border: 1px solid #cfe0eb;
+    border-radius: 8px;
+    background: #fff;
+    color: #183553;
+    font-size: 13px;
+    outline: none;
+    transition: border-color .18s ease, box-shadow .18s ease;
+}
+
+.gestec-app .projeto-edit-field input:focus,
+.gestec-app .projeto-edit-field select:focus {
+    border-color: #1596cf;
+    box-shadow: 0 0 0 3px rgba(21, 150, 207, .12);
+}
+
+.gestec-app .projeto-edit-departamentos {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 9px;
+}
+
+.gestec-app .projeto-edit-departamento {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 38px;
+    padding: 7px 12px;
+    border: 1px solid #d5e6ef;
+    border-radius: 8px;
+    background: #fff;
+    color: #31536c;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background .18s ease, border-color .18s ease;
+}
+
+.gestec-app .projeto-edit-departamento:has(input:checked) {
+    border-color: #8bc9e8;
+    background: #edf8fe;
+    color: #087bbd;
+}
+
+.gestec-app .projeto-edit-departamento input[type="checkbox"] {
+    width: 15px;
+    height: 15px;
+    margin: 0;
+    accent-color: #078aca;
+}
+
+.gestec-app.dark-mode .projeto-edit-field {
+    border-color: #304a60;
+    background: #172f43;
+}
+
+.gestec-app.dark-mode .projeto-edit-field > label {
+    color: #c3d8e7;
+}
+
+.gestec-app.dark-mode .projeto-edit-field input:not([type="checkbox"]),
+.gestec-app.dark-mode .projeto-edit-field select,
+.gestec-app.dark-mode .projeto-edit-departamento {
+    border-color: #3c5a72;
+    background: #0d1d2c;
+    color: #edf6ff;
+}
+
+.gestec-app.dark-mode .projeto-edit-departamento:has(input:checked) {
+    border-color: #258fbd;
+    background: #173c54;
+    color: #aeeaff;
+}
+
+@media (max-width: 650px) {
+    .gestec-app .projeto-edit-grid {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .gestec-app .projeto-edit-grid .projeto-details-full {
+        grid-column: auto;
+    }
+}
+
+.gestec-app .projeto-modal-actions--editing {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    margin-top: 24px;
+    padding-top: 20px;
+    border-top: 1px solid #dceaf2;
+}
+
+.gestec-app.dark-mode .projeto-modal-actions--editing {
+    border-top-color: #304a60;
+}
+
+
+/* Espaçamento dos botões dos modais de clientes */
+.gestec-app .cliente-form-modal .cliente-modal-actions,
+.gestec-app .cliente-details-modal > .projeto-modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 12px;
+    margin-top: 26px;
+    padding-top: 20px;
+    border-top: 1px solid #dceaf2;
+}
+
+.gestec-app .projeto-modal:has(#ordem-confirmar-saida) > p {
+    margin: 0 0 24px;
+    line-height: 1.5;
+}
+
+.gestec-app .projeto-modal:has(#ordem-confirmar-saida) .projeto-modal-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 12px;
+    margin-top: 0;
+}
+
+.gestec-app.dark-mode .cliente-form-modal .cliente-modal-actions,
+.gestec-app.dark-mode .cliente-details-modal > .projeto-modal-actions {
+    border-top-color: #304a60;
+}
+
+/* Espaçamento do cabeçalho dos detalhes */
+.gestec-app .cliente-details-modal .projeto-modal-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 10px;
+    flex-shrink: 0;
+}
+
+@media (max-width: 480px) {
+    .gestec-app .cliente-form-modal .cliente-modal-actions,
+    .gestec-app .cliente-details-modal > .projeto-modal-actions {
+        flex-direction: column-reverse;
+    }
+
+    .gestec-app .cliente-form-modal .cliente-modal-actions > button,
+    .gestec-app .cliente-details-modal > .projeto-modal-actions > button {
+        width: 100%;
+    }
+}
+
+/* Modal de confirmação de alterações não salvas do cliente */
+.gestec-app .projeto-modal:has(#cliente-confirmar-saida) {
+    padding: 28px;
+}
+
+.gestec-app .projeto-modal:has(#cliente-confirmar-saida) #cliente-confirmar-saida {
+    margin: 0 0 16px;
+}
+
+.gestec-app .projeto-modal:has(#cliente-confirmar-saida) > p {
+    margin: 0 0 24px;
+    line-height: 1.5;
+}
+
+.gestec-app .projeto-modal:has(#cliente-confirmar-saida) .projeto-modal-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 12px;
+    margin-top: 0;
+}

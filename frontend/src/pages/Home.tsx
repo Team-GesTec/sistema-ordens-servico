@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
     ResponsiveContainer,
     PieChart,
@@ -87,6 +87,7 @@ function contar<T extends string>(
 
 function Dashboard() {
     const usuario = getStoredUser();
+    const navigate = useNavigate();
 
     const [dados, setDados] = useState<DadosDashboard>({
         ordens: [],
@@ -287,8 +288,8 @@ function Dashboard() {
     const tituloPerfil = ehGestor
         ? "Visão geral da empresa"
         : ehTecnico
-          ? "Visão geral do técnico"
-          : "Visão geral do departamento";
+            ? "Visão geral do técnico"
+            : "Visão geral do departamento";
 
     return (
         <main className="dashboard">
@@ -637,18 +638,29 @@ function Dashboard() {
                     </div>
                     {ordensRecentes.length === 0 ? <div className="dashboard-vazio">Nenhuma ordem de serviço disponível.</div> : (
                         <div className="table-scroll"><table className="table gestec-data-table gestec-dashboard-table">
-                            <thead><tr><th>Ordem / ID</th><th>Solicitação</th><th>Responsável</th><th>Status</th><th>Prioridade</th><th>Prazo</th><th>Ação</th></tr></thead>
+                            <thead><tr><th>Ordem / ID</th><th>Solicitação</th><th>Responsável</th><th>Status</th><th>Prioridade</th><th>Prazo</th></tr></thead>
                             <tbody>{ordensRecentes.map((ordem) => {
                                 const clienteId = ordem.cliente_id;
                                 const responsavel = dados.funcionarios.find((funcionario) => funcionario.id === ordem.responsavel_id);
-                                return <tr key={ordem.id}>
+                                return <tr
+                                    key={ordem.id}
+                                    className="gestec-dashboard-order-row"
+                                    tabIndex={0}
+                                    aria-label={`Abrir detalhes da O.S. ${ordem.id}: ${ordem.titulo}`}
+                                    onClick={() => navigate(`/ordens/${ordem.id}`)}
+                                    onKeyDown={(event) => {
+                                        if (event.key === "Enter" || event.key === " ") {
+                                            event.preventDefault();
+                                            navigate(`/ordens/${ordem.id}`);
+                                        }
+                                    }}
+                                >
                                     <td><Link to={`/ordens/${ordem.id}`} className="gestec-table-link">OS #{ordem.id}</Link><small className="gestec-cell-subtitle">{formatarDataOrdem(ordem.data_ultima_atualizacao ?? ordem.data_criacao)}</small></td>
                                     <td><strong className="gestec-dashboard-order-title">{ordem.titulo}</strong><small className="gestec-cell-subtitle">{clienteId !== null ? `Cliente #${clienteId}` : "Sem cliente vinculado"}</small></td>
                                     <td>{responsavel?.nome ?? (ordem.responsavel_id !== null ? `Funcionário #${ordem.responsavel_id}` : "Não atribuído")}</td>
                                     <td><span className={`gestec-status-pill gestec-os-status status-${ordem.status}`}><i aria-hidden="true" />{STATUS_LABELS[ordem.status]}</span></td>
                                     <td><span className={`gestec-priority-pill priority-${ordem.criticidade ?? "indefinida"}`}>{ordem.criticidade ? ROTULOS_CRITICIDADE[ordem.criticidade] : "Não definida"}</span></td>
                                     <td>{formatarDataOrdem(ordem.data_limite_sla)}</td>
-                                    <td><Link to={`/ordens/${ordem.id}`} className="gestec-table-link" aria-label={`Abrir ordem ${ordem.id}`}>Abrir →</Link></td>
                                 </tr>;
                             })}</tbody>
                         </table></div>
