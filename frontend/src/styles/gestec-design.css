@@ -3188,3 +3188,28 @@ body { font-size: 16px; line-height: 1.55; }
   background: #090c5c !important;
   opacity: 0.2 !important;
 }
+
+/* Marca-d'água fixa da identidade GesTec — ambos os temas */
+.gestec-app {
+    isolation: isolate;
+}
+
+.gestec-app::before {
+    content: "";
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+
+    width: min(80vw, 1000px);
+    aspect-ratio: 1;
+
+    background-image: url("../images/claro.png");
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: contain;
+
+    opacity: 0.05;
+    pointer-events: none;
+    z-index: -1;
+}
