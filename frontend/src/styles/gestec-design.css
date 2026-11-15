@@ -2903,3 +2903,288 @@ body { font-size: 16px; line-height: 1.55; }
 }
 
 .gestec-app .funcionarios-container .gestec-data-table { min-width: 900px; }
+
+/* =========================================
+   SIDEBAR — CORES DOS TEMAS
+========================================= */
+
+/* Tema claro */
+.gestec-app:not(.dark-mode) .sidebar,
+.gestec-app:not(.dark-mode) .sidebar:hover,
+.gestec-app:not(.dark-mode) .sidebar:focus-within {
+  background: #edf8fd !important;
+  border-right: 1px solid #d6e8f3 !important;
+  color: #15243a !important;
+}
+
+/* Identidade visual */
+.gestec-app:not(.dark-mode) .sidebar-brand-text strong {
+  color: #090c5c !important;
+}
+
+.gestec-app:not(.dark-mode) .sidebar-brand-text small {
+  color: #1589ca !important;
+}
+
+/* Ícones */
+.gestec-app:not(.dark-mode) .sidebar .menu-item i,
+.gestec-app:not(.dark-mode) .sidebar:not(:hover):not(:focus-within) .menu-item i {
+  color: #090c5c !important;
+}
+
+.gestec-app:not(.dark-mode) .sidebar-section-label {
+  color: #627b91 !important;
+}
+
+.gestec-app:not(.dark-mode) .sidebar .menu-item {
+  color: #15243a !important;
+}
+
+.gestec-app:not(.dark-mode) .sidebar .menu-item:hover {
+  background: #dceff9 !important;
+}
+
+.gestec-app:not(.dark-mode) .sidebar .menu-item.active {
+  background: #d1eafa !important;
+  color: #090c5c !important;
+}
+
+.gestec-app:not(.dark-mode) .sidebar .sidebar-theme-toggle {
+  background: #e2f4fd !important;
+  border-color: #c5e2f1 !important;
+  color: #15243a !important;
+}
+
+/* Tema escuro */
+.gestec-app.dark-mode .sidebar,
+.gestec-app.dark-mode .sidebar:hover,
+.gestec-app.dark-mode .sidebar:focus-within {
+  background: radial-gradient(
+    ellipse at top left,
+    #102e48 0%,
+    #081725 58%,
+    #07131f 100%
+  ) !important;
+  border-right: 1px solid #29475d !important;
+}
+
+/* SIDEBAR — IDENTIDADE VISUAL DO TEMA CLARO */
+
+.gestec-app:not(.dark-mode) #gestec-primary-sidebar .sidebar-brand-text strong {
+  color: #090c5c !important;
+}
+
+.gestec-app:not(.dark-mode) #gestec-primary-sidebar .sidebar-brand-text small {
+  color: #1589ca !important;
+}
+
+/* Ícones com sidebar compacta */
+.gestec-app:not(.dark-mode) #gestec-primary-sidebar:not(:hover):not(:focus-within) .menu-item i {
+  color: #090c5c !important;
+}
+
+.gestec-app:not(.dark-mode) #gestec-primary-sidebar:not(:hover):not(:focus-within) .sidebar-theme-toggle > i {
+  color: #090c5c !important;
+}
+
+/* Ícones com sidebar expandida */
+.gestec-app:not(.dark-mode) #gestec-primary-sidebar:hover .menu-item i,
+.gestec-app:not(.dark-mode) #gestec-primary-sidebar:focus-within .menu-item i {
+  color: #090c5c !important;
+}
+
+.gestec-app:not(.dark-mode) #gestec-primary-sidebar:hover .sidebar-theme-toggle > i,
+.gestec-app:not(.dark-mode) #gestec-primary-sidebar:focus-within .sidebar-theme-toggle > i {
+  color: #090c5c !important;
+}
+
+/* SIDEBAR — TEXTO DO PERFIL NO TEMA CLARO */
+.gestec-app:not(.dark-mode) #gestec-primary-sidebar .perfil-informacoes strong {
+  color: #090c5c !important;
+}
+
+.gestec-app:not(.dark-mode) #gestec-primary-sidebar .perfil-informacoes small {
+  color: #1589ca !important;
+}
+
+/* SIDEBAR — ITEM ATIVO NO TEMA CLARO */
+.gestec-app:not(.dark-mode) #gestec-primary-sidebar .menu-item.active,
+.gestec-app:not(.dark-mode) #gestec-primary-sidebar .menu-item.active:hover {
+  background: linear-gradient(110deg, #1589ca 0%, #35b4e6 100%) !important;
+  border: 1px solid rgba(255, 255, 255, .25) !important;
+  color: #ffffff !important;
+  box-shadow:
+    0 7px 18px rgba(3, 13, 81, .18),
+    inset 0 0 0 1px rgba(255, 255, 255, .08) !important;
+}
+
+.gestec-app:not(.dark-mode) #gestec-primary-sidebar .menu-item.active i,
+.gestec-app:not(.dark-mode) #gestec-primary-sidebar .menu-item.active span {
+  color: #ffffff !important;
+}
+
+/* SIDEBAR — LOGO COMPLETA */
+.gestec-app #gestec-primary-sidebar .sidebar-brand {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 5px !important;
+  width: 100% !important;
+  padding: 8px 4px 16px !important;
+}
+
+.gestec-app #gestec-primary-sidebar .sidebar-brand-logo {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 100% !important;
+}
+
+.gestec-app #gestec-primary-sidebar .sidebar-brand-logo img {
+  display: block !important;
+  width: 100% !important;
+  max-width: 180px !important;
+  height: auto !important;
+  object-fit: contain !important;
+}
+
+.gestec-app #gestec-primary-sidebar .sidebar-brand-subtitle {
+  display: block !important;
+  width: 100% !important;
+  color: #1589ca !important;
+  font-size: 12px !important;
+  font-weight: 700 !important;
+  letter-spacing: 1px !important;
+  text-align: center !important;
+  white-space: nowrap !important;
+}
+
+/* SIDEBAR — ALTERNÂNCIA DAS LOGOS */
+
+/* Estado expandido */
+.gestec-app #gestec-primary-sidebar .sidebar-logo-expandida {
+  display: block !important;
+}
+
+.gestec-app #gestec-primary-sidebar .sidebar-logo-reduzida {
+  display: none !important;
+}
+
+.gestec-app #gestec-primary-sidebar .sidebar-brand-subtitle {
+  display: block !important;
+}
+
+/* Estado reduzido */
+.gestec-app #gestec-primary-sidebar:not(:hover):not(:focus-within) .sidebar-logo-expandida {
+  display: none !important;
+}
+
+.gestec-app #gestec-primary-sidebar:not(:hover):not(:focus-within) .sidebar-logo-reduzida {
+  display: block !important;
+  width: 80px !important;
+  max-width: 80px !important;
+  height: auto !important;
+}
+
+.gestec-app #gestec-primary-sidebar:not(:hover):not(:focus-within) .sidebar-brand-subtitle {
+  display: none !important;
+}
+
+/* SIDEBAR — CORREÇÃO DA ALTERNÂNCIA DAS LOGOS */
+
+/* SIDEBAR EXPANDIDA */
+.gestec-app #gestec-primary-sidebar:hover .sidebar-logo-expandida,
+.gestec-app #gestec-primary-sidebar:focus-within .sidebar-logo-expandida {
+  display: block !important;
+}
+
+.gestec-app #gestec-primary-sidebar:hover .sidebar-logo-reduzida,
+.gestec-app #gestec-primary-sidebar:focus-within .sidebar-logo-reduzida {
+  display: none !important;
+}
+
+.gestec-app #gestec-primary-sidebar:hover .sidebar-brand-subtitle,
+.gestec-app #gestec-primary-sidebar:focus-within .sidebar-brand-subtitle {
+  display: block !important;
+}
+
+/* SIDEBAR REDUZIDA */
+.gestec-app #gestec-primary-sidebar:not(:hover):not(:focus-within) .sidebar-logo-expandida {
+  display: none !important;
+}
+
+.gestec-app #gestec-primary-sidebar:not(:hover):not(:focus-within) .sidebar-brand-subtitle {
+  display: none !important;
+}
+
+/* SIDEBAR — LOGOS DO TEMA ESCURO */
+
+/* Esconde as logos escuras no tema claro */
+.gestec-app:not(.dark-mode) #gestec-primary-sidebar .sidebar-logo-dark-expandida,
+.gestec-app:not(.dark-mode) #gestec-primary-sidebar .sidebar-logo-dark-reduzida {
+  display: none !important;
+}
+
+/* Tema escuro — sidebar expandida */
+.gestec-app.dark-mode #gestec-primary-sidebar:hover .sidebar-logo-expandida,
+.gestec-app.dark-mode #gestec-primary-sidebar:focus-within .sidebar-logo-expandida,
+.gestec-app.dark-mode #gestec-primary-sidebar:hover .sidebar-logo-reduzida,
+.gestec-app.dark-mode #gestec-primary-sidebar:focus-within .sidebar-logo-reduzida {
+  display: none !important;
+}
+
+.gestec-app.dark-mode #gestec-primary-sidebar:hover .sidebar-logo-dark-expandida,
+.gestec-app.dark-mode #gestec-primary-sidebar:focus-within .sidebar-logo-dark-expandida {
+  display: block !important;
+  width: 100% !important;
+  max-width: 180px !important;
+  height: auto !important;
+}
+
+.gestec-app.dark-mode #gestec-primary-sidebar:hover .sidebar-logo-dark-reduzida,
+.gestec-app.dark-mode #gestec-primary-sidebar:focus-within .sidebar-logo-dark-reduzida {
+  display: none !important;
+}
+
+/* Tema escuro — sidebar reduzida */
+.gestec-app.dark-mode #gestec-primary-sidebar:not(:hover):not(:focus-within) .sidebar-logo-expandida,
+.gestec-app.dark-mode #gestec-primary-sidebar:not(:hover):not(:focus-within) .sidebar-logo-reduzida,
+.gestec-app.dark-mode #gestec-primary-sidebar:not(:hover):not(:focus-within) .sidebar-logo-dark-expandida {
+  display: none !important;
+}
+
+.gestec-app.dark-mode #gestec-primary-sidebar:not(:hover):not(:focus-within) .sidebar-logo-dark-reduzida {
+  display: block !important;
+  width: 80px !important;
+  max-width: 80px !important;
+  height: auto !important;
+}
+
+/* Subtítulo no tema escuro */
+.gestec-app.dark-mode #gestec-primary-sidebar .sidebar-brand-subtitle {
+  color: #91e4ff !important;
+}
+
+/* LOGO DARK — SIDEBAR REDUZIDA */
+.gestec-app.dark-mode #gestec-primary-sidebar:not(:hover):not(:focus-within) .sidebar-brand {
+  padding: 20px 0 15px !important;
+}
+
+/* LINHA DA LOGO — TEMA CLARO */
+.gestec-app:not(.dark-mode) #gestec-primary-sidebar .sidebar-brand {
+  border-bottom: none !important;
+  box-shadow: none !important;
+  position: relative !important;
+}
+
+.gestec-app:not(.dark-mode) #gestec-primary-sidebar .sidebar-brand::after {
+  content: "" !important;
+  position: absolute !important;
+  bottom: 0 !important;
+  left: 8px !important;
+  right: 8px !important;
+  height: 0.5px !important;
+  background: #090c5c !important;
+  opacity: 0.2 !important;
+}
