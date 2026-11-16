@@ -7467,7 +7467,7 @@ body {
   content: "";
   position: fixed;
   top: 50%;
-  left: 50%;
+  left: calc(50% + var(--gestec-sidebar-width) / 2);
   transform: translate(-50%, -50%);
 
   width: min(80vw, 1000px);
@@ -7478,9 +7478,13 @@ body {
   background-position: center;
   background-size: contain;
 
-  opacity: 0.05;
+  opacity: 0.04;
   pointer-events: none;
-  z-index: 0;
+  z-index: -1;
+}
+
+.gestec-app.dark-mode::before {
+  opacity: 0.08;
 }
 
 .gestec-app:not(.dark-mode) #gestec-primary-sidebar:not(:hover):not(:focus-within) .sidebar-brand {
@@ -7505,9 +7509,12 @@ body {
   background: var(--gestec-bg) !important;
 }
 
-.gestec-app.dark-mode,
-.gestec-app.dark-mode .app-workspace {
+.gestec-app.dark-mode {
   background: #081725 !important;
+}
+
+.gestec-app.dark-mode .app-workspace {
+  background: transparent !important;
 }
 
 .gestec-app.dark-mode .sidebar,
