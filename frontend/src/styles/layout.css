@@ -475,7 +475,7 @@
     padding: 28px;
 }
 
-.projeto-modal-actions {
+.projeto-modal-toolbar {
     display: flex;
     justify-content: flex-end;
 
@@ -522,11 +522,11 @@
         padding: 20px;
     }
 
-    .projeto-modal-actions {
+    .projeto-modal-toolbar {
         flex-direction: column-reverse;
     }
 
-    .projeto-modal-actions button {
+    .projeto-modal-toolbar button {
         width: 100%;
     }
 }

@@ -86,38 +86,38 @@ function Projetos() {
 
                     <section className="projetos-toolbar" aria-label="Pesquisar e filtrar projetos">
                         <div className="gestec-search-toolbar-row projetos-search-toolbar-row">
-                        <ProjetosBuscaAutocomplete
-                            projetos={projetos.projetos}
-                            value={projetos.busca}
-                            onChange={(valor) => { projetos.setBusca(valor); paginacaoProjetos.setPage(1); }}
-                        />
-                        <FilterDrawer
-                            activeCount={(projetos.filtroStatus !== "todos" ? 1 : 0) + (projetos.mostrarInativos ? 1 : 0)}
-                            onClear={() => {
-                                projetos.setFiltroStatus("todos");
-                                paginacaoProjetos.setPage(1);
-                                if (projetos.mostrarInativos) void projetos.alternarInativos();
-                            }}
-                        >
-                            <div className="gestec-filter-field">
-                                <label htmlFor="projetos-status-filter">Status do projeto</label>
-                                <Autocomplete
-                                    id="projetos-status-filter"
-                                    options={STATUS_OPTIONS}
-                                    value={projetos.filtroStatus}
-                                    onChange={(value) => { projetos.setFiltroStatus(value === null ? "todos" : value as "todos" | StatusProjeto); paginacaoProjetos.setPage(1); }}
-                                    placeholder="Todos os status"
-                                    emptyMessage="Nenhum status encontrado."
-                                />
-                            </div>
-                            {projetos.podeGerenciar && (
-                                <label className="gestec-filter-toggle">
-                                    <span><strong>Consultar projetos inativos</strong><small>{projetos.mostrarInativos ? "Exibindo registros inativos" : "Exibindo registros ativos"}</small></span>
-                                    <input type="checkbox" checked={projetos.mostrarInativos} onChange={() => { paginacaoProjetos.setPage(1); void projetos.alternarInativos(); }} />
-                                    <span className="gestec-toggle-track" aria-hidden="true"><span /></span>
-                                </label>
-                            )}
-                        </FilterDrawer>
+                            <ProjetosBuscaAutocomplete
+                                projetos={projetos.projetos}
+                                value={projetos.busca}
+                                onChange={(valor) => { projetos.setBusca(valor); paginacaoProjetos.setPage(1); }}
+                            />
+                            <FilterDrawer
+                                activeCount={(projetos.filtroStatus !== "todos" ? 1 : 0) + (projetos.mostrarInativos ? 1 : 0)}
+                                onClear={() => {
+                                    projetos.setFiltroStatus("todos");
+                                    paginacaoProjetos.setPage(1);
+                                    if (projetos.mostrarInativos) void projetos.alternarInativos();
+                                }}
+                            >
+                                <div className="gestec-filter-field">
+                                    <label htmlFor="projetos-status-filter">Status do projeto</label>
+                                    <Autocomplete
+                                        id="projetos-status-filter"
+                                        options={STATUS_OPTIONS}
+                                        value={projetos.filtroStatus}
+                                        onChange={(value) => { projetos.setFiltroStatus(value === null ? "todos" : value as "todos" | StatusProjeto); paginacaoProjetos.setPage(1); }}
+                                        placeholder="Todos os status"
+                                        emptyMessage="Nenhum status encontrado."
+                                    />
+                                </div>
+                                {projetos.podeGerenciar && (
+                                    <label className="gestec-filter-toggle">
+                                        <span><strong>Consultar projetos inativos</strong><small>{projetos.mostrarInativos ? "Exibindo registros inativos" : "Exibindo registros ativos"}</small></span>
+                                        <input type="checkbox" checked={projetos.mostrarInativos} onChange={() => { paginacaoProjetos.setPage(1); void projetos.alternarInativos(); }} />
+                                        <span className="gestec-toggle-track" aria-hidden="true"><span /></span>
+                                    </label>
+                                )}
+                            </FilterDrawer>
                         </div>
                     </section>
 
@@ -171,8 +171,12 @@ function Projetos() {
             <ProjetoDetalhesModal
                 projeto={projetos.projetoSelecionado}
                 podeGerenciar={projetos.podeGerenciar}
+                clientes={projetos.clientes}
+                departamentos={projetos.departamentos}
+                salvando={projetos.salvando}
+                erro={projetos.erro}
                 onClose={() => projetos.setProjetoSelecionado(null)}
-                onEditar={projetos.iniciarEdicao}
+                onSalvar={projetos.salvarEdicaoDireta}
                 onAlterarAtivo={projetos.solicitarAlteracaoAtivo}
             />
             <ProjetoAtivoModal

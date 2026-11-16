@@ -94,8 +94,8 @@
 @media (max-width: 600px) {
     .departamento-details-modal { max-height: 94vh; }
     .departamento-vinculo-item { align-items: flex-start; gap: 8px; }
-    .departamento-details-modal .projeto-modal-actions { justify-content: stretch; }
-    .departamento-details-modal .projeto-modal-actions button { flex: 1 1 auto; }
+    .departamento-details-modal .projeto-modal-toolbar { justify-content: stretch; }
+    .departamento-details-modal .projeto-modal-toolbar button { flex: 1 1 auto; }
 }
 
 .departamento-vinculo-item--link { width: 100%; font: inherit; text-align: left; cursor: pointer; }

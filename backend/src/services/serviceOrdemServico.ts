@@ -493,6 +493,14 @@ export class ServiceOrdemServico {
             const informouHoras = [dados.duracao, dados.data_trabalho].some(
                 (valor) => valor !== undefined && valor !== null && valor !== '',
             );
+
+            if (ehResponsavel && usuario.tipo !== 'gestor' && !informouHoras) {
+                throw new AppError(
+                    'Informe as horas trabalhadas para alterar o status da O.S.',
+                    422,
+                );
+            }
+
             if (ehResponsavel && informouHoras) {
                 await serviceLancamentoHoras.gravarNaTransacao(ordemAtual, usuario.id, dados, conexao);
             }
@@ -551,6 +559,11 @@ export class ServiceOrdemServico {
             }
 
             const dados = lerCorpo(corpo);
+            const justificativa = textoOpcional(
+                dados.justificativa,
+                'justificativa',
+                { maximo: TEXTO_MAXIMO_DESCRICAO },
+            );
             const proibidos = CAMPOS_PROIBIDOS_NA_EDICAO.filter((campo) => campoPresente(dados, campo));
             if (proibidos.length > 0) {
                 throw AppError.requisicaoInvalida(
@@ -584,6 +597,7 @@ export class ServiceOrdemServico {
                         campo_alterado: campo,
                         dado_antigo: paraTextoAuditoria(ordemAtual[campo]),
                         dado_novo: paraTextoAuditoria(alteracoes[campo]),
+                        justificativa,
                     },
                     conexao,
                 );
