@@ -45,6 +45,7 @@ import { criarRotasAnexo, criarRotasConfiguracaoAnexo } from './routes/routeAnex
 import auditoriaRoutes from './routes/routeAuditoria';
 import swaggerUi from 'swagger-ui-express';
 import { documentoOpenApi } from './docs/swagger';
+import { especificacaoOpenApi } from './docs/openapi';
 
 /** Tamanho máximo aceito para o corpo JSON das requisições. */
 const LIMITE_JSON = '100kb';
@@ -70,6 +71,9 @@ export function criarApp(controllerAnexo: ControllerAnexo = controllerAnexoPadra
     app.disable('x-powered-by');
     app.use(cors(opcoesCors()));
     app.use(express.json({ limit: LIMITE_JSON }));
+
+    app.get('/docs/openapi.json', (_req: Request, res: Response) => res.status(200).json(especificacaoOpenApi));
+    app.get('/docs', (_req: Request, res: Response) => res.type('html').send(`<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>SGOS API — Swagger</title><link rel="stylesheet" href="https://unpkg.com/swagger-ui-dist@5/swagger-ui.css"></head><body><div id="swagger-ui"></div><script src="https://unpkg.com/swagger-ui-dist@5/swagger-ui-bundle.js"></script><script>SwaggerUIBundle({url:'/docs/openapi.json',dom_id:'#swagger-ui',persistAuthorization:true})</script></body></html>`));
 
     // Verificação de saúde (pública) — útil para monitoramento/deploy.
     app.get('/health', (_req: Request, res: Response) => {

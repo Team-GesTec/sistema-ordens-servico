@@ -15,7 +15,6 @@
  * Os valores são os mesmos definidos em layout.css/darkmode.css.
  */
 .main.ordens-main {
-    background: linear-gradient(to bottom, #72caf3, #effaff);
     background-attachment: fixed;
     background-size: 100% 100vh;
     background-repeat: no-repeat;
@@ -2323,3 +2322,347 @@
     .ordem-parecer-acoes { align-items: stretch; flex-direction: column; }
     .ordem-parecer-acoes button { width: 100%; }
 }
+
+/* ===== GesTec referência consolidado: Orders view toolbar and new real-data table. The current card/Kanban modes remain available. ===== */
+/* Orders view toolbar and new real-data table. The current card/Kanban modes remain available. */
+.gestec-app .ordens-list-header { align-items: center; }
+.gestec-app .ordens-list-header-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 10px; }
+.gestec-app .ordens-view-switch { display: inline-flex; gap: 3px; padding: 3px; border: 1px solid #d3e5f0; border-radius: 9px; background: #f4f9fc; }
+.gestec-app .ordens-view-switch button { min-height: 30px; padding: 6px 10px; border: 0; border-radius: 6px; background: transparent; color: #58738a; font-size: 10px; font-weight: 750; cursor: pointer; }
+.gestec-app .ordens-view-switch button.active { background: #fff; color: #126da7; box-shadow: 0 1px 4px rgba(15,69,114,.12); }
+.gestec-app .ordens-prazo-filtro { display: flex; align-items: center; gap: 6px; }
+.gestec-app .ordens-prazo-filtro label { color: #607891; font-size: 10px; font-weight: 750; }
+.gestec-app .ordens-prazo-filtro select { min-height: 34px; border: 1px solid #cfe2ee; border-radius: 8px; background: #fff; color: #29445d; font-size: 10px; padding: 6px 9px; }
+.gestec-app .ordens-grid { grid-template-columns: repeat(3,minmax(0,1fr)); }
+.gestec-app .gestec-order-title { display: flex; align-items: center; gap: 8px; min-width: 220px; }
+.gestec-app .gestec-order-title a { color: #087db8; font-size: 10px; font-weight: 850; text-decoration: none; }
+.gestec-app .gestec-order-title a:hover { text-decoration: underline; }
+.gestec-app .gestec-order-title strong { display: block; color: #253b53; font-size: 11px; }
+.gestec-app .gestec-order-title small { display: block; max-width: 330px; overflow: hidden; color: #8193a7; font-size: 9px; text-overflow: ellipsis; white-space: nowrap; }
+.gestec-app .gestec-priority-pill { display: inline-flex; padding: 5px 7px; border-radius: 6px; background: #edf4ff; color: #3867a6; font-size: 9px; font-weight: 800; white-space: nowrap; }
+.gestec-app .gestec-priority-pill.priority-alto,
+.gestec-app .gestec-priority-pill.priority-muito_alto { background: #fff2e4; color: #a75c0d; }
+.gestec-app .gestec-priority-pill.priority-urgente { background: #fff0f1; color: #bf3346; }
+.gestec-app .gestec-priority-pill.priority-baixo { background: #e4f7ef; color: #168260; }
+.gestec-app .gestec-priority-pill.priority-indefinida { background: #f0f4f7; color: #627b91; }
+
+
+
+/* ===== GesTec referência consolidado: Complementos de composição da referência: timeline real do histórico e atalhos do dashboard. ===== */
+/* Complementos de composição da referência: timeline real do histórico e atalhos do dashboard. */
+.gestec-app .ordem-historico-heading { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 12px; }
+.gestec-app .ordem-historico-heading h3 { margin: 0; }
+.gestec-app .ordem-historico-heading > span { display: inline-flex; padding: 4px 7px; border-radius: 6px; background: #e8f4fb; color: #32739a; font-size: 9px; font-weight: 800; }
+.gestec-app .ordem-historico-lista { display: grid; gap: 0; margin: 0; padding: 0 0 0 10px; list-style: none; }
+.gestec-app .ordem-historico-item { position: relative; padding: 4px 0 15px 17px; border-left: 2px solid #d5eaf5; }
+.gestec-app .ordem-historico-item::before { position: absolute; top: 8px; left: -5px; width: 8px; height: 8px; border: 2px solid #fff; border-radius: 50%; background: #1689ca; box-shadow: 0 0 0 1px #acd5e9; content: ""; }
+.gestec-app .ordem-historico-item:last-child { padding-bottom: 0; border-left-color: transparent; }
+.gestec-app .ordem-historico-meta { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 5px 12px; margin-bottom: 5px; }
+.gestec-app .ordem-historico-meta strong { color: #27445f; font-size: 10px; }
+.gestec-app .ordem-historico-meta time { color: #8496a7; font-size: 9px; }
+.gestec-app .ordem-historico-valores { display: flex; flex-wrap: wrap; gap: 5px 14px; margin-top: 7px !important; color: #647e92 !important; font-size: 10px !important; }
+.gestec-app .ordem-historico-justificativa { margin-top: 6px !important; padding: 8px 10px; border-radius: 7px; background: #f3f9fd; }
+.gestec-app .dashboard-atalhos { margin-top: 18px; }
+.gestec-app .dashboard-atalhos-heading { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.gestec-app .dashboard-atalhos-heading h2 { margin: 0 0 4px; color: #183552; font-size: 15px; font-weight: 800; }
+.gestec-app .dashboard-atalhos-heading p { margin: 0; color: #74899d; font-size: 10px; }
+.gestec-app .dashboard-atalhos-grid { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 14px; }
+.gestec-app .dashboard-atalho { min-width: 0; display: flex; align-items: center; gap: 11px; padding: 16px; border: 1px solid #c8e2f1; border-radius: 13px; background: rgba(255,255,255,.96); color: #29445d; text-decoration: none; box-shadow: 0 6px 20px rgba(15,69,114,.045); transition: border-color .15s ease, transform .15s ease; }
+.gestec-app .dashboard-atalho:hover { transform: translateY(-1px); border-color: #9ccfe8; }
+.gestec-app .dashboard-atalho > span:nth-child(2) { min-width: 0; display: flex; flex-direction: column; gap: 4px; flex: 1 1 auto; }
+.gestec-app .dashboard-atalho strong { color: #203750; font-size: 11px; font-weight: 850; }
+.gestec-app .dashboard-atalho small { color: #71879b; font-size: 9px; line-height: 1.5; }
+.gestec-app .dashboard-atalho > b { color: #3983aa; font-size: 16px; }
+.gestec-app .dashboard-atalho-icone { width: 36px; height: 36px; flex: 0 0 36px; display: grid; place-items: center; border-radius: 10px; background: #e1f4fd; color: #087fb9; font-size: 16px; }
+.gestec-app .dashboard-atalho-icone--green { background: #e1f6ee; color: #168260; }
+.gestec-app .dashboard-atalho-icone--purple { background: #eee9ff; color: #6650bd; }
+.gestec-app .gestec-report-empty { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 46px 28px; text-align: center; }
+.gestec-app .gestec-report-empty-icon { width: 50px; height: 50px; display: grid; place-items: center; border-radius: 14px; background: #e1f4fd; color: #087fb9; font-size: 23px; }
+.gestec-app .gestec-report-empty h2 { margin: 0; color: #183552; font-size: 16px; font-weight: 850; }
+.gestec-app .gestec-report-empty p { max-width: 650px; margin: 0; color: #71879b; font-size: 11px; line-height: 1.75; }
+.gestec-app.dark-mode .dashboard-atalho { border-color: #28475e; background: #10263b; }
+.gestec-app.dark-mode .dashboard-atalho strong,
+.gestec-app.dark-mode .dashboard-atalhos-heading h2,
+.gestec-app.dark-mode .gestec-report-empty h2,
+.gestec-app.dark-mode .ordem-historico-meta strong { color: #eaf5ff; }
+.gestec-app.dark-mode .dashboard-atalho small,
+.gestec-app.dark-mode .dashboard-atalhos-heading p,
+.gestec-app.dark-mode .gestec-report-empty p,
+.gestec-app.dark-mode .ordem-historico-meta time { color: #a7bdcf; }
+.gestec-app.dark-mode .ordem-historico-heading > span { background: #173b55; color: #8fd3f6; }
+.gestec-app.dark-mode .ordem-historico-item { border-left-color: #28475e; }
+.gestec-app.dark-mode .ordem-historico-item::before { border-color: #10263b; }
+.gestec-app.dark-mode .ordem-historico-justificativa { background: #132f45; }
+@media (max-width: 900px) { .gestec-app .dashboard-atalhos-grid { grid-template-columns: repeat(2,minmax(0,1fr)); } }
+@media (max-width: 620px) { .gestec-app .dashboard-atalhos-grid { grid-template-columns: minmax(0,1fr); } .gestec-app .gestec-report-empty { padding: 30px 18px; } }
+
+
+/* ===== GesTec design consolidado: Ordens, filtros, detalhes, kanban, histórico e campos compartilhados. ===== */
+/* Ordens, filtros, detalhes, kanban, histórico e campos compartilhados. */
+.gestec-app .filter,
+.gestec-app .os-filter-bar,
+.gestec-app .os-list-toolbar,
+.gestec-app .os-view-actions {
+  border-radius: 12px;
+}
+
+.gestec-app input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
+.gestec-app select,
+.gestec-app textarea {
+  border-color: #cfe2ee;
+  border-radius: 9px;
+  color: #15243a;
+}
+
+.gestec-app input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):focus,
+.gestec-app select:focus,
+.gestec-app textarea:focus {
+  border-color: #56b7e2;
+  box-shadow: 0 0 0 3px rgba(21, 137, 202, .11);
+  outline: 0;
+}
+
+.gestec-app .detail-header,
+.gestec-app .detail-main>section,
+.gestec-app .detail-aside>section,
+.gestec-app .ordem-modal {
+  border-color: #d6e8f3;
+  border-radius: 14px;
+  box-shadow: var(--gestec-shadow);
+}
+
+.gestec-app .detail-header .detail-title,
+.gestec-app .detail-meta>strong,
+.gestec-app .property-list strong,
+.gestec-app .timeline-item strong,
+.gestec-app .person-row strong,
+.gestec-app .comment-head strong {
+  color: #152f4b;
+}
+
+.gestec-app .tabs .tab.active {
+  color: #0b7db8;
+  border-color: #1589ca;
+}
+
+.gestec-app .os-kanban-column,
+.gestec-app .kanban-column {
+  border-color: #d6e8f3;
+  border-radius: 13px;
+}
+
+.gestec-app .kanban-card,
+.gestec-app .os-kanban-card {
+  border-color: #d6e8f3;
+  border-radius: 11px;
+  background: #fff;
+  box-shadow: 0 4px 14px rgba(15, 69, 114, .045);
+}
+
+.gestec-app .os-id-pill {
+  border-radius: 7px;
+}
+
+.gestec-app .table-wrap,
+.gestec-app .table-responsive {
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.gestec-app .pagination button,
+.gestec-app .pagination a {
+  border-radius: 8px;
+}
+
+.gestec-app .empty-results {
+  color: #627b91;
+}
+
+
+
+/* ===== GesTec design consolidado: Linha do tempo de demonstração usada apenas quando a API não retorna eventos. ===== */
+/* Linha do tempo de demonstração usada apenas quando a API não retorna eventos. */
+.gestec-app .os-detail-history-content .ordem-historico-heading {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
+}
+
+.gestec-app .os-detail-history-content .os-detail-demo-history-item {
+  min-height: 60px;
+  padding: 8px 0 12px 40px !important;
+  border: 0 !important;
+  border-bottom: 1px solid var(--gestec-line) !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+}
+
+.gestec-app .os-detail-history-content .os-detail-demo-history-item:last-child {
+  border-bottom: 0 !important;
+}
+
+.gestec-app .os-detail-history-content .os-detail-demo-history-item .ordem-historico-meta {
+  align-items: center;
+}
+
+.gestec-app .os-detail-history-content .os-detail-demo-history-item .ordem-historico-meta strong {
+  font-size: 14px !important;
+  line-height: 1.5;
+}
+
+.gestec-app .os-detail-history-content .os-detail-demo-history-item .ordem-historico-meta time {
+  font-size: 12px !important;
+}
+
+.gestec-app .os-detail-history-content .os-detail-demo-history-item>p {
+  margin-top: 5px !important;
+  font-size: 13px !important;
+  line-height: 1.5 !important;
+}
+
+.gestec-app .os-detail-history-content .os-detail-demo-history-item::before {
+  left: 7px !important;
+  top: 11px !important;
+  width: 24px !important;
+  height: 24px !important;
+  border-radius: 8px !important;
+}
+
+.gestec-app .os-detail-history-content .os-detail-demo-history-item::after {
+  left: 18px !important;
+  top: 35px !important;
+  bottom: -2px !important;
+}
+
+.gestec-app .os-detail-history-content .os-detail-demo-history-item--install::before {
+  background: #e2efff !important;
+  box-shadow: inset 0 0 0 1px #c3dcff !important;
+}
+
+.gestec-app .os-detail-history-content .os-detail-demo-history-item--hours::before {
+  background: #f0eaff !important;
+  box-shadow: inset 0 0 0 1px #d9caff !important;
+}
+
+.gestec-app .os-detail-history-content .os-detail-demo-history-item--deadline::before {
+  background: #fff0d7 !important;
+  box-shadow: inset 0 0 0 1px #f4dbab !important;
+}
+
+.gestec-app .os-detail-history-content .os-detail-demo-history-item--created::before {
+  background: #dff8ef !important;
+  box-shadow: inset 0 0 0 1px #bdebd9 !important;
+}
+
+.gestec-app .os-detail-demo-history-icon {
+  position: absolute;
+  z-index: 1;
+  top: 11px;
+  left: 7px;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  color: #246eb0;
+  font-size: 11px;
+}
+
+.gestec-app .os-detail-demo-history-item--hours .os-detail-demo-history-icon {
+  color: #7954c9;
+}
+
+.gestec-app .os-detail-demo-history-item--deadline .os-detail-demo-history-icon {
+  color: #b57408;
+}
+
+.gestec-app .os-detail-demo-history-item--created .os-detail-demo-history-icon {
+  color: #138463;
+}
+
+.gestec-app.dark-mode .os-detail-history-content .os-detail-demo-history-item {
+  border-bottom-color: #304a60 !important;
+}
+
+.gestec-app.dark-mode .os-detail-history-content .os-detail-demo-history-item--install::before {
+  background: #173b5a !important;
+  box-shadow: inset 0 0 0 1px #2d6184 !important;
+}
+
+.gestec-app.dark-mode .os-detail-history-content .os-detail-demo-history-item--hours::before {
+  background: #392d5c !important;
+  box-shadow: inset 0 0 0 1px #5b4a88 !important;
+}
+
+.gestec-app.dark-mode .os-detail-history-content .os-detail-demo-history-item--deadline::before {
+  background: #523b1b !important;
+  box-shadow: inset 0 0 0 1px #81612b !important;
+}
+
+.gestec-app.dark-mode .os-detail-history-content .os-detail-demo-history-item--created::before {
+  background: #15483e !important;
+  box-shadow: inset 0 0 0 1px #237762 !important;
+}
+
+.gestec-app.dark-mode .os-detail-demo-history-icon {
+  color: #7edcff !important;
+}
+
+.gestec-app.dark-mode .os-detail-demo-history-item--hours .os-detail-demo-history-icon {
+  color: #dec6ff !important;
+}
+
+.gestec-app.dark-mode .os-detail-demo-history-item--deadline .os-detail-demo-history-icon {
+  color: #ffda8a !important;
+}
+
+.gestec-app.dark-mode .os-detail-demo-history-item--created .os-detail-demo-history-icon {
+  color: #8af3cc !important;
+}
+
+
+
+/* ===== GesTec design consolidado: Clique direto na linha/cartão abre o modal de detalhes; ações secundárias mantêm seus próprios botões. ===== */
+/* Clique direto na linha/cartão abre o modal de detalhes; ações secundárias mantêm seus próprios botões. */
+.gestec-app .gestec-clickable-row {
+  cursor: pointer;
+}
+
+.gestec-app .gestec-clickable-row:hover {
+  background: rgba(20, 145, 205, .055);
+}
+
+.gestec-app .gestec-clickable-row:focus-visible {
+  outline: 3px solid rgba(29, 163, 220, .55);
+  outline-offset: -3px;
+}
+
+.gestec-app .gestec-clickable-card {
+  cursor: pointer;
+}
+
+.gestec-app .gestec-clickable-card:focus-visible {
+  outline: 3px solid rgba(29, 163, 220, .55);
+  outline-offset: 3px;
+}
+
+.gestec-app .projeto-card-main[role="button"],
+.gestec-app .funcionario-card-main[role="button"] {
+  cursor: pointer;
+}
+
+.gestec-app .projeto-card-main[role="button"]:focus-visible,
+.gestec-app .funcionario-card-main[role="button"]:focus-visible {
+  outline: 3px solid rgba(29, 163, 220, .55);
+  outline-offset: 4px;
+}
+
+.gestec-app.dark-mode .gestec-clickable-row:hover {
+  background: rgba(72, 199, 239, .09);
+}
+

@@ -1,3 +1,4 @@
+
 import { useEffect, useMemo, useRef, useState } from "react";
 import { calcularDiasUteisRestantes } from "../utils/filtroPrazo";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
@@ -48,10 +49,10 @@ function Ordens() {
             filtroPrazo === "todos"
                 ? null
                 : {
-                      proximos3: 3,
-                      proximos5: 5,
-                      proximos7: 7,
-                  }[filtroPrazo];
+                    proximos3: 3,
+                    proximos5: 5,
+                    proximos7: 7,
+                }[filtroPrazo];
 
         // Calcula os dias úteis restantes para cada O.S.
         const resultado = ordens.ordensFiltradas
@@ -69,7 +70,7 @@ function Ordens() {
                 return (
                     diasA - diasB ||
                     pesoCriticidade(b.ordem.criticidade) -
-                        pesoCriticidade(a.ordem.criticidade) ||
+                    pesoCriticidade(a.ordem.criticidade) ||
                     a.ordem.id - b.ordem.id
                 );
             });
@@ -91,6 +92,7 @@ function Ordens() {
             )
             .map((item) => item.ordem);
     }, [ordens.ordensFiltradas, filtroPrazo]);
+
     const paginacaoOrdens = usePaginatedList(ordensExibidas, 10);
 
     const [searchParams] = useSearchParams();
@@ -227,7 +229,7 @@ function Ordens() {
                         <section className="card table-card gestec-data-card" aria-labelledby="ordens-table-heading">
                             <div className="gestec-table-heading"><div><h2 id="ordens-table-heading">{ordens.mostrarInativas ? "Ordens inativas" : "Ordens de serviço"}</h2><p>Solicitação, responsável, status, prioridade e prazo da O.S.</p></div><span className="gestec-record-count">{ordensExibidas.length} registro(s)</span></div>
                             <div className="table-scroll gestec-table-scroll"><table className="table gestec-data-table gestec-orders-table">
-                                <thead><tr><th>OS / identificação</th><th>Solicitação</th><th>Responsável</th><th>Status</th><th>Prioridade</th><th>Prazo / SLA</th><th className="gestec-actions-cell">Ações</th></tr></thead>
+                                <thead><tr><th>OS / identificação</th><th>Solicitação</th><th>Responsável</th><th>Status</th><th>Prioridade</th><th>Prazo / SLA</th><th className="gestec-actions-cell">Ativa</th></tr></thead>
                                 <tbody>{paginacaoOrdens.pageItems.map((ordem) => {
                                     const cliente = ordens.clientes.find((item) => item.id === ordem.cliente_id);
                                     const responsavel = ordens.funcionariosConhecidos.find((item) => item.id === ordem.responsavel_id);
@@ -236,7 +238,25 @@ function Ordens() {
                                     hoje.setHours(0, 0, 0, 0);
                                     const atrasada = Boolean(prazo && prazo.getTime() < hoje.getTime() && ordem.status !== "concluido");
                                     const prioridade = ordem.criticidade ? CRITICIDADE_LABELS[ordem.criticidade] : "Não definida";
-                                    return <tr key={ordem.id}>
+                                    return <tr
+                                        key={ordem.id}
+                                        className="gestec-order-clickable-row"
+                                        tabIndex={0}
+                                        onClick={(event) => {
+                                            if ((event.target as HTMLElement).closest("a, button, input, select, textarea")) {
+                                                return;
+                                            }
+                                            navigate(`/ordens/${ordem.id}`);
+                                        }}
+                                        onKeyDown={(event) => {
+                                            if (event.target !== event.currentTarget) return;
+
+                                            if (event.key === "Enter" || event.key === " ") {
+                                                event.preventDefault();
+                                                navigate(`/ordens/${ordem.id}`);
+                                            }
+                                        }}
+                                    >
                                         <td><div className="gestec-order-title"><span><Link className="gestec-table-link" to={`/ordens/${ordem.id}`}>OS #{ordem.id}</Link><small>{formatarDataOrdem(ordem.data_criacao)} · {ordem.tipo === "instalacao" ? "Instalação" : "Manutenção"}</small></span></div></td>
                                         <td><strong className="gestec-dashboard-order-title">{ordem.titulo}</strong><small className="gestec-cell-subtitle">{cliente ? (cliente.nome || cliente.razao_social || `Cliente #${cliente.id}`) : ordem.cliente_id === null ? "Não associado" : `Cliente #${ordem.cliente_id}`}</small></td>
                                         <td>{responsavel ? responsavel.nome || `Funcionário #${responsavel.id}` : ordem.responsavel_id === null ? "Não atribuído" : `Funcionário #${ordem.responsavel_id}`}</td>
@@ -244,8 +264,6 @@ function Ordens() {
                                         <td><span className={`gestec-priority-pill priority-${ordem.criticidade ?? "indefinida"}`}>{prioridade}</span></td>
                                         <td><span className={atrasada ? "gestec-deadline is-late" : "gestec-deadline"}>{formatarDataOrdem(ordem.data_limite_sla)}{atrasada && <small>Vencida</small>}</span></td>
                                         <td className="gestec-actions-cell"><div className="gestec-row-actions">
-                                            <button type="button" className="gestec-icon-action" onClick={() => navigate(`/ordens/${ordem.id}`)} aria-label={`Ver detalhes da O.S. ${ordem.id}`} title="Ver detalhes">◉</button>
-                                            {ordens.podeOperarDepartamento && ordem.ativo && ordem.status !== "concluido" && ordem.status !== "bloqueado" && <button type="button" className="gestec-icon-action" onClick={() => ordens.iniciarEdicao(ordem)} disabled={ordens.salvando} aria-label={`Editar O.S. ${ordem.id}`} title="Editar">✎</button>}
                                             {ordens.podeGerenciar && <button type="button" className="gestec-icon-action is-danger" onClick={() => ordens.solicitarAlteracaoAtivo(ordem, ordem.ativo ? "inativar" : "reativar")} disabled={ordens.inativandoId !== null} aria-label={`${ordem.ativo ? "Inativar" : "Reativar"} O.S. ${ordem.id}`} title={ordem.ativo ? "Inativar" : "Reativar"}>{ordem.ativo ? "−" : "↻"}</button>}
                                         </div></td>
                                     </tr>;
@@ -263,7 +281,6 @@ function Ordens() {
                             bloqueado={ordens.salvando || ordens.alterandoStatusId !== null}
                             podeMoverParaStatus={ordens.podeMoverOrdemParaStatus}
                             onAbrir={(selecionada) => navigate(`/ordens/${selecionada.id}`)}
-                            onEditar={ordens.iniciarEdicao}
                             onAlterarAtivo={ordens.solicitarAlteracaoAtivo}
                             onMoverStatus={ordens.moverOrdemKanban}
                         />
@@ -280,7 +297,6 @@ function Ordens() {
                                     podeEditar={ordens.podeOperarDepartamento}
                                     bloqueado={ordens.salvando || ordens.alterandoStatusId === ordem.id}
                                     onAbrir={(selecionada) => navigate(`/ordens/${selecionada.id}`)}
-                                    onEditar={ordens.iniciarEdicao}
                                 />
                             ))}
                         </div>
@@ -293,6 +309,9 @@ function Ordens() {
 
             <OrdemServicoDetalhesModal
                 aberto={ordens.detalhesAbertos}
+                podeGerenciar={ordens.podeGerenciar}
+                inativandoId={ordens.inativandoId}
+                onAlterarAtivo={ordens.solicitarAlteracaoAtivo}
                 ordem={ordens.ordemSelecionada}
                 carregando={ordens.carregandoDetalhes}
                 erro={ordens.detalhesAbertos ? ordens.erro : null}
@@ -308,9 +327,10 @@ function Ordens() {
                     )}
                 atribuindoResponsavel={ordens.atribuindoResponsavel}
                 podeReatribuirResponsavel={ordens.podeAtribuirResponsavel}
-                onAtribuirResponsavel={(funcionarioId) => void ordens.atribuirResponsavelOrdem(funcionarioId)}
+                onAtribuirResponsavel={(funcionarioId) =>
+                    ordens.atribuirResponsavelOrdem(funcionarioId)
+                }
                 onFechar={ordens.fecharDetalhes}
-                onEditar={ordens.iniciarEdicao}
                 podeAlterarStatus={ordens.podeAlterarStatus}
                 podeConcluir={ordens.podeConcluir}
                 alterandoStatusId={ordens.alterandoStatusId}
@@ -338,7 +358,7 @@ function Ordens() {
 
             <OrdemServicoFormModal
                 aberto={ordens.formularioAberto}
-                ordem={ordens.ordemEmEdicao}
+                ordem={null}
                 clientes={ordens.clientes}
                 departamentos={ordens.departamentos}
                 projetos={ordens.projetos}

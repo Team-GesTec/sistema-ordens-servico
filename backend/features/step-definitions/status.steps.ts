@@ -59,7 +59,7 @@ Given(
 When(
     "altera o status da O.S. para {string}",
     async function (this: CustomWorld, status: string) {
-        await alterarStatus(this, { status });
+        await alterarStatus(this, { status, duracao: "1h", data_trabalho: "2026-11-01" });
     }
 );
 

@@ -1,0 +1,2 @@
+ALTER TABLE "departamentos"
+ADD COLUMN "ativo" BOOLEAN NOT NULL DEFAULT true;

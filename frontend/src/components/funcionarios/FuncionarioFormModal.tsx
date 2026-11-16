@@ -5,6 +5,7 @@ import type { Departamento, Funcionario, PerfilFuncionario } from "../../types/a
 export interface DadosFormularioFuncionario {
     nome: string;
     usuario: string;
+    email: string;
     departamento_id: number | null;
     tipo: PerfilFuncionario;
     senha: string;
@@ -24,6 +25,7 @@ interface FuncionarioFormModalProps {
 const FORM_INICIAL: DadosFormularioFuncionario = {
     nome: "",
     usuario: "",
+    email: "",
     departamento_id: null,
     tipo: "tecnico",
     senha: "",
@@ -47,6 +49,7 @@ export default function FuncionarioFormModal({
         setForm(funcionario ? {
             nome: funcionario.nome,
             usuario: funcionario.usuario,
+            email: funcionario.email ?? "",
             departamento_id: funcionario.departamento_id,
             tipo: funcionario.tipo,
             senha: "",
@@ -81,7 +84,7 @@ export default function FuncionarioFormModal({
             setErroLocal("A nova senha deve ter pelo menos 8 caracteres.");
             return;
         }
-        await onSave({ ...form, nome: form.nome.trim(), usuario: form.usuario.trim() });
+        await onSave({ ...form, nome: form.nome.trim(), usuario: form.usuario.trim(), email: form.email.trim() });
     }
 
     return (
@@ -105,6 +108,11 @@ export default function FuncionarioFormModal({
                         <div className="projeto-field projeto-field--wide">
                             <label htmlFor="funcionario-usuario">Usuário / login *</label>
                             <input id="funcionario-usuario" value={form.usuario} onChange={(event) => setForm((atual) => ({ ...atual, usuario: event.target.value }))} maxLength={100} required disabled={salvando} autoComplete="username" />
+                        </div>
+                        <div className="projeto-field projeto-field--wide">
+                            <label htmlFor="funcionario-email">E-mail para notificações</label>
+                            <input id="funcionario-email" type="email" value={form.email} onChange={(event) => setForm((atual) => ({ ...atual, email: event.target.value }))} maxLength={255} disabled={salvando} autoComplete="email" placeholder="colaborador@empresa.com" />
+                            <small>Opcional. Será usado para enviar notificações por e-mail.</small>
                         </div>
                         <div className="projeto-field projeto-field--wide">
                             <label htmlFor="funcionario-departamento">Departamento *</label>
