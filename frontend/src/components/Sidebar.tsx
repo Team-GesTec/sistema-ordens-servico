@@ -1,8 +1,10 @@
 
 import { useEffect, useState } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
-
-import logo from "../images/AZUL.CLARO_BRANCO_SemNome.png";
+import logoExpandida from "../images/GesTec_AzulClaro.Preto.png";
+import logoReduzida from "../images/SemNome_Preta.AzulClaro.png";
+import logoDarkExpandida from "../images/AZUL.CLARO_BRANCO.png";
+import logoDarkReduzida from "../images/AZUL.CLARO_BRANCO_SemNome.png";
 import { getStoredUser, authService } from "../services/auth";
 import type { PerfilFuncionario } from "../types/api";
 import {
@@ -73,13 +75,34 @@ function Sidebar({ darkMode, setDarkMode }: SidebarProps) {
                 className="sidebar-brand"
                 aria-label="GesTec — página inicial"
             >
-                <span className="sidebar-brand-mark">
-                    <img src={logo} alt="" />
+                <span className="sidebar-brand-logo">
+                    <img
+                        className="sidebar-logo-expandida"
+                        src={logoExpandida}
+                        alt="GesTec"
+                    />
+
+                    <img
+                        className="sidebar-logo-reduzida"
+                        src={logoReduzida}
+                        alt="GesTec"
+                    />
+
+                    <img
+                        className="sidebar-logo-dark-expandida"
+                        src={logoDarkExpandida}
+                        alt="GesTec"
+                    />
+
+                    <img
+                        className="sidebar-logo-dark-reduzida"
+                        src={logoDarkReduzida}
+                        alt="GesTec"
+                    />
                 </span>
 
-                <span className="sidebar-brand-text">
-                    <strong>GesTec</strong>
-                    <small>SISTEMA DE GESTÃO</small>
+                <span className="sidebar-brand-subtitle">
+                    SISTEMA DE GESTÃO
                 </span>
             </NavLink>
 
@@ -224,9 +247,8 @@ function Sidebar({ darkMode, setDarkMode }: SidebarProps) {
                         aria-pressed={darkMode}
                     >
                         <i
-                            className={`fa-solid ${
-                                darkMode ? "fa-sun" : "fa-moon"
-                            }`}
+                            className={`fa-solid ${darkMode ? "fa-sun" : "fa-moon"
+                                }`}
                             aria-hidden="true"
                         />
 
@@ -237,9 +259,8 @@ function Sidebar({ darkMode, setDarkMode }: SidebarProps) {
                         </span>
 
                         <span
-                            className={`sidebar-theme-switch${
-                                darkMode ? " ligado" : ""
-                            }`}
+                            className={`sidebar-theme-switch${darkMode ? " ligado" : ""
+                                }`}
                             aria-hidden="true"
                         >
                             <span />
@@ -280,11 +301,10 @@ function Sidebar({ darkMode, setDarkMode }: SidebarProps) {
                     </span>
 
                     <i
-                        className={`fa-solid ${
-                            perfilAberto
-                                ? "fa-chevron-down"
-                                : "fa-chevron-up"
-                        }`}
+                        className={`fa-solid ${perfilAberto
+                            ? "fa-chevron-down"
+                            : "fa-chevron-up"
+                            }`}
                         aria-hidden="true"
                     />
                 </button>
