@@ -39,6 +39,7 @@ import ordensServicoRoutes from './routes/routeOrdemServico';
 import { ControllerAnexo, controllerAnexo as controllerAnexoPadrao } from './controllers/controllerAnexo';
 import { criarRotasAnexo, criarRotasConfiguracaoAnexo } from './routes/routeAnexo';
 import { especificacaoOpenApi } from './docs/openapi';
+import relatorioRoutes from './routes/routeRelatorio';
 
 /** Tamanho máximo aceito para o corpo JSON das requisições. */
 const LIMITE_JSON = '100kb';
@@ -85,6 +86,7 @@ export function criarApp(controllerAnexo: ControllerAnexo = controllerAnexoPadra
     app.use('/anexos', autenticar, criarRotasConfiguracaoAnexo(controllerAnexo));
     app.use('/ordens-servico', autenticar, ordensServicoRoutes);
     app.use('/notificacoes', autenticar, notificacaoRoutes);
+    app.use('/', autenticar, relatorioRoutes);
     // Precisam ser os últimos: 404 para rotas inexistentes e tratamento central de erros.
     app.use(rotaNaoEncontrada);
     app.use(tratarErros);
