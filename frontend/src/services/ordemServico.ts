@@ -1,4 +1,4 @@
-import { apiRequest } from "./api";
+import { apiDownload, apiRequest } from "./api";
 import type { HistoricoOrdemServico, OrdemServico, OrdemServicoInput, RegistroHorasInput } from "../types/api";
 
 export const ordemServicoService = {
@@ -25,6 +25,12 @@ export const ordemServicoService = {
         return apiRequest<OrdemServico>(`/ordens-servico/bloquear/${id}`, {
             method: "PATCH",
         });
+    },
+
+    /** GET /ordens-servico/:id/pdf — exportação da O.S. em PDF. */
+    async exportarPdf(id: number): Promise<Blob> {
+        const arquivo = await apiDownload(`/ordens-servico/${id}/pdf`, false);
+        return arquivo.blob;
     },
 
     buscarPorId(id: number): Promise<OrdemServico> {

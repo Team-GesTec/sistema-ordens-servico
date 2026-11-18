@@ -16,6 +16,10 @@ import type {
 } from "../../types/api";
 
 import { formatarDataTrabalho, hojeNoBrasil, validarDataTrabalho, validarDuracao } from "../../utils/horasUtils";
+import { getStoredUser } from "../../services/auth";
+import { ordemServicoService } from "../../services/ordemServico";
+import { ApiError } from "../../services/api";
+import { publishToast } from "../../services/feedbackEvents";
 
 import {
     CRITICIDADE_LABELS,
@@ -196,6 +200,53 @@ function OrdemServicoDetalhesModal({
     onRegistrarHoras,
 }: OrdemServicoDetalhesModalProps) {
     const [parecerTemporario, setParecerTemporario] = useState("");
+    const [exportandoPdf, setExportandoPdf] = useState(false);
+    const exportacaoPdfEmAndamento = useRef(false);
+    const podeExportarPdf = ["gestor", "analista"].includes(getStoredUser()?.tipo ?? "");
+
+    async function exportarPdf() {
+        if (!ordem || !podeExportarPdf || exportacaoPdfEmAndamento.current) return;
+
+        exportacaoPdfEmAndamento.current = true;
+        setExportandoPdf(true);
+
+        try {
+            const arquivo = await ordemServicoService.exportarPdf(ordem.id);
+            const assinaturaPdf = new Uint8Array(await arquivo.slice(0, 5).arrayBuffer());
+            const cabecalhoPdf = String.fromCharCode(...assinaturaPdf);
+
+            if (cabecalhoPdf !== "%PDF-") {
+                throw new Error("O arquivo recebido não é um PDF válido.");
+            }
+
+            const url = URL.createObjectURL(arquivo);
+            const link = document.createElement("a");
+            link.href = url;
+            link.download = `OS-${ordem.id}.pdf`;
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+            publishToast({
+                title: "PDF da O.S. preparado",
+                message: `O arquivo OS-${ordem.id}.pdf foi enviado para download.`,
+                variant: "success",
+            });
+        } catch (error) {
+            if (error instanceof ApiError) return;
+            publishToast({
+                title: "Não foi possível exportar a O.S.",
+                message: error instanceof Error
+                    ? error.message
+                    : "Ocorreu uma falha ao gerar ou baixar o PDF. Tente novamente.",
+                variant: "error",
+                duration: 8000,
+            });
+        } finally {
+            exportacaoPdfEmAndamento.current = false;
+            setExportandoPdf(false);
+        }
+    }
     const [edicaoDiretaAberta, setEdicaoDiretaAberta] = useState(false);
     const [confirmacaoSaidaAberta, setConfirmacaoSaidaAberta] = useState(false);
     const [justificativaEdicao, setJustificativaEdicao] = useState("");
@@ -685,6 +736,18 @@ function OrdemServicoDetalhesModal({
                                 </div>
                                 <div className="os-detail-top-actions">
                                     <button type="button" className="os-detail-btn os-detail-btn--secondary" onClick={onFechar}><i className="fa-solid fa-arrow-left" aria-hidden="true" /> Voltar às ordens</button>
+                                    {podeExportarPdf && (
+                                        <button
+                                            type="button"
+                                            className="os-detail-btn os-detail-btn--secondary"
+                                            onClick={() => void exportarPdf()}
+                                            disabled={exportandoPdf}
+                                            aria-busy={exportandoPdf}
+                                        >
+                                            <i className="fa-solid fa-file-pdf" aria-hidden="true" />
+                                            {exportandoPdf ? "Gerando PDF…" : "Exportar PDF"}
+                                        </button>
+                                    )}
                                     {podeGerenciar && onAlterarAtivo && (
                                         <button
                                             type="button"
@@ -1529,6 +1592,18 @@ function OrdemServicoDetalhesModal({
         >
             Fechar
         </button>
+
+        {ordem && podeExportarPdf && (
+            <button
+                type="button"
+                className="ordens-btn-secondary"
+                onClick={() => void exportarPdf()}
+                disabled={exportandoPdf}
+                aria-busy={exportandoPdf}
+            >
+                {exportandoPdf ? "Gerando PDF…" : "Exportar PDF"}
+            </button>
+        )}
 
         {ordem && (
             <button
