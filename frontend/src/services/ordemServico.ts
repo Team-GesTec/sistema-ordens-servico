@@ -2,9 +2,14 @@ import { apiRequest } from "./api";
 import type { HistoricoOrdemServico, OrdemServico, OrdemServicoInput, RegistroHorasInput } from "../types/api";
 
 export const ordemServicoService = {
-    /** GET /ordens-servico — o backend não lê filtros de prazo; eles são aplicados no cliente. */
-    listar(): Promise<OrdemServico[]> {
-        return apiRequest<OrdemServico[]>("/ordens-servico");
+    /**
+     * GET /ordens-servico — o backend não lê filtros de prazo; eles são aplicados no cliente.
+     * Por padrão não traz as O.S. arquivadas (US#2.11); Relatórios, Home e Auditoria pedem
+     * `incluirArquivadas` para não perder as concluídas há 14 dias ou mais.
+     */
+    listar(opcoes: { incluirArquivadas?: boolean } = {}): Promise<OrdemServico[]> {
+        const consulta = opcoes.incluirArquivadas ? "?incluir_arquivadas=true" : "";
+        return apiRequest<OrdemServico[]>(`/ordens-servico${consulta}`);
     },
 
     /** GET /ordens-servico/inativas — somente gestor. */

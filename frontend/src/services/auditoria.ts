@@ -39,7 +39,7 @@ export interface EscopoAuditoria {
  */
 export const auditoriaService = {
     async listarTodas(escopo: EscopoAuditoria): Promise<ResultadoAuditoria> {
-        const ativas = await ordemServicoService.listar();
+        const ativas = await ordemServicoService.listar({ incluirArquivadas: true });
         let ordens = [...ativas];
         let falhaConsultaInativas = false;
 

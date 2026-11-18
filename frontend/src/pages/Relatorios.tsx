@@ -151,7 +151,7 @@ function Relatorios() {
         setErro(null);
         try {
             const [ordens, clientes, departamentos] = await Promise.all([
-                ordemServicoService.listar(),
+                ordemServicoService.listar({ incluirArquivadas: true }),
                 clienteService.listar(),
                 departamentoService.listar(),
             ]);
