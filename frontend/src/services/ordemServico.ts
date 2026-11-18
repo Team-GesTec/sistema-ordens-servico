@@ -26,10 +26,9 @@ export const ordemServicoService = {
             method: "PATCH",
         });
     },
-
-    /** GET /ordens-servico/:id/pdf — exportação da O.S. em PDF. */
+    
     async exportarPdf(id: number): Promise<Blob> {
-        const arquivo = await apiDownload(`/ordens-servico/${id}/pdf`, false);
+        const arquivo = await apiDownload(`/ordens-servico/${id}/relatorio.pdf`, false);
         return arquivo.blob;
     },
 
