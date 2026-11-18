@@ -788,7 +788,8 @@
 }
 
 .ordem-modal .ordem-form-field > input,
-.ordem-modal .ordem-form-field > textarea {
+.ordem-modal .ordem-form-field > textarea,
+.ordem-modal .ordem-form-field > select {
     box-sizing: border-box;
     width: 100%;
     min-width: 0;
@@ -802,7 +803,8 @@
     outline: none;
 }
 
-.ordem-modal .ordem-form-field > input {
+.ordem-modal .ordem-form-field > input,
+.ordem-modal .ordem-form-field > select {
     height: 38px;
 }
 
@@ -813,7 +815,8 @@
 }
 
 .ordem-modal .ordem-form-field > input:focus,
-.ordem-modal .ordem-form-field > textarea:focus {
+.ordem-modal .ordem-form-field > textarea:focus,
+.ordem-modal .ordem-form-field > select:focus {
     border-color: #1768b7;
     box-shadow: 0 0 0 3px rgba(23, 104, 183, 0.12);
 }
@@ -1507,14 +1510,16 @@
 }
 
 .dark-mode .ordem-modal .ordem-form-field > input,
-.dark-mode .ordem-modal .ordem-form-field > textarea {
+.dark-mode .ordem-modal .ordem-form-field > textarea,
+.dark-mode .ordem-modal .ordem-form-field > select {
     border-color: #355269;
     background: #19364b;
     color: #eef8fd;
 }
 
 .dark-mode .ordem-modal .ordem-form-field > input:focus,
-.dark-mode .ordem-modal .ordem-form-field > textarea:focus {
+.dark-mode .ordem-modal .ordem-form-field > textarea:focus,
+.dark-mode .ordem-modal .ordem-form-field > select:focus {
     border-color: #7cb8f0;
     box-shadow: 0 0 0 3px rgba(124, 184, 240, 0.2);
 }

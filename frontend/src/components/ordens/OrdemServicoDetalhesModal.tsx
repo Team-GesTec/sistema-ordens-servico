@@ -265,8 +265,12 @@ function OrdemServicoDetalhesModal({
         onAlteracoesNaoSalvasChange,
     ]);
     const statusEditaveis = useMemo<StatusOrdemServico[]>(
-        () => podeConcluir ? [...STATUS_EDITAVEIS, "concluido"] : STATUS_EDITAVEIS,
-        [podeConcluir],
+        () => [
+            ...STATUS_EDITAVEIS,
+            ...(podeConcluir ? ["concluido" as const] : []),
+            ...(podeGerenciar ? ["bloqueado" as const] : []),
+        ],
+        [podeConcluir, podeGerenciar],
     );
 
     // Descarta o rascunho ao fechar o modal ou trocar de OS.

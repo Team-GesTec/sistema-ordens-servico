@@ -552,11 +552,32 @@ export function useOrdens() {
             return;
         }
         if (novoStatus === "bloqueado") {
-            setErro("O bloqueio deve utilizar a operação específica de bloqueio.");
+            if (!podeGerenciar) {
+                setErro("Apenas gestores podem bloquear uma O.S.");
+                return;
+            }
+            setAlterandoStatusId(ordem.id);
+            setErro(null);
+            setMensagem(null);
+            try {
+                const atualizada = await ordemServicoService.bloquear(ordem.id);
+                const fallbackDetalhe = { ...ordem, ...atualizada };
+                setOrdens((atuais) => atuais.map((item) => item.id === atualizada.id ? atualizada : item));
+                setOrdensInativas((atuais) => atuais.map((item) => item.id === atualizada.id ? atualizada : item));
+                if (detalhesAbertos && ordemSelecionada?.id === ordem.id) {
+                    setOrdemSelecionada(fallbackDetalhe);
+                    await recarregarDetalheAposMutacao(atualizada, fallbackDetalhe);
+                }
+                setMensagem(`O.S. #${atualizada.id} bloqueada com sucesso.`);
+            } catch (error) {
+                setErro(mensagemErro(error, "Não foi possível bloquear a ordem de serviço."));
+            } finally {
+                setAlterandoStatusId(null);
+            }
             return;
         }
-        if (novoStatus === "concluido" && !ehResponsavel) {
-            setErro("Apenas o responsável designado pode concluir esta O.S.");
+        if (novoStatus === "concluido" && !podeGerenciar && !ehResponsavel) {
+            setErro("Apenas o gestor ou o técnico responsável pode concluir esta O.S.");
             return;
         }
         const parecerFinal = parecerTecnico?.trim();
@@ -944,7 +965,7 @@ export function useOrdens() {
             ordemSelecionada &&
             ordemSelecionada.ativo &&
             usuarioAtualId !== null &&
-            ordemSelecionada.responsavel_id === usuarioAtualId &&
+            (podeGerenciar || ordemSelecionada.responsavel_id === usuarioAtualId) &&
             ordemSelecionada.status !== "bloqueado" &&
             ordemSelecionada.status !== "concluido",
         ),

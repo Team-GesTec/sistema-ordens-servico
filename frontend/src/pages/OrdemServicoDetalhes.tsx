@@ -134,7 +134,8 @@ function OrdemServicoDetalhes() {
                 salvando={ordens.salvando}
                 erro={ordens.formularioAberto ? ordens.erro : null}
                 carregandoOpcoes={ordens.carregando}
-                podeCadastrarAntiga={ordens.podeGerenciar}
+                podeDefinirStatusInicial={ordens.podeCriar}
+                podeDefinirBloqueado={ordens.podeGerenciar}
                 onClose={ordens.fecharFormulario}
                 onSave={ordens.salvarOrdem}
                 onClearError={ordens.limparErro}
