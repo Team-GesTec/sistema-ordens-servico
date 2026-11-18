@@ -12,6 +12,14 @@ export const ordemServicoService = {
         return apiRequest<OrdemServico[]>("/ordens-servico/inativas");
     },
 
+    /**
+     * GET /ordens-servico/arquivadas — O.S. concluídas há 14 dias ou mais (US#2.11).
+     * Gestor e técnico; o técnico recebe apenas as O.S. do seu alcance.
+     */
+    listarArquivadas(): Promise<OrdemServico[]> {
+        return apiRequest<OrdemServico[]>("/ordens-servico/arquivadas");
+    },
+
     /** PATCH /ordens-servico/:id/ativo — somente gestor. */
     alterarAtivo(id: number, ativo: boolean): Promise<OrdemServico> {
         return apiRequest<OrdemServico>(`/ordens-servico/${id}/ativo`, {

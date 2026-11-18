@@ -3,6 +3,7 @@ import Autocomplete, { type AutocompleteOption } from "../common/Autocomplete";
 import FilterDrawer from "../common/FilterDrawer";
 import type { Funcionario, OrdemServico } from "../../types/api";
 import {
+    FILTRO_ARQUIVADOS,
     correspondeBuscaOrdem,
     STATUS_LABELS,
     type FiltroResponsavelOrdem,
@@ -71,7 +72,10 @@ function OrdensToolbar({
             value: value as FiltroStatusOrdem,
             label,
         })),
+        // US#2.11: histórico de O.S. concluídas há 14 dias ou mais (sempre a última opção).
+        { value: FILTRO_ARQUIVADOS, label: "Arquivados" },
     ];
+    const modoArquivados = filtroStatus === FILTRO_ARQUIVADOS;
 
     function correspondeResponsavel(ordem: OrdemServico): boolean {
         if (filtroResponsavelId === "todos") return true;
@@ -194,7 +198,7 @@ function OrdensToolbar({
                     <div className="gestec-filter-field">
                         <label htmlFor="ordens-status-filter">Status da ordem</label>
                         <select id="ordens-status-filter" value={filtroStatus} onChange={(event) => onFiltroStatusChange(event.target.value as FiltroStatusOrdem)}>
-                            {filtros.map((filtro) => <option key={filtro.value} value={filtro.value}>{filtro.label}{filtro.value === "todos" ? ` (${contar(filtro.value)})` : ""}</option>)}
+                            {filtros.map((filtro) => <option key={filtro.value} value={filtro.value}>{filtro.label}{filtro.value === "todos" && !modoArquivados ? ` (${contar(filtro.value)})` : ""}</option>)}
                         </select>
                     </div>
                     {onFiltroResponsavelChange && (
@@ -214,8 +218,8 @@ function OrdensToolbar({
                     </div>
                     {podeGerenciar && (
                         <label className="gestec-filter-toggle">
-                            <span><strong>Consultar ordens inativas</strong><small>{mostrarInativas ? "Exibindo registros inativos" : "Exibindo registros ativos"}</small></span>
-                            <input type="checkbox" checked={mostrarInativas} disabled={carregandoInativas} onChange={onAlternarInativas} />
+                            <span><strong>Consultar ordens inativas</strong><small>{modoArquivados ? "Indisponível em Arquivados" : mostrarInativas ? "Exibindo registros inativos" : "Exibindo registros ativos"}</small></span>
+                            <input type="checkbox" checked={mostrarInativas} disabled={carregandoInativas || modoArquivados} onChange={onAlternarInativas} />
                             <span className="gestec-toggle-track" aria-hidden="true"><span /></span>
                         </label>
                     )}
