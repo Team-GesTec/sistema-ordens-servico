@@ -107,7 +107,7 @@ function Dashboard() {
         try {
             const [ordens, departamentos, funcionarios, projetos] =
                 await Promise.all([
-                    ordemServicoService.listar(),
+                    ordemServicoService.listar({ incluirArquivadas: true }),
                     departamentoService.listar(),
                     funcionarioService.listar(),
                     projetoService.listar(),

@@ -29,6 +29,7 @@ import { validarDataTrabalho, validarDuracao } from "../utils/horasUtils";
 
 import {
     correspondeBuscaOrdem,
+    FILTRO_ARQUIVADOS,
     type FiltroResponsavelOrdem,
     type FiltroStatusOrdem,
 } from "../utils/ordemServicoUtils";
@@ -44,6 +45,9 @@ export function useOrdens() {
     const [ordensInativas, setOrdensInativas] = useState<OrdemServico[]>([]);
     const [carregandoInativas, setCarregandoInativas] = useState(false);
     const [mostrarInativas, setMostrarInativas] = useState(false);
+    const [ordensArquivadas, setOrdensArquivadas] = useState<OrdemServico[]>([]);
+    const [carregandoArquivadas, setCarregandoArquivadas] = useState(false);
+    const [falhaArquivadas, setFalhaArquivadas] = useState(false);
 
     const [confirmacaoAtivo, setConfirmacaoAtivo] = useState<{
         ordem: OrdemServico;
@@ -63,7 +67,7 @@ export function useOrdens() {
     const [carregandoDetalhes, setCarregandoDetalhes] = useState(false);
 
     const [busca, setBusca] = useState("");
-    const [filtroStatus, setFiltroStatus] =
+    const [filtroStatus, setFiltroStatusBase] =
         useState<FiltroStatusOrdem>("todos");
     const [filtroResponsavelId, setFiltroResponsavelId] =
         useState<FiltroResponsavelOrdem>("todos");
@@ -219,11 +223,15 @@ export function useOrdens() {
 
 
     const ordensFiltradas = useMemo(() => {
-        const fonte = mostrarInativas ? ordensInativas : ordens;
+        const fonte = filtroStatus === FILTRO_ARQUIVADOS
+            ? ordensArquivadas
+            : mostrarInativas ? ordensInativas : ordens;
 
         return fonte.filter((ordem) => {
+            // "Arquivados" troca a fonte da lista; as O.S. arquivadas já estão concluídas.
             const correspondeStatus =
                 filtroStatus === "todos" ||
+                filtroStatus === FILTRO_ARQUIVADOS ||
                 ordem.status === filtroStatus;
             const correspondeResponsavel =
                 filtroResponsavelId === "todos" ||
@@ -246,12 +254,35 @@ export function useOrdens() {
     }, [
         ordens,
         ordensInativas,
+        ordensArquivadas,
         mostrarInativas,
         busca,
         filtroStatus,
         filtroResponsavelId,
         funcionariosConhecidos,
     ]);
+
+    /** US#2.11 — arquivadas com busca e responsável aplicados (usado pela última coluna do Kanban). */
+    const arquivadasFiltradas = useMemo(() => {
+        return ordensArquivadas.filter((ordem) => {
+            const correspondeResponsavel =
+                filtroResponsavelId === "todos" ||
+                (filtroResponsavelId === "sem_responsavel"
+                    ? ordem.responsavel_id === null
+                    : ordem.responsavel_id === filtroResponsavelId);
+            const responsavel = funcionariosConhecidos.find(
+                (funcionario) => funcionario.id === ordem.responsavel_id,
+            );
+            const textoResponsavel = responsavel
+                ? `${responsavel.nome} ${responsavel.usuario}`
+                : "";
+
+            return (
+                correspondeResponsavel &&
+                correspondeBuscaOrdem(ordem, busca, textoResponsavel)
+            );
+        });
+    }, [ordensArquivadas, busca, filtroResponsavelId, funcionariosConhecidos]);
 
     function limparErro() {
         setErro(null);
@@ -300,6 +331,39 @@ export function useOrdens() {
             );
         } finally {
             setCarregandoInativas(false);
+        }
+    }
+
+    /** US#2.11 — carrega o histórico de O.S. arquivadas (gestor e técnico; o escopo vem do backend). */
+    async function carregarOrdensArquivadas(): Promise<void> {
+        setCarregandoArquivadas(true);
+        setFalhaArquivadas(false);
+        setErro(null);
+
+        try {
+            const resultado = await ordemServicoService.listarArquivadas();
+            setOrdensArquivadas(resultado);
+        } catch (error) {
+            setOrdensArquivadas([]);
+            setFalhaArquivadas(true);
+            setErro(
+                mensagemErro(
+                    error,
+                    "Não foi possível carregar as ordens arquivadas.",
+                ),
+            );
+        } finally {
+            setCarregandoArquivadas(false);
+        }
+    }
+
+    /** Altera o filtro de status; ao escolher "Arquivados", busca o histórico e sai da consulta de inativas. */
+    function setFiltroStatus(valor: FiltroStatusOrdem): void {
+        setFiltroStatusBase(valor);
+
+        if (valor === FILTRO_ARQUIVADOS) {
+            setMostrarInativas(false);
+            void carregarOrdensArquivadas();
         }
     }
 
@@ -890,6 +954,7 @@ export function useOrdens() {
     return {
         ordens,
         ordensFiltradas,
+        arquivadasFiltradas,
         clientes,
         departamentos,
         projetos,
@@ -963,6 +1028,11 @@ export function useOrdens() {
         carregandoInativas,
         mostrarInativas,
         setMostrarInativas,
+
+        ordensArquivadas,
+        carregandoArquivadas,
+        falhaArquivadas,
+        carregarOrdensArquivadas,
 
         carregarOrdensInativas,
         confirmacaoAtivo,

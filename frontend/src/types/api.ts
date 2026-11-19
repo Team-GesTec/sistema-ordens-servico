@@ -158,6 +158,8 @@ export interface OrdemServico {
     prazo_dias_uteis?: number | null;
     sla_manual?: boolean;
     data_ultima_atualizacao?: string | null;
+    /** US#2.11 — data em que a O.S. concluída foi arquivada (14 dias após a conclusão); null/ausente se não arquivada. */
+    arquivada_em?: string | null;
 }
 
 export interface OrdemServicoInput {
