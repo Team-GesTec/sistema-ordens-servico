@@ -30,6 +30,11 @@ router.get('/inativas', somenteGestor, (req: Request, res: Response) =>
     controllerOrdemServico.getInativas(req, res),
 );
 
+// GET ALL ARQUIVADAS
+router.get('/arquivadas', gestorOuTecnico, (req: Request, res: Response) =>
+    controllerOrdemServico.getArquivadas(req, res),
+);
+
 // GET BY ID — qualquer usuário autenticado
 router.get('/:id', (req: Request, res: Response) => controllerOrdemServico.getById(req, res));
 

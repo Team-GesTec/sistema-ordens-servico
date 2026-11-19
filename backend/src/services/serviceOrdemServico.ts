@@ -62,6 +62,7 @@ import {
     type OrdemServico,
     STATUS_ORDEM,
     STATUS_PADRAO,
+    DIAS_PARA_ARQUIVAMENTO,
 } from '../models/modelOrdemServico';
 
 import {
@@ -153,12 +154,30 @@ export class ServiceOrdemServico {
         this.funcionarios = funcionarios
     }
 
-    /** Lista somente as O.S. ativas, cada uma com o estado do SLA. */
-    async listar(): Promise<OrdemServicoComSla[]> {
+    /** Lista as O.S. ativas com o estado do SLA. As arquivadas só vêm com incluirArquivadas. */
+    async listar(opcoes: { incluirArquivadas?: boolean } = {}): Promise<OrdemServicoComSla[]> {
         const ordens = await this.repositorio.listar();
-        const ativas = ordens.filter((ordem) => ordem.ativo);
+        const visiveis = ordens.filter(
+            (ordem) => ordem.ativo && (opcoes.incluirArquivadas || !ordem.arquivada_em),
+        );
         const agora = new Date();
-        return ativas.map((ordem) => comEstadoSla(ordem, agora));
+        return visiveis.map((ordem) => comEstadoSla(ordem, agora));
+    }
+
+    /** Lista as O.S. arquivadas com o estado do SLA. */
+    async listarArquivadas(): Promise<OrdemServicoComSla[]> {
+        const ordens = await this.repositorio.listar();
+        const agora = new Date();
+        return ordens
+            .filter((ordem) => ordem.ativo && ordem.arquivada_em)
+            .map((ordem) => comEstadoSla(ordem, agora));
+    }
+
+    /** Arquiva as O.S. concluídas há 14 dias ou mais. somenteIds é usado nos testes. */
+    async arquivarConcluidas(opcoes: { agora?: Date; somenteIds?: number[] } = {}): Promise<number> {
+        const agora = opcoes.agora ?? new Date();
+        const limite = new Date(agora.getTime() - DIAS_PARA_ARQUIVAMENTO * 24 * 60 * 60 * 1000);
+        return this.repositorio.arquivarConcluidas(limite, opcoes.somenteIds);
     }
 
     /** Lista somente as O.S. inativas, para consulta do histórico. */

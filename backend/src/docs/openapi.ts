@@ -28,6 +28,29 @@ export const especificacaoOpenApi = {
     },
     security: [{ BearerAuth: [] }],
     paths: {
+        '/ordens-servico': {
+            get: {
+                summary: 'Lista as O.S. ativas (sem as arquivadas, por padrão)',
+                parameters: [
+                    { in: 'query', name: 'incluir_arquivadas', required: false, description: 'Quando true, inclui as O.S. concluídas já arquivadas (US#2.11). Usado por Relatórios, Home e Auditoria.', schema: { type: 'boolean', default: false } },
+                ],
+                responses: {
+                    '200': { description: 'Lista de O.S. ativas, cada uma com estado_sla e arquivada_em.' },
+                    '401': { description: 'Token inválido ou ausente.' },
+                },
+            },
+        },
+        '/ordens-servico/arquivadas': {
+            get: {
+                summary: 'Histórico de O.S. concluídas arquivadas automaticamente após 14 dias (US#2.11)',
+                description: 'Perfis: gestor e técnico. Retorna as O.S. ativas com arquivada_em preenchido, no mesmo formato de GET /ordens-servico.',
+                responses: {
+                    '200': { description: 'Lista de O.S. arquivadas.' },
+                    '401': { description: 'Token inválido ou ausente.' },
+                    '403': { description: 'Somente gestor e técnico consultam o histórico de arquivadas.' },
+                },
+            },
+        },
         '/departamento/{id}/equipe': {
             get: {
                 summary: 'Consulta funcionários, projetos e ordens de serviço vinculados ao departamento',
