@@ -2570,7 +2570,7 @@ body {
 
 .gestec-app .sidebar,
 .gestec-app .sidebar:hover,
-.gestec-app .sidebar:focus-within {
+.gestec-app .sidebar:hover {
   position: fixed !important;
   inset: 0 auto 0 0 !important;
   z-index: 1200;
@@ -2597,7 +2597,7 @@ body {
 }
 
 .gestec-app .sidebar:hover,
-.gestec-app .sidebar:focus-within {
+.gestec-app .sidebar:hover {
   width: var(--gestec-sidebar-expanded-width) !important;
   min-width: var(--gestec-sidebar-expanded-width) !important;
   max-width: var(--gestec-sidebar-expanded-width) !important;
@@ -2608,7 +2608,7 @@ body {
 
 .gestec-app .sidebar-brand,
 .gestec-app .sidebar:hover .sidebar-brand,
-.gestec-app .sidebar:focus-within .sidebar-brand {
+.gestec-app .sidebar:hover .sidebar-brand {
   display: flex !important;
   flex: 0 0 auto;
   align-items: center !important;
@@ -2632,34 +2632,34 @@ body {
   height: 27px !important;
 }
 
-.gestec-app .sidebar:not(:hover):not(:focus-within) .sidebar-brand-text,
-.gestec-app .sidebar:not(:hover):not(:focus-within) .sidebar-section-label,
-.gestec-app .sidebar:not(:hover):not(:focus-within) .menu-item span,
-.gestec-app .sidebar:not(:hover):not(:focus-within) .sidebar-theme-toggle span,
-.gestec-app .sidebar:not(:hover):not(:focus-within) .perfil-informacoes,
-.gestec-app .sidebar:not(:hover):not(:focus-within) .sidebar-perfil>i {
+.gestec-app .sidebar:not(:hover):not(:hover) .sidebar-brand-text,
+.gestec-app .sidebar:not(:hover):not(:hover) .sidebar-section-label,
+.gestec-app .sidebar:not(:hover):not(:hover) .menu-item span,
+.gestec-app .sidebar:not(:hover):not(:hover) .sidebar-theme-toggle span,
+.gestec-app .sidebar:not(:hover):not(:hover) .perfil-informacoes,
+.gestec-app .sidebar:not(:hover):not(:hover) .sidebar-perfil>i {
   display: none !important;
 }
 
 .gestec-app .sidebar:hover .sidebar-brand-text,
-.gestec-app .sidebar:focus-within .sidebar-brand-text,
+.gestec-app .sidebar:hover .sidebar-brand-text,
 .gestec-app .sidebar:hover .sidebar-section-label,
-.gestec-app .sidebar:focus-within .sidebar-section-label,
+.gestec-app .sidebar:hover .sidebar-section-label,
 .gestec-app .sidebar:hover .menu-item span,
-.gestec-app .sidebar:focus-within .menu-item span,
+.gestec-app .sidebar:hover .menu-item span,
 .gestec-app .sidebar:hover .sidebar-theme-toggle span,
-.gestec-app .sidebar:focus-within .sidebar-theme-toggle span,
+.gestec-app .sidebar:hover .sidebar-theme-toggle span,
 .gestec-app .sidebar:hover .perfil-informacoes,
-.gestec-app .sidebar:focus-within .perfil-informacoes,
+.gestec-app .sidebar:hover .perfil-informacoes,
 .gestec-app .sidebar:hover .sidebar-perfil>i,
-.gestec-app .sidebar:focus-within .sidebar-perfil>i {
+.gestec-app .sidebar:hover .sidebar-perfil>i {
   display: initial;
 }
 
 .gestec-app .sidebar:hover .sidebar-brand-text,
-.gestec-app .sidebar:focus-within .sidebar-brand-text,
+.gestec-app .sidebar:hover .sidebar-brand-text,
 .gestec-app .sidebar:hover .perfil-informacoes,
-.gestec-app .sidebar:focus-within .perfil-informacoes {
+.gestec-app .sidebar:hover .perfil-informacoes {
   display: flex;
 }
 
@@ -2674,7 +2674,7 @@ body {
 
 .gestec-app .sidebar-nav,
 .gestec-app .sidebar:hover .sidebar-nav,
-.gestec-app .sidebar:focus-within .sidebar-nav {
+.gestec-app .sidebar:hover .sidebar-nav {
   display: flex !important;
   flex: 0 0 auto;
   flex-direction: column !important;
@@ -2687,7 +2687,7 @@ body {
 
 .gestec-app .sidebar-nav-section,
 .gestec-app .sidebar:hover .sidebar-nav-section,
-.gestec-app .sidebar:focus-within .sidebar-nav-section {
+.gestec-app .sidebar:hover .sidebar-nav-section {
   display: flex !important;
   flex-direction: column !important;
   align-items: stretch !important;
@@ -2706,7 +2706,7 @@ body {
 
 .gestec-app .sidebar .menu-item,
 .gestec-app .sidebar:hover .menu-item,
-.gestec-app .sidebar:focus-within .menu-item {
+.gestec-app .sidebar:hover .menu-item {
   display: flex !important;
   flex: 0 0 auto;
   align-items: center !important;
@@ -2723,14 +2723,14 @@ body {
 }
 
 .gestec-app .sidebar:hover .menu-item,
-.gestec-app .sidebar:focus-within .menu-item {
+.gestec-app .sidebar:hover .menu-item {
   justify-content: flex-start !important;
   padding: 0 13px !important;
 }
 
 .gestec-app .sidebar .menu-item i,
 .gestec-app .sidebar:hover .menu-item i,
-.gestec-app .sidebar:focus-within .menu-item i {
+.gestec-app .sidebar:hover .menu-item i {
   display: flex !important;
   flex: 0 0 24px !important;
   align-items: center !important;
@@ -2747,7 +2747,7 @@ body {
 
 .gestec-app .sidebar .menu-item span,
 .gestec-app .sidebar:hover .menu-item span,
-.gestec-app .sidebar:focus-within .menu-item span {
+.gestec-app .sidebar:hover .menu-item span {
   min-width: 0;
   margin: 0 !important;
   opacity: 1 !important;
@@ -2771,7 +2771,7 @@ body {
 
 .gestec-app .sidebar-theme-toggle,
 .gestec-app .sidebar:hover .sidebar-theme-toggle,
-.gestec-app .sidebar:focus-within .sidebar-theme-toggle {
+.gestec-app .sidebar:hover .sidebar-theme-toggle {
   display: flex !important;
   flex: 0 0 auto;
   align-items: center;
@@ -2789,7 +2789,7 @@ body {
 }
 
 .gestec-app .sidebar:hover .sidebar-theme-toggle,
-.gestec-app .sidebar:focus-within .sidebar-theme-toggle {
+.gestec-app .sidebar:hover .sidebar-theme-toggle {
   justify-content: flex-start;
 }
 
@@ -2832,7 +2832,7 @@ body {
 
 .gestec-app .sidebar-perfil,
 .gestec-app .sidebar:not(:hover) .sidebar-perfil,
-.gestec-app .sidebar:not(:focus-within) .sidebar-perfil {
+.gestec-app .sidebar:not(:hover) .sidebar-perfil {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -2845,7 +2845,7 @@ body {
 }
 
 .gestec-app .sidebar:hover .sidebar-perfil,
-.gestec-app .sidebar:focus-within .sidebar-perfil {
+.gestec-app .sidebar:hover .sidebar-perfil {
   justify-content: flex-start;
   padding: 7px 8px;
 }
@@ -2884,7 +2884,7 @@ body {
   width: 232px;
 }
 
-.gestec-app .sidebar:not(:hover):not(:focus-within) .sidebar-perfil-menu {
+.gestec-app .sidebar:not(:hover):not(:hover) .sidebar-perfil-menu {
   left: calc(100% + 8px);
 }
 
@@ -3214,14 +3214,14 @@ body {
 
   .gestec-app .sidebar,
   .gestec-app .sidebar:hover,
-  .gestec-app .sidebar:focus-within {
+  .gestec-app .sidebar:hover {
     width: var(--gestec-sidebar-width) !important;
     min-width: var(--gestec-sidebar-width) !important;
     max-width: var(--gestec-sidebar-width) !important;
   }
 
   .gestec-app .sidebar:hover,
-  .gestec-app .sidebar:focus-within {
+  .gestec-app .sidebar:hover {
     width: var(--gestec-sidebar-expanded-width) !important;
     min-width: var(--gestec-sidebar-expanded-width) !important;
     max-width: var(--gestec-sidebar-expanded-width) !important;
@@ -3250,19 +3250,19 @@ body {
 }
 
 .gestec-app .sidebar:hover .sidebar-brand,
-.gestec-app .sidebar:focus-within .sidebar-brand {
+.gestec-app .sidebar:hover .sidebar-brand {
   justify-content: flex-start !important;
   padding-right: 4px !important;
   padding-left: 4px !important;
 }
 
 .gestec-app .sidebar:hover .sidebar-theme-switch,
-.gestec-app .sidebar:focus-within .sidebar-theme-switch {
+.gestec-app .sidebar:hover .sidebar-theme-switch {
   display: flex !important;
 }
 
 .gestec-app .sidebar:hover .sidebar-theme-switch>span,
-.gestec-app .sidebar:focus-within .sidebar-theme-switch>span {
+.gestec-app .sidebar:hover .sidebar-theme-switch>span {
   display: block !important;
 }
 
@@ -3274,7 +3274,7 @@ body {
 
 .gestec-app .sidebar,
 .gestec-app .sidebar:hover,
-.gestec-app .sidebar:focus-within {
+.gestec-app .sidebar:hover {
   width: var(--gestec-sidebar-width) !important;
   min-width: var(--gestec-sidebar-width) !important;
   max-width: var(--gestec-sidebar-width) !important;
@@ -3283,7 +3283,7 @@ body {
 }
 
 .gestec-app .sidebar:hover,
-.gestec-app .sidebar:focus-within {
+.gestec-app .sidebar:hover {
   width: var(--gestec-sidebar-expanded-width) !important;
   min-width: var(--gestec-sidebar-expanded-width) !important;
   max-width: var(--gestec-sidebar-expanded-width) !important;
@@ -3291,24 +3291,24 @@ body {
   box-shadow: 14px 0 38px rgba(5, 25, 63, .24) !important;
 }
 
-.gestec-app .sidebar:not(:hover):not(:focus-within) .sidebar-brand {
+.gestec-app .sidebar:not(:hover):not(:hover) .sidebar-brand {
   justify-content: center !important;
   padding-right: 0 !important;
   padding-left: 0 !important;
 }
 
-.gestec-app .sidebar:not(:hover):not(:focus-within) .sidebar .menu-item,
-.gestec-app .sidebar:not(:hover):not(:focus-within) .menu-item {
+.gestec-app .sidebar:not(:hover):not(:hover) .sidebar .menu-item,
+.gestec-app .sidebar:not(:hover):not(:hover) .menu-item {
   justify-content: center !important;
   gap: 0 !important;
 }
 
-.gestec-app .sidebar:not(:hover):not(:focus-within) .sidebar-theme-toggle {
+.gestec-app .sidebar:not(:hover):not(:hover) .sidebar-theme-toggle {
   min-height: 44px !important;
   padding: 0 !important;
 }
 
-.gestec-app .sidebar:not(:hover):not(:focus-within) .sidebar-theme-toggle>i {
+.gestec-app .sidebar:not(:hover):not(:hover) .sidebar-theme-toggle>i {
   flex-basis: 100% !important;
 }
 
@@ -3820,7 +3820,7 @@ body {
 
   .gestec-app .sidebar,
   .gestec-app .sidebar:hover,
-  .gestec-app .sidebar:focus-within {
+  .gestec-app .sidebar:hover {
     transition: none !important;
   }
 }
@@ -3899,7 +3899,7 @@ body {
 @media (max-width: 700px) {
 
   .gestec-app .sidebar:hover,
-  .gestec-app .sidebar:focus-within {
+  .gestec-app .sidebar:hover {
     width: var(--gestec-sidebar-expanded-width) !important;
     min-width: var(--gestec-sidebar-expanded-width) !important;
     max-width: var(--gestec-sidebar-expanded-width) !important;
@@ -3920,7 +3920,7 @@ body {
 
 .gestec-app .sidebar,
 .gestec-app .sidebar:hover,
-.gestec-app .sidebar:focus-within {
+.gestec-app .sidebar:hover {
   position: fixed !important;
   inset: 0 auto 0 0 !important;
   z-index: 1500 !important;
@@ -3939,7 +3939,7 @@ body {
 }
 
 .gestec-app .sidebar:hover,
-.gestec-app .sidebar:focus-within {
+.gestec-app .sidebar:hover {
   width: var(--gestec-sidebar-expanded-width) !important;
   min-width: var(--gestec-sidebar-expanded-width) !important;
   max-width: var(--gestec-sidebar-expanded-width) !important;
@@ -3956,23 +3956,23 @@ body {
   overflow-x: clip;
 }
 
-.gestec-app .sidebar:not(:hover):not(:focus-within) .sidebar-brand {
+.gestec-app .sidebar:not(:hover):not(:hover) .sidebar-brand {
   justify-content: center !important;
   gap: 0 !important;
   padding: 2px 0 14px !important;
   margin: 0 0 16px !important;
 }
 
-.gestec-app .sidebar:not(:hover):not(:focus-within) .sidebar-brand-text,
-.gestec-app .sidebar:not(:hover):not(:focus-within) .sidebar-section-label,
-.gestec-app .sidebar:not(:hover):not(:focus-within) .menu-item span,
-.gestec-app .sidebar:not(:hover):not(:focus-within) .sidebar-theme-toggle>span,
-.gestec-app .sidebar:not(:hover):not(:focus-within) .perfil-informacoes,
-.gestec-app .sidebar:not(:hover):not(:focus-within) .sidebar-perfil>i {
+.gestec-app .sidebar:not(:hover):not(:hover) .sidebar-brand-text,
+.gestec-app .sidebar:not(:hover):not(:hover) .sidebar-section-label,
+.gestec-app .sidebar:not(:hover):not(:hover) .menu-item span,
+.gestec-app .sidebar:not(:hover):not(:hover) .sidebar-theme-toggle>span,
+.gestec-app .sidebar:not(:hover):not(:hover) .perfil-informacoes,
+.gestec-app .sidebar:not(:hover):not(:hover) .sidebar-perfil>i {
   display: none !important;
 }
 
-.gestec-app .sidebar:not(:hover):not(:focus-within) .menu-item {
+.gestec-app .sidebar:not(:hover):not(:hover) .menu-item {
   justify-content: center !important;
   gap: 0 !important;
   width: 100% !important;
@@ -3980,7 +3980,7 @@ body {
   margin: 0 !important;
 }
 
-.gestec-app .sidebar:not(:hover):not(:focus-within) .menu-item i {
+.gestec-app .sidebar:not(:hover):not(:hover) .menu-item i {
   width: 100% !important;
   min-width: 0 !important;
   flex: 0 0 100% !important;
@@ -3989,72 +3989,72 @@ body {
   color: #75e0ff !important;
 }
 
-.gestec-app .sidebar:not(:hover):not(:focus-within) .sidebar-nav {
+.gestec-app .sidebar:not(:hover):not(:hover) .sidebar-nav {
   gap: 12px !important;
 }
 
-.gestec-app .sidebar:not(:hover):not(:focus-within) .sidebar-nav-section {
+.gestec-app .sidebar:not(:hover):not(:hover) .sidebar-nav-section {
   gap: 7px !important;
 }
 
-.gestec-app .sidebar:not(:hover):not(:focus-within) .sidebar-theme-toggle {
+.gestec-app .sidebar:not(:hover):not(:hover) .sidebar-theme-toggle {
   justify-content: center !important;
   width: 100% !important;
   min-height: 44px !important;
   padding: 0 !important;
 }
 
-.gestec-app .sidebar:not(:hover):not(:focus-within) .sidebar-theme-toggle>i {
+.gestec-app .sidebar:not(:hover):not(:hover) .sidebar-theme-toggle>i {
   flex: 0 0 auto !important;
   font-size: 21px !important;
   color: #7ce2ff !important;
 }
 
-.gestec-app .sidebar:not(:hover):not(:focus-within) .sidebar-theme-switch {
+.gestec-app .sidebar:not(:hover):not(:hover) .sidebar-theme-switch {
   display: none !important;
 }
 
-.gestec-app .sidebar:not(:hover):not(:focus-within) .sidebar-perfil-container {
+.gestec-app .sidebar:not(:hover):not(:hover) .sidebar-perfil-container {
   padding-top: 10px !important;
 }
 
-.gestec-app .sidebar:not(:hover):not(:focus-within) .sidebar-perfil {
+.gestec-app .sidebar:not(:hover):not(:hover) .sidebar-perfil {
   justify-content: center !important;
   min-height: 48px !important;
   padding: 4px 0 !important;
 }
 
 .gestec-app .sidebar:hover .sidebar-brand,
-.gestec-app .sidebar:focus-within .sidebar-brand {
+.gestec-app .sidebar:hover .sidebar-brand {
   justify-content: flex-start !important;
   gap: 10px !important;
   padding: 2px 4px 18px !important;
 }
 
 .gestec-app .sidebar:hover .sidebar-brand-text,
-.gestec-app .sidebar:focus-within .sidebar-brand-text,
+.gestec-app .sidebar:hover .sidebar-brand-text,
 .gestec-app .sidebar:hover .sidebar-section-label,
-.gestec-app .sidebar:focus-within .sidebar-section-label,
+.gestec-app .sidebar:hover .sidebar-section-label,
 .gestec-app .sidebar:hover .menu-item span,
-.gestec-app .sidebar:focus-within .menu-item span,
+.gestec-app .sidebar:hover .menu-item span,
 .gestec-app .sidebar:hover .sidebar-theme-toggle>span,
-.gestec-app .sidebar:focus-within .sidebar-theme-toggle>span,
+.gestec-app .sidebar:hover .sidebar-theme-toggle>span,
 .gestec-app .sidebar:hover .perfil-informacoes,
-.gestec-app .sidebar:focus-within .perfil-informacoes,
+.gestec-app .sidebar:hover .perfil-informacoes,
 .gestec-app .sidebar:hover .sidebar-perfil>i,
-.gestec-app .sidebar:focus-within .sidebar-perfil>i {
+.gestec-app .sidebar:hover .sidebar-perfil>i {
   display: flex !important;
 }
 
 .gestec-app .sidebar:hover .menu-item,
-.gestec-app .sidebar:focus-within .menu-item {
+.gestec-app .sidebar:hover .menu-item {
   justify-content: flex-start !important;
   gap: 12px !important;
   padding: 0 12px !important;
 }
 
 .gestec-app .sidebar:hover .menu-item i,
-.gestec-app .sidebar:focus-within .menu-item i {
+.gestec-app .sidebar:hover .menu-item i {
   flex: 0 0 22px !important;
   width: 22px !important;
   min-width: 22px !important;
@@ -4063,13 +4063,13 @@ body {
 }
 
 .gestec-app .sidebar:hover .menu-item span,
-.gestec-app .sidebar:focus-within .menu-item span {
+.gestec-app .sidebar:hover .menu-item span {
   font-size: 15px !important;
   line-height: 1.4 !important;
 }
 
 .gestec-app .sidebar:hover .sidebar-section-label,
-.gestec-app .sidebar:focus-within .sidebar-section-label {
+.gestec-app .sidebar:hover .sidebar-section-label {
   font-size: 11px !important;
 }
 
@@ -5336,7 +5336,7 @@ body {
 
   .gestec-app .sidebar,
   .gestec-app .sidebar:hover,
-  .gestec-app .sidebar:focus-within,
+  .gestec-app .sidebar:hover,
   .gestec-app .os-detail-btn {
     transition: none !important;
   }
@@ -5350,7 +5350,7 @@ body {
 }
 
 .gestec-app #gestec-primary-sidebar,
-.gestec-app #gestec-primary-sidebar:not(:hover):not(:focus-within) {
+.gestec-app #gestec-primary-sidebar:not(:hover):not(:hover) {
   position: fixed !important;
   top: 0 !important;
   right: auto !important;
@@ -5375,7 +5375,7 @@ body {
 }
 
 .gestec-app #gestec-primary-sidebar:hover,
-.gestec-app #gestec-primary-sidebar:focus-within {
+.gestec-app #gestec-primary-sidebar:hover {
   width: var(--gestec-sidebar-expanded-width) !important;
   min-width: var(--gestec-sidebar-expanded-width) !important;
   max-width: var(--gestec-sidebar-expanded-width) !important;
@@ -5390,23 +5390,23 @@ body {
   overflow-x: clip;
 }
 
-.gestec-app #gestec-primary-sidebar:not(:hover):not(:focus-within) .sidebar-brand {
+.gestec-app #gestec-primary-sidebar:not(:hover):not(:hover) .sidebar-brand {
   display: flex !important;
   justify-content: center !important;
   gap: 0 !important;
   padding: 2px 0 14px !important;
 }
 
-.gestec-app #gestec-primary-sidebar:not(:hover):not(:focus-within) .sidebar-brand-text,
-.gestec-app #gestec-primary-sidebar:not(:hover):not(:focus-within) .sidebar-section-label,
-.gestec-app #gestec-primary-sidebar:not(:hover):not(:focus-within) .menu-item span,
-.gestec-app #gestec-primary-sidebar:not(:hover):not(:focus-within) .sidebar-theme-toggle>span,
-.gestec-app #gestec-primary-sidebar:not(:hover):not(:focus-within) .perfil-informacoes,
-.gestec-app #gestec-primary-sidebar:not(:hover):not(:focus-within) .sidebar-perfil>i {
+.gestec-app #gestec-primary-sidebar:not(:hover):not(:hover) .sidebar-brand-text,
+.gestec-app #gestec-primary-sidebar:not(:hover):not(:hover) .sidebar-section-label,
+.gestec-app #gestec-primary-sidebar:not(:hover):not(:hover) .menu-item span,
+.gestec-app #gestec-primary-sidebar:not(:hover):not(:hover) .sidebar-theme-toggle>span,
+.gestec-app #gestec-primary-sidebar:not(:hover):not(:hover) .perfil-informacoes,
+.gestec-app #gestec-primary-sidebar:not(:hover):not(:hover) .sidebar-perfil>i {
   display: none !important;
 }
 
-.gestec-app #gestec-primary-sidebar:not(:hover):not(:focus-within) .menu-item {
+.gestec-app #gestec-primary-sidebar:not(:hover):not(:hover) .menu-item {
   width: 100% !important;
   min-width: 0 !important;
   justify-content: center !important;
@@ -5415,7 +5415,7 @@ body {
   margin: 0 !important;
 }
 
-.gestec-app #gestec-primary-sidebar:not(:hover):not(:focus-within) .menu-item i {
+.gestec-app #gestec-primary-sidebar:not(:hover):not(:hover) .menu-item i {
   display: inline-flex !important;
   width: 100% !important;
   min-width: 0 !important;
@@ -5425,17 +5425,17 @@ body {
   color: #75e0ff !important;
 }
 
-.gestec-app #gestec-primary-sidebar:not(:hover):not(:focus-within) .sidebar-nav {
+.gestec-app #gestec-primary-sidebar:not(:hover):not(:hover) .sidebar-nav {
   gap: 12px !important;
 }
 
-.gestec-app #gestec-primary-sidebar:not(:hover):not(:focus-within) .sidebar-theme-toggle {
+.gestec-app #gestec-primary-sidebar:not(:hover):not(:hover) .sidebar-theme-toggle {
   min-height: 44px !important;
   justify-content: center !important;
   padding: 0 !important;
 }
 
-.gestec-app #gestec-primary-sidebar:not(:hover):not(:focus-within) .sidebar-theme-toggle>i {
+.gestec-app #gestec-primary-sidebar:not(:hover):not(:hover) .sidebar-theme-toggle>i {
   display: inline-flex !important;
   flex: 0 0 auto !important;
   justify-content: center !important;
@@ -5443,15 +5443,15 @@ body {
   color: #7ce2ff !important;
 }
 
-.gestec-app #gestec-primary-sidebar:not(:hover):not(:focus-within) .sidebar-theme-switch {
+.gestec-app #gestec-primary-sidebar:not(:hover):not(:hover) .sidebar-theme-switch {
   display: none !important;
 }
 
-.gestec-app #gestec-primary-sidebar:not(:hover):not(:focus-within) .sidebar-perfil-container {
+.gestec-app #gestec-primary-sidebar:not(:hover):not(:hover) .sidebar-perfil-container {
   padding-top: 10px !important;
 }
 
-.gestec-app #gestec-primary-sidebar:not(:hover):not(:focus-within) .sidebar-perfil {
+.gestec-app #gestec-primary-sidebar:not(:hover):not(:hover) .sidebar-perfil {
   min-height: 44px !important;
   justify-content: center !important;
   gap: 0 !important;
@@ -5459,22 +5459,22 @@ body {
 }
 
 .gestec-app #gestec-primary-sidebar:hover .sidebar-brand-text,
-.gestec-app #gestec-primary-sidebar:focus-within .sidebar-brand-text,
+.gestec-app #gestec-primary-sidebar:hover .sidebar-brand-text,
 .gestec-app #gestec-primary-sidebar:hover .sidebar-section-label,
-.gestec-app #gestec-primary-sidebar:focus-within .sidebar-section-label,
+.gestec-app #gestec-primary-sidebar:hover .sidebar-section-label,
 .gestec-app #gestec-primary-sidebar:hover .menu-item span,
-.gestec-app #gestec-primary-sidebar:focus-within .menu-item span,
+.gestec-app #gestec-primary-sidebar:hover .menu-item span,
 .gestec-app #gestec-primary-sidebar:hover .sidebar-theme-toggle>span,
-.gestec-app #gestec-primary-sidebar:focus-within .sidebar-theme-toggle>span,
+.gestec-app #gestec-primary-sidebar:hover .sidebar-theme-toggle>span,
 .gestec-app #gestec-primary-sidebar:hover .perfil-informacoes,
-.gestec-app #gestec-primary-sidebar:focus-within .perfil-informacoes,
+.gestec-app #gestec-primary-sidebar:hover .perfil-informacoes,
 .gestec-app #gestec-primary-sidebar:hover .sidebar-perfil>i,
-.gestec-app #gestec-primary-sidebar:focus-within .sidebar-perfil>i {
+.gestec-app #gestec-primary-sidebar:hover .sidebar-perfil>i {
   display: flex !important;
 }
 
 .gestec-app #gestec-primary-sidebar:hover .menu-item,
-.gestec-app #gestec-primary-sidebar:focus-within .menu-item {
+.gestec-app #gestec-primary-sidebar:hover .menu-item {
   width: 100% !important;
   justify-content: flex-start !important;
   gap: 12px !important;
@@ -5482,7 +5482,7 @@ body {
 }
 
 .gestec-app #gestec-primary-sidebar:hover .menu-item i,
-.gestec-app #gestec-primary-sidebar:focus-within .menu-item i {
+.gestec-app #gestec-primary-sidebar:hover .menu-item i {
   width: 22px !important;
   min-width: 22px !important;
   flex: 0 0 22px !important;
@@ -5491,7 +5491,7 @@ body {
 }
 
 .gestec-app #gestec-primary-sidebar:hover .menu-item span,
-.gestec-app #gestec-primary-sidebar:focus-within .menu-item span {
+.gestec-app #gestec-primary-sidebar:hover .menu-item span {
   font-size: 15px !important;
 }
 
@@ -5675,7 +5675,7 @@ body {
   }
 
   .gestec-app #gestec-primary-sidebar,
-  .gestec-app #gestec-primary-sidebar:not(:hover):not(:focus-within) {
+  .gestec-app #gestec-primary-sidebar:not(:hover):not(:hover) {
     width: var(--gestec-sidebar-width) !important;
     min-width: var(--gestec-sidebar-width) !important;
     max-width: var(--gestec-sidebar-width) !important;
@@ -5684,7 +5684,7 @@ body {
   }
 
   .gestec-app #gestec-primary-sidebar:hover,
-  .gestec-app #gestec-primary-sidebar:focus-within {
+  .gestec-app #gestec-primary-sidebar:hover {
     width: var(--gestec-sidebar-expanded-width) !important;
     min-width: var(--gestec-sidebar-expanded-width) !important;
     max-width: var(--gestec-sidebar-expanded-width) !important;
@@ -5713,7 +5713,7 @@ body {
 
   .gestec-app #gestec-primary-sidebar,
   .gestec-app #gestec-primary-sidebar:hover,
-  .gestec-app #gestec-primary-sidebar:focus-within {
+  .gestec-app #gestec-primary-sidebar:hover {
     transition: none !important;
   }
 }
@@ -5891,14 +5891,14 @@ body {
 }
 
 .gestec-app #gestec-primary-sidebar,
-.gestec-app #gestec-primary-sidebar:not(:hover):not(:focus-within) {
+.gestec-app #gestec-primary-sidebar:not(:hover):not(:hover) {
   width: var(--gestec-sidebar-width) !important;
   min-width: var(--gestec-sidebar-width) !important;
   max-width: var(--gestec-sidebar-width) !important;
 }
 
 .gestec-app #gestec-primary-sidebar:hover,
-.gestec-app #gestec-primary-sidebar:focus-within {
+.gestec-app #gestec-primary-sidebar:hover {
   width: var(--gestec-sidebar-expanded-width) !important;
   min-width: var(--gestec-sidebar-expanded-width) !important;
   max-width: var(--gestec-sidebar-expanded-width) !important;
@@ -7183,7 +7183,7 @@ body {
 /* Tema claro */
 .gestec-app:not(.dark-mode) .sidebar,
 .gestec-app:not(.dark-mode) .sidebar:hover,
-.gestec-app:not(.dark-mode) .sidebar:focus-within {
+.gestec-app:not(.dark-mode) .sidebar:hover {
   background: #edf8fd !important;
   border-right: 1px solid #d6e8f3 !important;
   color: #15243a !important;
@@ -7200,7 +7200,7 @@ body {
 
 /* Ícones */
 .gestec-app:not(.dark-mode) .sidebar .menu-item i,
-.gestec-app:not(.dark-mode) .sidebar:not(:hover):not(:focus-within) .menu-item i {
+.gestec-app:not(.dark-mode) .sidebar:not(:hover):not(:hover) .menu-item i {
   color: #090c5c !important;
 }
 
@@ -7230,7 +7230,7 @@ body {
 /* Tema escuro */
 .gestec-app.dark-mode .sidebar,
 .gestec-app.dark-mode .sidebar:hover,
-.gestec-app.dark-mode .sidebar:focus-within {
+.gestec-app.dark-mode .sidebar:hover {
   background: radial-gradient(ellipse at top left,
       #102e48 0%,
       #081725 58%,
@@ -7249,22 +7249,22 @@ body {
 }
 
 /* Ícones com sidebar compacta */
-.gestec-app:not(.dark-mode) #gestec-primary-sidebar:not(:hover):not(:focus-within) .menu-item i {
+.gestec-app:not(.dark-mode) #gestec-primary-sidebar:not(:hover):not(:hover) .menu-item i {
   color: #090c5c !important;
 }
 
-.gestec-app:not(.dark-mode) #gestec-primary-sidebar:not(:hover):not(:focus-within) .sidebar-theme-toggle>i {
+.gestec-app:not(.dark-mode) #gestec-primary-sidebar:not(:hover):not(:hover) .sidebar-theme-toggle>i {
   color: #090c5c !important;
 }
 
 /* Ícones com sidebar expandida */
 .gestec-app:not(.dark-mode) #gestec-primary-sidebar:hover .menu-item i,
-.gestec-app:not(.dark-mode) #gestec-primary-sidebar:focus-within .menu-item i {
+.gestec-app:not(.dark-mode) #gestec-primary-sidebar:hover .menu-item i {
   color: #090c5c !important;
 }
 
 .gestec-app:not(.dark-mode) #gestec-primary-sidebar:hover .sidebar-theme-toggle>i,
-.gestec-app:not(.dark-mode) #gestec-primary-sidebar:focus-within .sidebar-theme-toggle>i {
+.gestec-app:not(.dark-mode) #gestec-primary-sidebar:hover .sidebar-theme-toggle>i {
   color: #090c5c !important;
 }
 
@@ -7346,18 +7346,18 @@ body {
 }
 
 /* Estado reduzido */
-.gestec-app #gestec-primary-sidebar:not(:hover):not(:focus-within) .sidebar-logo-expandida {
+.gestec-app #gestec-primary-sidebar:not(:hover):not(:hover) .sidebar-logo-expandida {
   display: none !important;
 }
 
-.gestec-app #gestec-primary-sidebar:not(:hover):not(:focus-within) .sidebar-logo-reduzida {
+.gestec-app #gestec-primary-sidebar:not(:hover):not(:hover) .sidebar-logo-reduzida {
   display: block !important;
   width: 80px !important;
   max-width: 80px !important;
   height: auto !important;
 }
 
-.gestec-app #gestec-primary-sidebar:not(:hover):not(:focus-within) .sidebar-brand-subtitle {
+.gestec-app #gestec-primary-sidebar:not(:hover):not(:hover) .sidebar-brand-subtitle {
   display: none !important;
 }
 
@@ -7365,26 +7365,26 @@ body {
 
 /* SIDEBAR EXPANDIDA */
 .gestec-app #gestec-primary-sidebar:hover .sidebar-logo-expandida,
-.gestec-app #gestec-primary-sidebar:focus-within .sidebar-logo-expandida {
+.gestec-app #gestec-primary-sidebar:hover .sidebar-logo-expandida {
   display: block !important;
 }
 
 .gestec-app #gestec-primary-sidebar:hover .sidebar-logo-reduzida,
-.gestec-app #gestec-primary-sidebar:focus-within .sidebar-logo-reduzida {
+.gestec-app #gestec-primary-sidebar:hover .sidebar-logo-reduzida {
   display: none !important;
 }
 
 .gestec-app #gestec-primary-sidebar:hover .sidebar-brand-subtitle,
-.gestec-app #gestec-primary-sidebar:focus-within .sidebar-brand-subtitle {
+.gestec-app #gestec-primary-sidebar:hover .sidebar-brand-subtitle {
   display: block !important;
 }
 
 /* SIDEBAR REDUZIDA */
-.gestec-app #gestec-primary-sidebar:not(:hover):not(:focus-within) .sidebar-logo-expandida {
+.gestec-app #gestec-primary-sidebar:not(:hover):not(:hover) .sidebar-logo-expandida {
   display: none !important;
 }
 
-.gestec-app #gestec-primary-sidebar:not(:hover):not(:focus-within) .sidebar-brand-subtitle {
+.gestec-app #gestec-primary-sidebar:not(:hover):not(:hover) .sidebar-brand-subtitle {
   display: none !important;
 }
 
@@ -7398,14 +7398,14 @@ body {
 
 /* Tema escuro — sidebar expandida */
 .gestec-app.dark-mode #gestec-primary-sidebar:hover .sidebar-logo-expandida,
-.gestec-app.dark-mode #gestec-primary-sidebar:focus-within .sidebar-logo-expandida,
+.gestec-app.dark-mode #gestec-primary-sidebar:hover .sidebar-logo-expandida,
 .gestec-app.dark-mode #gestec-primary-sidebar:hover .sidebar-logo-reduzida,
-.gestec-app.dark-mode #gestec-primary-sidebar:focus-within .sidebar-logo-reduzida {
+.gestec-app.dark-mode #gestec-primary-sidebar:hover .sidebar-logo-reduzida {
   display: none !important;
 }
 
 .gestec-app.dark-mode #gestec-primary-sidebar:hover .sidebar-logo-dark-expandida,
-.gestec-app.dark-mode #gestec-primary-sidebar:focus-within .sidebar-logo-dark-expandida {
+.gestec-app.dark-mode #gestec-primary-sidebar:hover .sidebar-logo-dark-expandida {
   display: block !important;
   width: 100% !important;
   max-width: 180px !important;
@@ -7413,18 +7413,18 @@ body {
 }
 
 .gestec-app.dark-mode #gestec-primary-sidebar:hover .sidebar-logo-dark-reduzida,
-.gestec-app.dark-mode #gestec-primary-sidebar:focus-within .sidebar-logo-dark-reduzida {
+.gestec-app.dark-mode #gestec-primary-sidebar:hover .sidebar-logo-dark-reduzida {
   display: none !important;
 }
 
 /* Tema escuro — sidebar reduzida */
-.gestec-app.dark-mode #gestec-primary-sidebar:not(:hover):not(:focus-within) .sidebar-logo-expandida,
-.gestec-app.dark-mode #gestec-primary-sidebar:not(:hover):not(:focus-within) .sidebar-logo-reduzida,
-.gestec-app.dark-mode #gestec-primary-sidebar:not(:hover):not(:focus-within) .sidebar-logo-dark-expandida {
+.gestec-app.dark-mode #gestec-primary-sidebar:not(:hover):not(:hover) .sidebar-logo-expandida,
+.gestec-app.dark-mode #gestec-primary-sidebar:not(:hover):not(:hover) .sidebar-logo-reduzida,
+.gestec-app.dark-mode #gestec-primary-sidebar:not(:hover):not(:hover) .sidebar-logo-dark-expandida {
   display: none !important;
 }
 
-.gestec-app.dark-mode #gestec-primary-sidebar:not(:hover):not(:focus-within) .sidebar-logo-dark-reduzida {
+.gestec-app.dark-mode #gestec-primary-sidebar:not(:hover):not(:hover) .sidebar-logo-dark-reduzida {
   display: block !important;
   width: 80px !important;
   max-width: 80px !important;
@@ -7437,7 +7437,7 @@ body {
 }
 
 /* LOGO DARK — SIDEBAR REDUZIDA */
-.gestec-app.dark-mode #gestec-primary-sidebar:not(:hover):not(:focus-within) .sidebar-brand {
+.gestec-app.dark-mode #gestec-primary-sidebar:not(:hover):not(:hover) .sidebar-brand {
   padding: 20px 0 15px !important;
 }
 
@@ -7489,14 +7489,14 @@ body {
   opacity: 0.08;
 }
 
-.gestec-app:not(.dark-mode) #gestec-primary-sidebar:not(:hover):not(:focus-within) .sidebar-brand {
+.gestec-app:not(.dark-mode) #gestec-primary-sidebar:not(:hover):not(:hover) .sidebar-brand {
   padding: 20px 0 15px !important;
 }
 
 /* Sidebar do tema escuro — fundo sólido */
 .gestec-app.dark-mode .sidebar,
 .gestec-app.dark-mode .sidebar:hover,
-.gestec-app.dark-mode .sidebar:focus-within {
+.gestec-app.dark-mode .sidebar:hover {
   background: #081725 !important;
 }
 
@@ -7507,7 +7507,7 @@ body {
 
 .gestec-app:not(.dark-mode) .sidebar,
 .gestec-app:not(.dark-mode) .sidebar:hover,
-.gestec-app:not(.dark-mode) .sidebar:focus-within {
+.gestec-app:not(.dark-mode) .sidebar:hover {
   background: var(--gestec-bg) !important;
 }
 
@@ -7521,7 +7521,7 @@ body {
 
 .gestec-app.dark-mode .sidebar,
 .gestec-app.dark-mode .sidebar:hover,
-.gestec-app.dark-mode .sidebar:focus-within {
+.gestec-app.dark-mode .sidebar:hover {
   background: #081725 !important;
 }
 .gestec-app .funcionarios-container .gestec-data-table { min-width: 900px; }
