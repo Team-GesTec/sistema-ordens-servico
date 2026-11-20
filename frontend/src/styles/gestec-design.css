@@ -7524,6 +7524,11 @@ body {
 .gestec-app.dark-mode .sidebar:hover {
   background: #081725 !important;
 }
+
+.gestec-app:not(.dark-mode) #gestec-primary-sidebar .sidebar-perfil>i {
+  color: #090c5c !important;
+}
+
 .gestec-app .funcionarios-container .gestec-data-table { min-width: 900px; }
 
 .gestec-app .os-detail-edit-layout {
