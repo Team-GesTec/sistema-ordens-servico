@@ -23,11 +23,11 @@ const TEMPO_LIMITE_DESLIGAMENTO = 10_000;
 function iniciar(): void {
     const app = criarApp();
     const servidor = app.listen(env.porta, (erro?: Error) => {
-        iniciarRotinaNotificacoes();
         if (erro) {
             console.error('[servidor] não foi possível iniciar:', erro);
             process.exit(1);
         }
+        iniciarRotinaNotificacoes();
         console.log(`[servidor] rodando na porta ${env.porta}`);
     });
 

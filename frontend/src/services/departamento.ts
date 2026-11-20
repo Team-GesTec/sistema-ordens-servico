@@ -11,10 +11,25 @@ export const departamentoService = {
         return apiRequest<VisaoEquipe>(`/departamento/${id}/equipe${historico}`);
     },
 
+    buscarPorId(id: number): Promise<Departamento> {
+        return apiRequest<Departamento>(`/departamento/${id}`);
+    },
+
     criar(payload: DepartamentoInput): Promise<Departamento> {
         return apiRequest<Departamento>("/departamento", {
             method: "POST",
             body: JSON.stringify(payload),
+        });
+    },
+
+    listarInativos(): Promise<Departamento[]> {
+        return apiRequest<Departamento[]>("/departamento/inativos");
+    },
+
+    alterarAtivo(id: number, ativo: boolean): Promise<Departamento> {
+        return apiRequest<Departamento>(`/departamento/${id}/ativo`, {
+            method: "PATCH",
+            body: JSON.stringify({ ativo }),
         });
     },
 

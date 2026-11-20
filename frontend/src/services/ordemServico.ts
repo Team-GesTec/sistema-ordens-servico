@@ -1,5 +1,5 @@
-import { apiRequest } from "./api";
-import type { OrdemServico, OrdemServicoInput, RespostaHistoricoOrdemServico } from "../types/api";
+import { apiDownload, apiRequest } from "./api";
+import type { OrdemServico, OrdemServicoInput, RegistroHorasInput, RespostaHistoricoOrdemServico } from "../types/api";
 
 export const ordemServicoService = {
     /** GET /ordens-servico — o backend não lê filtros de prazo; eles são aplicados no cliente. */
@@ -26,6 +26,11 @@ export const ordemServicoService = {
             method: "PATCH",
         });
     },
+    
+    async exportarPdf(id: number): Promise<Blob> {
+        const arquivo = await apiDownload(`/ordens-servico/${id}/relatorio.pdf`, false);
+        return arquivo.blob;
+    },
 
     buscarPorId(id: number): Promise<OrdemServico> {
         return apiRequest<OrdemServico>(`/ordens-servico/${id}`);
@@ -45,16 +50,23 @@ export const ordemServicoService = {
         });
     },
 
-    /** PATCH /ordens-servico/:id/status — também registra o parecer técnico. */
+    /**
+ * PATCH /ordens-servico/:id/status — também registra o parecer técnico.
+ * O técnico precisa informar as horas do status encerrado (`horas`); para o gestor elas são ignoradas.
+ */
     alterarStatus(
         id: number,
         status: OrdemServico["status"],
         parecerTecnico?: string,
+        horas?: RegistroHorasInput,
     ): Promise<OrdemServico> {
         const payload = {
             status,
             ...(parecerTecnico !== undefined
                 ? { parecer_tecnico: parecerTecnico }
+                : {}),
+            ...(horas
+                ? { duracao: horas.duracao.trim(), data_trabalho: horas.data_trabalho }
                 : {}),
         };
 

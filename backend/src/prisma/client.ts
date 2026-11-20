@@ -4,7 +4,10 @@
  * Instância única do Prisma Client, conectada ao Postgres (Supabase) pelo driver adapter `pg`.
  * Todo acesso ao banco deve importar `prisma` daqui — nunca criar outro `new PrismaClient()`.
  */
-import "dotenv/config";
+import { config } from 'dotenv';
+import { resolve } from 'node:path';
+
+config({ path: resolve(__dirname, '../../.env') });
 import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "./generated/client";
 

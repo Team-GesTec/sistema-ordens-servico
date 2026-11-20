@@ -56,6 +56,12 @@ function emitirSucessoDaOperacao(path: string, method: string, requestBody: Body
         publishToast({ title: "Notificação dispensada", message: "A notificação foi dispensada.", variant: "success" });
         return;
     }
+
+    if (rota.endsWith("/horas") && method === "POST") {
+        publishToast({ title: "Horas registradas", message: "As horas foram lançadas na ordem de serviço.", variant: "success" });
+        return;
+    }
+
     if (rota.includes("/anexos") && method === "POST") {
         publishToast({ title: "Anexo enviado", message: "O arquivo foi anexado à ordem de serviço.", variant: "success" });
         return;
@@ -315,7 +321,7 @@ function nomeDoContentDisposition(cabecalho: string | null): string | null {
 }
 
 /** Baixa um arquivo binário de uma rota protegida (o token vai no cabeçalho, não na URL). */
-export async function apiDownload(path: string): Promise<ArquivoBaixado> {
+export async function apiDownload(path: string, notificarSucesso = true): Promise<ArquivoBaixado> {
     const headers = new Headers();
     const token = getAuthToken();
     if (token) {
@@ -339,7 +345,9 @@ export async function apiDownload(path: string): Promise<ArquivoBaixado> {
     }
 
     const blob = await response.blob();
-    publishToast({ title: "Download iniciado", message: "O arquivo foi preparado para download.", variant: "success" });
+    if (notificarSucesso) {
+        publishToast({ title: "Download iniciado", message: "O arquivo foi preparado para download.", variant: "success" });
+    }
     return {
         blob,
         nomeArquivo: nomeDoContentDisposition(response.headers.get("Content-Disposition")),

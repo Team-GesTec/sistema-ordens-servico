@@ -6,6 +6,7 @@
  */
 
 import { serviceNotificacao } from '../services/serviceNotificacao';
+import { serviceEmail } from '../services/serviceEmail';
 
 /** De quanto em quanto tempo a rotina roda. */
 const INTERVALO_MINUTOS = 5;
@@ -23,6 +24,7 @@ async function executarRodada(): Promise<void> {
 
     try {
         const criadas = await serviceNotificacao.gerarNotificacoesSla();
+        await serviceEmail.processar();
         if (criadas > 0) {
             console.log(`[notificacoes] ${criadas} aviso(s) criado(s)`);
         }
@@ -35,6 +37,10 @@ async function executarRodada(): Promise<void> {
 
 /** Liga a rotina: roda uma vez agora e depois a cada INTERVALO_MINUTOS. */
 export function iniciarRotinaNotificacoes(): void {
+    // Retentativas independem de falhas na consulta de O.S./SLA.
+    setInterval(() => {
+        void serviceEmail.processar().catch(() => console.error('[email] falha na rotina da fila'));
+    }, 10000).unref();
     executarRodada();
     setInterval(executarRodada, INTERVALO_MS);
     console.log(`[notificacoes] rotina iniciada (a cada ${INTERVALO_MINUTOS} min)`);

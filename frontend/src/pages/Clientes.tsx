@@ -25,7 +25,7 @@ function Clientes() {
     const clientesExibidos = useMemo(() => modoVisualizacao
         ? clientes.clientes.filter((cliente) => cliente.id === clienteVisualizadoId)
         : clientes.clientesFiltrados,
-    [modoVisualizacao, clienteVisualizadoId, clientes.clientes, clientes.clientesFiltrados]);
+        [modoVisualizacao, clienteVisualizadoId, clientes.clientes, clientes.clientesFiltrados]);
     const paginacaoClientes = usePaginatedList(clientesExibidos, 10);
     const podeGerenciarTela = !modoVisualizacao && clientes.podeGerenciar;
     const modalStatusAberto = Boolean(clientes.clienteConfirmacao && clientes.acaoConfirmacao);
@@ -33,10 +33,10 @@ function Clientes() {
     const tituloLista = modoVisualizacao
         ? "Cliente selecionado"
         : clientes.filtroSituacao === "ativos"
-          ? "Clientes ativos"
-          : clientes.filtroSituacao === "inativos"
-            ? "Clientes inativos"
-            : "Todos os clientes";
+            ? "Clientes ativos"
+            : clientes.filtroSituacao === "inativos"
+                ? "Clientes inativos"
+                : "Todos os clientes";
 
     const totalClientes = clientes.clientes.length;
     const totalAtivos = clientes.clientes.filter((cliente) => cliente.ativo).length;
@@ -103,30 +103,30 @@ function Clientes() {
                                         const iniciais = getGestecInitials(nomeAvatar, "CL");
                                         const corAvatar = getGestecAvatarTone((paginacaoClientes.page - 1) * 10 + itemIndex);
                                         return (
-                                        <tr
-                                            key={cliente.id}
-                                            className="gestec-clickable-row"
-                                            tabIndex={0}
-                                            aria-label={`Abrir detalhes de ${cliente.nome || `cliente ${cliente.id}`}`}
-                                            onClick={() => setClienteDetalhes(cliente)}
-                                            onKeyDown={(event) => {
-                                                if (event.target !== event.currentTarget) return;
-                                                if (event.key === "Enter" || event.key === " ") {
-                                                    event.preventDefault();
-                                                    setClienteDetalhes(cliente);
-                                                }
-                                            }}
-                                        >
-                                            <td><div className="gestec-entity-cell"><span className={`gestec-avatar gestec-avatar--${corAvatar}`}>{iniciais}</span><span><strong>{cliente.nome.trim() || `Cliente #${cliente.id}`}</strong><small>CLIENTE #{cliente.id}</small></span></div></td>
-                                            <td>{cliente.razao_social || <span className="gestec-muted">Não informada</span>}</td>
-                                            <td>{cliente.ramo_atuacao || <span className="gestec-muted">Não informado</span>}</td>
-                                            <td><span className={`gestec-status-pill ${cliente.ativo ? "is-active" : "is-inactive"}`}><i aria-hidden="true" />{cliente.ativo ? "Ativo" : "Inativo"}</span></td>
-                                            <td className="gestec-actions-cell"><div className="gestec-row-actions">
-                                                {podeGerenciarTela && cliente.ativo && <button type="button" className="gestec-icon-action" onClick={(event) => { event.stopPropagation(); clientes.iniciarEdicao(cliente); }} disabled={clientes.salvando || clientes.inativandoId !== null} aria-label={`Editar ${cliente.nome || `cliente ${cliente.id}`}`} title="Editar">✎</button>}
-                                                {podeGerenciarTela && (cliente.ativo ? <button type="button" className="gestec-icon-action is-danger" onClick={(event) => { event.stopPropagation(); clientes.solicitarAlteracaoStatus(cliente, "inativar"); }} disabled={clientes.salvando || clientes.inativandoId !== null} aria-label={`Inativar ${cliente.nome || `cliente ${cliente.id}`}`} title="Inativar">−</button> : <button type="button" className="gestec-icon-action" onClick={(event) => { event.stopPropagation(); clientes.solicitarAlteracaoStatus(cliente, "reativar"); }} disabled={clientes.salvando || clientes.inativandoId !== null} aria-label={`Reativar ${cliente.nome || `cliente ${cliente.id}`}`} title="Reativar">↻</button>)}
-                                            </div></td>
-                                        </tr>
-                                    );
+                                            <tr
+                                                key={cliente.id}
+                                                className="gestec-clickable-row"
+                                                tabIndex={0}
+                                                aria-label={`Abrir detalhes de ${cliente.nome || `cliente ${cliente.id}`}`}
+                                                onClick={() => setClienteDetalhes(cliente)}
+                                                onKeyDown={(event) => {
+                                                    if (event.target !== event.currentTarget) return;
+                                                    if (event.key === "Enter" || event.key === " ") {
+                                                        event.preventDefault();
+                                                        setClienteDetalhes(cliente);
+                                                    }
+                                                }}
+                                            >
+                                                <td><div className="gestec-entity-cell"><span className={`gestec-avatar gestec-avatar--${corAvatar}`}>{iniciais}</span><span><strong>{cliente.nome.trim() || `Cliente #${cliente.id}`}</strong><small>CLIENTE #{cliente.id}</small></span></div></td>
+                                                <td>{cliente.razao_social || <span className="gestec-muted">Não informada</span>}</td>
+                                                <td>{cliente.ramo_atuacao || <span className="gestec-muted">Não informado</span>}</td>
+                                                <td><span className={`gestec-status-pill ${cliente.ativo ? "is-active" : "is-inactive"}`}><i aria-hidden="true" />{cliente.ativo ? "Ativo" : "Inativo"}</span></td>
+                                                <td className="gestec-actions-cell"><div className="gestec-row-actions">
+                                                    {podeGerenciarTela && cliente.ativo && <button type="button" className="gestec-icon-action" onClick={(event) => { event.stopPropagation(); clientes.iniciarEdicao(cliente); }} disabled={clientes.salvando || clientes.inativandoId !== null} aria-label={`Editar ${cliente.nome || `cliente ${cliente.id}`}`} title="Editar">✎</button>}
+                                                    {podeGerenciarTela && (cliente.ativo ? <button type="button" className="gestec-icon-action is-danger" onClick={(event) => { event.stopPropagation(); clientes.solicitarAlteracaoStatus(cliente, "inativar"); }} disabled={clientes.salvando || clientes.inativandoId !== null} aria-label={`Inativar ${cliente.nome || `cliente ${cliente.id}`}`} title="Inativar">−</button> : <button type="button" className="gestec-icon-action" onClick={(event) => { event.stopPropagation(); clientes.solicitarAlteracaoStatus(cliente, "reativar"); }} disabled={clientes.salvando || clientes.inativandoId !== null} aria-label={`Reativar ${cliente.nome || `cliente ${cliente.id}`}`} title="Reativar">↻</button>)}
+                                                </div></td>
+                                            </tr>
+                                        );
                                     })}</tbody>
                                 </table>
                             </div>
@@ -138,13 +138,20 @@ function Clientes() {
                     )}
                 </div>
             </main>
-
             <ClienteDetalhesModal
                 cliente={clienteDetalhes}
                 onClose={() => setClienteDetalhes(null)}
-                onEditar={(cliente) => {
-                    setClienteDetalhes(null);
-                    clientes.iniciarEdicao(cliente);
+                salvando={clientes.salvando}
+                erro={clientes.erro}
+                podeGerenciar={clientes.podeGerenciar && !modoVisualizacao}
+                onSalvar={async (clienteId, dados) => {
+                    const atualizado = await clientes.salvarEdicaoDireta(clienteId, dados);
+
+                    if (atualizado) {
+                        setClienteDetalhes(atualizado);
+                    }
+
+                    return atualizado;
                 }}
             />
             <ClienteFormModal aberto={clientes.modalAberto} cliente={clientes.clienteEmEdicao} salvando={clientes.salvando} erro={clientes.erro} onClose={clientes.fecharModal} onSave={clientes.salvarCliente} onClearError={clientes.limparErro} />

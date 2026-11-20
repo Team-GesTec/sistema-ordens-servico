@@ -41,6 +41,7 @@ const FORMATO_USUARIO = /^[a-z0-9._@-]+$/;
 /** Limites de tamanho. */
 const USUARIO_MAXIMO = 100;
 const NOME_MAXIMO = 150;
+const EMAIL_MAXIMO = 255;
 
 /**
  * Normaliza e valida o nome de usuário.
@@ -113,6 +114,7 @@ export class ServiceFuncionario {
         const usuario = normalizarUsuario(dados.usuario);
         const senha = validarSenha(dados.senha);
         const nome = exigirTexto(dados.nome, 'nome', { maximo: NOME_MAXIMO });
+        const email = dados.email === undefined || dados.email === null ? null : exigirTexto(dados.email, 'email', { maximo: EMAIL_MAXIMO });
         const tipo =
             dados.tipo === undefined ? PERFIL_PADRAO : exigirEnum(dados.tipo, PERFIS_FUNCIONARIO, 'tipo');
 
@@ -123,6 +125,7 @@ export class ServiceFuncionario {
             usuario,
             senha_hash: await gerarHashSenha(senha),
             nome,
+            email,
             tipo,
             ativo: true,
         };
@@ -183,6 +186,9 @@ export class ServiceFuncionario {
         }
         if (!parcial || campoPresente(dados, 'nome')) {
             alteracoes.nome = exigirTexto(dados.nome, 'nome', { maximo: NOME_MAXIMO });
+        }
+        if (campoPresente(dados, 'email')) {
+            alteracoes.email = dados.email === null ? null : exigirTexto(dados.email, 'email', { maximo: EMAIL_MAXIMO });
         }
         if (!parcial || campoPresente(dados, 'tipo')) {
             alteracoes.tipo = exigirEnum(dados.tipo, PERFIS_FUNCIONARIO, 'tipo');

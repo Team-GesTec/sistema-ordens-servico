@@ -49,6 +49,7 @@
  */
 
 import { prisma } from '../prisma/client';
+import { serviceLancamentoHoras } from './serviceLancamentoHoras';
 import type { Prisma } from '../prisma/generated/client';
 import { AppError } from '../errors/AppError';
 import { repositoryOrdemServico, type RepositoryOrdemServico } from '../repositories/repositoryOrdemServico';
@@ -56,6 +57,7 @@ import { repositoryFuncionario, type RepositoryFuncionario } from '../repositori
 import { serviceAuditoria } from './serviceAuditoria';
 import { calcularEstadoSla, type EstadoSla } from '../utils/estadoSla';
 import { serviceSla } from './serviceSla';
+import { serviceNotificacao } from './serviceNotificacao';
 import type { DadosRegistroAuditoria } from '../models/modelAuditoria';
 import { bloquearOrdemServico, bloquearProjetosRelacionados, validarProjetoDaOrdem } from '../utils/projetoOsInvariant';
 import type { PerfilFuncionario, Funcionario } from '../models/modelFuncionario';
@@ -145,7 +147,7 @@ type OrdemServicoComSla = OrdemServico & { estado_sla: EstadoSla };
 
 /** Devolve uma cópia da O.S. com o estado do SLA. Não altera a O.S. original (que pode estar no cache). */
 function comEstadoSla(ordem: OrdemServico, agora: Date): OrdemServicoComSla {
-    return {...ordem, estado_sla: calcularEstadoSla(ordem,agora)}
+    return { ...ordem, estado_sla: calcularEstadoSla(ordem, agora) }
 }
 
 export class ServiceOrdemServico {
@@ -158,10 +160,11 @@ export class ServiceOrdemServico {
     }
 
     /** Lista somente as O.S. ativas, cada uma com o estado do SLA. */
-    async listar(): Promise<OrdemServicoComSla[]> {       const ordens = await this.repositorio.listar();
+    async listar(): Promise<OrdemServicoComSla[]> {
+        const ordens = await this.repositorio.listar();
         const ativas = ordens.filter((ordem) => ordem.ativo);
         const agora = new Date();
-        return ativas.map((ordem) => comEstadoSla(ordem,agora));
+        return ativas.map((ordem) => comEstadoSla(ordem, agora));
     }
 
     /** Lista somente as O.S. inativas, para consulta do histórico. */
@@ -175,7 +178,7 @@ export class ServiceOrdemServico {
      */
     async buscarPorId(id: number): Promise<OrdemServicoComSla> {
         const ordem = await this.repositorio.buscarPorId(id);
-        if(!ordem) {
+        if (!ordem) {
             throw AppError.naoEncontrado('OS não encontrada');
         }
         return comEstadoSla(ordem, new Date());
@@ -305,16 +308,6 @@ export class ServiceOrdemServico {
             justificativa_sla_manual: sla.sla_manual ? sla.descricao : null,
         };
 
-<<<<<<< Updated upstream
-        const registros: RegistroAuditoriaCriacao[] = [{
-            funcionario_id: solicitanteId,
-            acao: 'insercao',
-            campo_alterado: null,
-            dado_antigo: null,
-            dado_novo: null,
-            justificativa: 'Criação da O.S.',
-        }];
-=======
         // 2.10-BE01: o evento de criação é sempre o primeiro registro da O.S.
         const registros: RegistroAuditoriaCriacao[] = [
             {
@@ -327,7 +320,6 @@ export class ServiceOrdemServico {
                 descricao: `O.S. "${novaOS.titulo}" criada`,
             },
         ];
->>>>>>> Stashed changes
 
         if (migracao) {
             // AJ-06: a data_criacao informada (no passado) é mantida como data de abertura
@@ -389,6 +381,24 @@ export class ServiceOrdemServico {
 
         // Atualiza o cache só depois que a transação terminou
         this.repositorio.atualizarCache(criada);
+        const destinatarios = await prisma.funcionarios.findMany({
+            where: { departamento_id: criada.departamento_id, ativo: true },
+            select: { id: true },
+        });
+        await serviceNotificacao.notificarOrdem(
+            criada,
+            'departamento_definido',
+            `A O.S. ${criada.id} (${criada.titulo}) foi atribuída ao seu departamento.`,
+            destinatarios.map((funcionario) => funcionario.id),
+        );
+        if (criada.responsavel_id !== null) {
+            await serviceNotificacao.notificarOrdem(
+                criada,
+                'responsavel_definido',
+                `Você foi definido como responsável técnico da O.S. ${criada.id} (${criada.titulo}).`,
+                [criada.responsavel_id],
+            );
+        }
         return criada;
     }
 
@@ -492,6 +502,22 @@ export class ServiceOrdemServico {
 
             const projetosBloqueados = await bloquearProjetosRelacionados(conexao, [ordemAtual.projeto_id]);
             validarProjetoDaOrdem(ordemAtual.projeto_id, ordemAtual.ativo, novoStatus, projetosBloqueados);
+
+            const informouHoras = [dados.duracao, dados.data_trabalho].some(
+                (valor) => valor !== undefined && valor !== null && valor !== '',
+            );
+
+            if (ehResponsavel && usuario.tipo !== 'gestor' && !informouHoras) {
+                throw new AppError(
+                    'Informe as horas trabalhadas para alterar o status da O.S.',
+                    422,
+                );
+            }
+
+            if (ehResponsavel && informouHoras) {
+                await serviceLancamentoHoras.gravarNaTransacao(ordemAtual, usuario.id, dados, conexao);
+            }
+
             const ordemAtualizada = await this.repositorio.atualizarStatus(idOS, dadosStatus, conexao);
 
             await serviceAuditoria.registrar(
@@ -512,7 +538,12 @@ export class ServiceOrdemServico {
         });
 
         // 7. Atualiza o cache só depois que a transação terminou
-        this.repositorio.atualizarCache(atualizada)
+        this.repositorio.atualizarCache(atualizada);
+        await serviceNotificacao.notificarOrdem(
+            atualizada,
+            'status_alterado',
+            `O status da O.S. ${atualizada.id} (${atualizada.titulo}) foi alterado para ${atualizada.status}.`,
+        );
         return atualizada;
     }
 
@@ -526,6 +557,7 @@ export class ServiceOrdemServico {
      */
     async atualizar(id: number, corpo: unknown, parcial: boolean, usuarioId: number): Promise<OrdemServico> {
         const idOS = exigirInteiroPositivo(id, 'id');
+        let departamentoAnterior: number | null = null;
 
         const atualizada = await prisma.$transaction(async (conexao) => {
             // Mantém existência e estado antes da validação do corpo, como no contrato anterior,
@@ -533,6 +565,7 @@ export class ServiceOrdemServico {
             await bloquearOrdemServico(conexao, idOS);
             const ordemAtual = await conexao.ordens_servico.findUnique({ where: { id: idOS } });
             if (!ordemAtual) throw AppError.naoEncontrado('OS não encontrada');
+            departamentoAnterior = ordemAtual.departamento_id;
             if (ordemAtual.status === 'concluido') {
                 throw AppError.requisicaoInvalida('OS concluída não pode ser editada');
             }
@@ -541,6 +574,11 @@ export class ServiceOrdemServico {
             }
 
             const dados = lerCorpo(corpo);
+            const justificativa = textoOpcional(
+                dados.justificativa,
+                'justificativa',
+                { maximo: TEXTO_MAXIMO_DESCRICAO },
+            );
             const proibidos = CAMPOS_PROIBIDOS_NA_EDICAO.filter((campo) => campoPresente(dados, campo));
             if (proibidos.length > 0) {
                 throw AppError.requisicaoInvalida(
@@ -575,6 +613,7 @@ export class ServiceOrdemServico {
                         campo_alterado: campo,
                         dado_antigo: paraTextoAuditoria(ordemAtual[campo]),
                         dado_novo: paraTextoAuditoria(alteracoes[campo]),
+                        justificativa,
                     },
                     conexao,
                 );
@@ -583,6 +622,18 @@ export class ServiceOrdemServico {
         });
 
         this.repositorio.atualizarCache(atualizada);
+        if (departamentoAnterior !== null && departamentoAnterior !== atualizada.departamento_id) {
+            const destinatarios = await prisma.funcionarios.findMany({
+                where: { departamento_id: atualizada.departamento_id, ativo: true },
+                select: { id: true },
+            });
+            await serviceNotificacao.notificarOrdem(
+                atualizada,
+                'departamento_definido',
+                `A O.S. ${atualizada.id} (${atualizada.titulo}) foi atribuída ao seu departamento.`,
+                destinatarios.map((funcionario) => funcionario.id),
+            );
+        }
         return atualizada;
     }
 
@@ -638,12 +689,19 @@ export class ServiceOrdemServico {
             throw AppError.conflito('Não é possível atribuir uma O.S. a um funcionário inativo');
         }
 
-        return this.repositorio.atribuirResponsavel({
+        const atualizada = await this.repositorio.atribuirResponsavel({
             osId,
             responsavelId,
             solicitanteId,
             permitirTroca: solicitante.tipo === 'gestor',
         });
+        await serviceNotificacao.notificarOrdem(
+            atualizada,
+            'responsavel_definido',
+            `Você foi definido como responsável técnico da O.S. ${atualizada.id} (${atualizada.titulo}).`,
+            [responsavelId],
+        );
+        return atualizada;
     }
 
     /**
@@ -706,6 +764,11 @@ export class ServiceOrdemServico {
         });
 
         this.repositorio.atualizarCache(atualizada);
+        await serviceNotificacao.notificarOrdem(
+            atualizada,
+            'status_alterado',
+            `O status da O.S. ${atualizada.id} (${atualizada.titulo}) foi alterado para ${atualizada.status}.`,
+        );
 
         return atualizada;
     }
@@ -747,6 +810,12 @@ export class ServiceOrdemServico {
         });
 
         this.repositorio.atualizarCache(atualizada);
+        await serviceNotificacao.notificarOrdem(
+            atualizada,
+            'status_alterado',
+            `O status da O.S. ${atualizada.id} (${atualizada.titulo}) foi alterado para ${atualizada.status}.`,
+        );
+
         return atualizada;
     }
 

@@ -39,6 +39,18 @@ export class RepositoryFuncionario {
         return (await this.listarTodosPersistidos()).filter((funcionario) => !funcionario.ativo);
     }
 
+    /** Lista funcionários vinculados a um departamento, incluindo inativos quando solicitado. */
+    async listarPorDepartamento(
+        departamentoId: number,
+        incluirInativos = false,
+    ): Promise<Funcionario[]> {
+        return (await this.listarTodosPersistidos()).filter(
+            (funcionario) =>
+                funcionario.departamento_id === departamentoId &&
+                (incluirInativos || funcionario.ativo),
+        );
+    }
+
     /** Lista interna/cache de todos os registros; não é exposta diretamente pela API comum. */
     private listarTodosPersistidos(): Promise<Funcionario[]> {
         return funcionarioCache.obterTodos(() =>
