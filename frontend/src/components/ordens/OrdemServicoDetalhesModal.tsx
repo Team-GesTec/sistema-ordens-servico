@@ -20,6 +20,7 @@ import { getStoredUser } from "../../services/auth";
 import { ordemServicoService } from "../../services/ordemServico";
 import { ApiError } from "../../services/api";
 import { publishToast } from "../../services/feedbackEvents";
+import { garantirPdfValido, salvarArquivo } from "../../utils/download";
 
 import {
     CRITICIDADE_LABELS,
@@ -212,21 +213,9 @@ function OrdemServicoDetalhesModal({
 
         try {
             const arquivo = await ordemServicoService.exportarPdf(ordem.id);
-            const assinaturaPdf = new Uint8Array(await arquivo.slice(0, 5).arrayBuffer());
-            const cabecalhoPdf = String.fromCharCode(...assinaturaPdf);
-
-            if (cabecalhoPdf !== "%PDF-") {
-                throw new Error("O arquivo recebido não é um PDF válido.");
-            }
-
-            const url = URL.createObjectURL(arquivo);
-            const link = document.createElement("a");
-            link.href = url;
-            link.download = `OS-${ordem.id}.pdf`;
-            document.body.appendChild(link);
-            link.click();
-            link.remove();
-            window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+            // Mesmo fluxo de download do relatório de cliente (US#2.9): utils/download.ts
+            await garantirPdfValido(arquivo);
+            salvarArquivo(arquivo, `OS-${ordem.id}.pdf`);
             publishToast({
                 title: "PDF da O.S. preparado",
                 message: `O arquivo OS-${ordem.id}.pdf foi enviado para download.`,

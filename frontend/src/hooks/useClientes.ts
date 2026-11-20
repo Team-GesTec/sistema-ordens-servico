@@ -1,11 +1,14 @@
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { authService, getStoredUser } from "../services/auth";
 import { clienteService } from "../services/cliente";
-import type { Cliente, ClienteInput } from "../types/api";
+import type { Cliente, ClienteInput, PerfilFuncionario } from "../types/api";
+import { publishToast } from "../services/feedbackEvents";
+import { garantirPdfValido, nomeArquivoPdfCliente, salvarPdfCliente } from "../utils/download";
 import {
     correspondeBusca,
     mensagemErro,
+    mensagemErroExportacaoPdf,
     type AcaoStatus,
     type DadosFormularioCliente,
     type FiltroSituacao,
@@ -31,33 +34,44 @@ export function useClientes() {
     const [acaoConfirmacao, setAcaoConfirmacao] =
         useState<AcaoStatus | null>(null);
 
-    const [perfilGestor, setPerfilGestor] = useState(
-        () => getStoredUser()?.tipo === "gestor"
+    const [perfil, setPerfil] = useState<PerfilFuncionario | null>(
+        () => getStoredUser()?.tipo ?? null
     );
 
     const [mensagem, setMensagem] = useState<string | null>(null);
     const [erro, setErro] = useState<string | null>(null);
 
-    const podeGerenciar = perfilGestor;
+    // Exportação do relatório em PDF (US#2.9): id do cliente em exportação e erro exibido no modal.
+    // O erro guarda o cliente a que pertence: uma falha que chega depois de trocar de cliente não
+    // aparece no modal do outro.
+    const [exportandoPdfId, setExportandoPdfId] = useState<number | null>(null);
+    const [erroExportacaoPdf, setErroExportacaoPdf] = useState<{ clienteId: number; mensagem: string } | null>(null);
+    const exportacaoPdfEmAndamento = useRef(false);
+
+    const podeGerenciar = perfil === "gestor";
+    // US#2.9: o backend libera o relatório do cliente para Gestor e Analista (403 aos demais).
+    const podeExportarPdf = perfil === "gestor" || perfil === "analista";
 
     useEffect(() => {
         let ativo = true;
 
         async function carregarDados() {
             try {
-                let isGestor = getStoredUser()?.tipo === "gestor";
+                let perfilAtual: PerfilFuncionario | null = getStoredUser()?.tipo ?? null;
 
                 if (authService.hasSession()) {
                     const usuario = await authService.me();
-                    isGestor = usuario.tipo === "gestor";
+                    perfilAtual = usuario.tipo;
 
                     if (ativo) {
-                        setPerfilGestor(isGestor);
+                        setPerfil(perfilAtual);
                     }
                 } else if (ativo) {
-                    setPerfilGestor(false);
-                    isGestor = false;
+                    setPerfil(null);
+                    perfilAtual = null;
                 }
+
+                const isGestor = perfilAtual === "gestor";
 
                 const resultado = await clienteService.listar();
                 let inativos: Cliente[] = [];
@@ -358,6 +372,44 @@ export function useClientes() {
         }
     }
 
+    /** Baixa o relatório do cliente em PDF (Gestor ou Analista) e salva como `Cliente-{id}.pdf`. */
+    async function exportarPdf(cliente: Cliente): Promise<void> {
+        // A ref bloqueia cliques repetidos antes mesmo de o botão ser desabilitado na tela.
+        if (exportacaoPdfEmAndamento.current) return;
+
+        if (!podeExportarPdf) {
+            setErroExportacaoPdf({
+                clienteId: cliente.id,
+                mensagem: "Apenas gestores e analistas podem exportar o relatório do cliente em PDF.",
+            });
+            return;
+        }
+
+        exportacaoPdfEmAndamento.current = true;
+        setExportandoPdfId(cliente.id);
+        setErroExportacaoPdf(null);
+
+        try {
+            const blob = await clienteService.exportarPdf(cliente.id);
+            await garantirPdfValido(blob);
+            salvarPdfCliente(blob, cliente.id);
+            publishToast({
+                title: "PDF do cliente preparado",
+                message: `O arquivo ${nomeArquivoPdfCliente(cliente.id)} foi enviado para download.`,
+                variant: "success",
+            });
+        } catch (error) {
+            setErroExportacaoPdf({ clienteId: cliente.id, mensagem: mensagemErroExportacaoPdf(error) });
+        } finally {
+            exportacaoPdfEmAndamento.current = false;
+            setExportandoPdfId(null);
+        }
+    }
+
+    function limparErroExportacaoPdf() {
+        setErroExportacaoPdf(null);
+    }
+
     return {
         clientes,
         clientesPorSituacao,
@@ -390,5 +442,11 @@ export function useClientes() {
         solicitarAlteracaoStatus,
         fecharConfirmacao,
         confirmarAlteracaoStatus,
+
+        podeExportarPdf,
+        exportandoPdfId,
+        erroExportacaoPdf,
+        exportarPdf,
+        limparErroExportacaoPdf,
     };
 }

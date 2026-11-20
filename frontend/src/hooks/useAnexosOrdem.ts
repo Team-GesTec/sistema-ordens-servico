@@ -12,6 +12,7 @@ import { ApiError } from "../services/api";
 import { anexoService } from "../services/anexo";
 import type { Anexo, ConfiguracaoAnexos, OrdemServico } from "../types/api";
 import type { AnexoOrdem, AnexoOrdemPayload } from "../components/ordens/OrdemServicoDetalhesModal";
+import { salvarArquivo } from "../utils/download";
 
 function mensagemErro(error: unknown, fallback: string): string {
     return error instanceof ApiError ? error.message : fallback;
@@ -39,19 +40,6 @@ function paraAnexoOrdem(anexo: Anexo): AnexoOrdem {
         autor: anexo.autor.nome,
         relato: anexo.relato,
     };
-}
-
-/** Faz o navegador salvar o arquivo baixado com o nome original. */
-function salvarArquivo(blob: Blob, nome: string): void {
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = nome;
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    // Dá tempo ao navegador de iniciar o download antes de liberar a memória
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
 /**
