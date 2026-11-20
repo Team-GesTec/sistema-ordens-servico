@@ -4,12 +4,17 @@
  * Acesso a dados de OS: ÚNICO lugar que fala com `prisma.ordens_servico`.
  * Leituras passam pelo cache; escritas vão ao banco e, confirmadas, atualizam o cache.
  * Criação e atribuição registram auditoria na mesma transação da O.S.
+ *
+ * ALTERAÇÕES (05/11/2026):
+ *  - 2.10-BE01: a auditoria da atribuição de responsável e do SLA manual passa a ser gravada
+ *    pelo repositoryAuditoria (com `tipo_evento` e `descricao`), ainda dentro da mesma transação.
  */
 
 
 import { prisma } from '../prisma/client';
 import type { Prisma } from '../prisma/generated/client';
 import { ordemServicoCache } from '../cache/ordemServicoCache';
+import { repositoryAuditoria } from './repositoryAuditoria';
 import { traduzirErroPrisma } from '../errors/tratarErroPrisma';
 import type {
     OrdemServico,
@@ -225,16 +230,18 @@ export class RepositoryOrdemServico {
                 throw AppError.conflito('Dados duplicados para atribuição de responsável');
             }
 
-            await tx.auditoria.create({
-                data: {
+            await repositoryAuditoria.registrar(
+                {
                     os_id: osId,
                     funcionario_id: solicitanteId,
                     acao: 'atualizacao',
+                    tipo_evento: 'atribuicao_responsavel',
                     campo_alterado: 'responsavel_id',
                     dado_antigo: ordemAtual.responsavel_id?.toString() ?? null,
                     dado_novo: responsavelId.toString()
-                }
-            });
+                },
+                tx,
+            );
 
             return tx.ordens_servico.findUniqueOrThrow({
                 where: { id: osId }
@@ -293,15 +300,17 @@ export class RepositoryOrdemServico {
                 },
             ];
 
-            await tx.auditoria.createMany({
-                data: auditorias.map((auditoria) => ({
+            await repositoryAuditoria.registrarVarios(
+                auditorias.map((auditoria) => ({
                     os_id: osId,
                     funcionario_id: funcionarioId,
                     acao: 'atualizacao',
+                    tipo_evento: 'alteracao_sla',
                     ...auditoria,
                     justificativa,
                 })),
-            });
+                tx,
+            );
 
             return tx.ordens_servico.findUniqueOrThrow({ where: { id: osId } });
         });

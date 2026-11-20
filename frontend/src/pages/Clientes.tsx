@@ -13,6 +13,17 @@ import { Link, useSearchParams } from "react-router-dom";
 function Clientes() {
     const clientes = useClientes();
     const [clienteDetalhes, setClienteDetalhes] = useState<Cliente | null>(null);
+
+    // O erro da exportação em PDF pertence ao cliente aberto: é limpo ao abrir ou fechar os detalhes.
+    function abrirDetalhes(cliente: Cliente) {
+        clientes.limparErroExportacaoPdf();
+        setClienteDetalhes(cliente);
+    }
+
+    function fecharDetalhes() {
+        clientes.limparErroExportacaoPdf();
+        setClienteDetalhes(null);
+    }
     const [searchParams] = useSearchParams();
     const clienteParam = searchParams.get("visualizar");
     const clienteVisualizadoId = Number(clienteParam);
@@ -108,12 +119,12 @@ function Clientes() {
                                                 className="gestec-clickable-row"
                                                 tabIndex={0}
                                                 aria-label={`Abrir detalhes de ${cliente.nome || `cliente ${cliente.id}`}`}
-                                                onClick={() => setClienteDetalhes(cliente)}
+                                                onClick={() => abrirDetalhes(cliente)}
                                                 onKeyDown={(event) => {
                                                     if (event.target !== event.currentTarget) return;
                                                     if (event.key === "Enter" || event.key === " ") {
                                                         event.preventDefault();
-                                                        setClienteDetalhes(cliente);
+                                                        abrirDetalhes(cliente);
                                                     }
                                                 }}
                                             >
@@ -140,7 +151,7 @@ function Clientes() {
             </main>
             <ClienteDetalhesModal
                 cliente={clienteDetalhes}
-                onClose={() => setClienteDetalhes(null)}
+                onClose={fecharDetalhes}
                 salvando={clientes.salvando}
                 erro={clientes.erro}
                 podeGerenciar={clientes.podeGerenciar && !modoVisualizacao}
@@ -153,6 +164,12 @@ function Clientes() {
 
                     return atualizado;
                 }}
+                podeExportarPdf={clientes.podeExportarPdf}
+                exportandoPdf={clienteDetalhes !== null && clientes.exportandoPdfId === clienteDetalhes.id}
+                erroExportacaoPdf={clienteDetalhes !== null && clientes.erroExportacaoPdf?.clienteId === clienteDetalhes.id
+                    ? clientes.erroExportacaoPdf.mensagem
+                    : null}
+                onExportarPdf={(cliente) => void clientes.exportarPdf(cliente)}
             />
             <ClienteFormModal aberto={clientes.modalAberto} cliente={clientes.clienteEmEdicao} salvando={clientes.salvando} erro={clientes.erro} onClose={clientes.fecharModal} onSave={clientes.salvarCliente} onClearError={clientes.limparErro} />
             <ClienteStatusModal cliente={clientes.clienteConfirmacao} acao={clientes.acaoConfirmacao} processando={clientes.inativandoId !== null} erro={clientes.erro} onClose={clientes.fecharConfirmacao} onConfirm={clientes.confirmarAlteracaoStatus} />

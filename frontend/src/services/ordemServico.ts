@@ -1,5 +1,5 @@
-import { apiRequest } from "./api";
-import type { HistoricoOrdemServico, OrdemServico, OrdemServicoInput, RegistroHorasInput } from "../types/api";
+import { apiDownload, apiRequest } from "./api";
+import type { OrdemServico, OrdemServicoInput, RegistroHorasInput, RespostaHistoricoOrdemServico } from "../types/api";
 
 export const ordemServicoService = {
     /**
@@ -39,13 +39,21 @@ export const ordemServicoService = {
             method: "PATCH",
         });
     },
+    
+    async exportarPdf(id: number): Promise<Blob> {
+        const arquivo = await apiDownload(`/ordens-servico/${id}/relatorio.pdf`, false);
+        return arquivo.blob;
+    },
 
     buscarPorId(id: number): Promise<OrdemServico> {
         return apiRequest<OrdemServico>(`/ordens-servico/${id}`);
     },
 
-    listarHistorico(id: number): Promise<HistoricoOrdemServico[]> {
-        return apiRequest<HistoricoOrdemServico[]>(`/ordens-servico/${id}/historico`);
+    /** GET /ordens-servico/:id/historico — somente gestor; mais recentes primeiro, paginado. */
+    listarHistorico(id: number, pagina = 1, limite = 20): Promise<RespostaHistoricoOrdemServico> {
+        return apiRequest<RespostaHistoricoOrdemServico>(
+            `/ordens-servico/${id}/historico?pagina=${pagina}&limite=${limite}`,
+        );
     },
 
     criar(payload: OrdemServicoInput): Promise<OrdemServico> {

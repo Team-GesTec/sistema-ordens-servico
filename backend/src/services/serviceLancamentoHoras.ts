@@ -8,6 +8,7 @@ import type { ordens_servico, Prisma } from '../prisma/generated/client';
 import { AppError } from '../errors/AppError';
 import { bloquearOrdemServico } from '../utils/projetoOsInvariant';
 import { duracaoParaMinutos, minutosParaDuracao } from '../utils/duracao';
+import { formatarDataHora } from '../utils/dataHora';
 import { lerCorpo, type CorpoRequisicao } from '../utils/validacao';
 import { serviceAuditoria } from './serviceAuditoria';
 
@@ -60,10 +61,14 @@ export class ServiceLancamentoHoras {
                 os_id: ordem.id,
                 funcionario_id: funcionarioId,
                 acao: 'insercao',
+                // US#2.10: classifica o evento no histórico. O `apontamento_id` da auditoria aponta
+                // para `apontamento_horas`, não para `lancamentos_horas`, por isso não é preenchido.
+                tipo_evento: 'registro_horas',
                 campo_alterado: 'horas',
                 dado_antigo: null,
                 dado_novo: String(minutos),
                 justificativa: `Registro de horas do trabalho em ${dataTrabalho.toISOString().slice(0, 10)}`,
+                descricao: `${minutosParaDuracao(minutos)} registradas em ${formatarDataHora(dataTrabalho, 'UTC').slice(0, 10)}`,
             },
             conexao,
         );

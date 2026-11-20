@@ -95,13 +95,20 @@
 /* Audit screen */
 .gestec-app .analysis-kpis--audit { margin-bottom: 18px; }
 .gestec-app .analysis-audit-panel { min-height: 0; padding: 0; overflow: hidden; }
-.gestec-app .analysis-audit-toolbar { display: grid; grid-template-columns: minmax(230px, 1fr) minmax(180px, 230px) auto; align-items: center; gap: 11px; padding: 17px 18px; border-bottom: 1px solid var(--analysis-border); }
+.gestec-app .analysis-audit-toolbar { display: grid; grid-template-columns: minmax(230px, 1fr) minmax(180px, 230px) minmax(140px, 160px) minmax(140px, 160px) auto; align-items: center; gap: 11px; padding: 17px 18px; border-bottom: 1px solid var(--analysis-border); }
 .gestec-app .analysis-audit-search { display: flex; min-width: 0; min-height: 42px; align-items: center; gap: 10px; padding: 0 12px; border: 1px solid var(--analysis-border); border-radius: 9px; background: var(--analysis-surface); color: var(--analysis-muted); }
 .gestec-app .analysis-audit-search > i { flex: 0 0 auto; }
 .gestec-app .analysis-audit-search input { width: 100%; min-width: 0; min-height: 40px; border: 0; outline: 0; background: transparent; color: var(--analysis-ink); font: inherit; font-size: 12px; }
 .gestec-app .analysis-audit-search input:focus { outline: 0; }
 .gestec-app .analysis-audit-toolbar select { min-width: 0; min-height: 42px; padding: 9px 11px; border: 1px solid var(--analysis-border); border-radius: 9px; background: var(--analysis-surface); color: var(--analysis-ink); font: inherit; font-size: 12px; }
 .gestec-app .analysis-audit-toolbar .btn { display: inline-flex; min-height: 42px; align-items: center; justify-content: center; gap: 7px; white-space: nowrap; }
+/* Filtro por período (De / Até) */
+.gestec-app .analysis-audit-date-filter { display: flex; min-width: 0; min-height: 42px; align-items: center; gap: 8px; padding: 0 10px; border: 1px solid var(--analysis-border); border-radius: 9px; background: var(--analysis-surface); color: var(--analysis-muted); font-size: 11px; font-weight: 700; }
+.gestec-app .analysis-audit-date-filter input { width: 100%; min-width: 0; min-height: 40px; border: 0; outline: 0; background: transparent; color: var(--analysis-ink); font: inherit; font-size: 12px; font-weight: 400; color-scheme: light; }
+.gestec-app.dark-mode .analysis-audit-date-filter input { color-scheme: dark; }
+.gestec-app .analysis-audit-date-filter:focus-within { outline: 3px solid rgba(46, 124, 225, .17); border-color: #5ca4e7; }
+.gestec-app .analysis-audit-date-filter input:focus { outline: 0; }
+.gestec-app .analysis-audit-panel > .analysis-alert { margin: 12px 18px 0; }
 .gestec-app .analysis-audit-table { min-width: 1080px; }
 .gestec-app .analysis-audit-table th { padding: 14px 13px; }
 .gestec-app .analysis-audit-table td { padding: 15px 13px; vertical-align: middle; }
@@ -155,11 +162,15 @@
     .gestec-app .analysis-filter-bar { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .gestec-app .analysis-filter-bar .btn { justify-self: start; }
     .gestec-app .analysis-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    /* Busca + tipo na primeira linha; De / Até na segunda; botão embaixo */
+    .gestec-app .analysis-audit-toolbar { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .gestec-app .analysis-audit-toolbar .btn { grid-column: 1 / -1; justify-self: start; }
 }
 @media (max-width: 850px) {
     .gestec-app .analysis-grid-two { grid-template-columns: minmax(0, 1fr); }
     .gestec-app .analysis-audit-toolbar { grid-template-columns: minmax(0, 1fr) minmax(170px, 220px); }
     .gestec-app .analysis-audit-toolbar .btn { grid-column: 1 / -1; justify-self: start; }
+    .gestec-app .analysis-audit-date-filter { min-width: 0; }
 }
 @media (max-width: 600px) {
     .gestec-app .analysis-heading { align-items: flex-start; }
