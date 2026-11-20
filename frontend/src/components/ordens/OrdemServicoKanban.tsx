@@ -1,4 +1,3 @@
-
 import { useMemo, useState, type DragEvent } from "react";
 import type {
     Cliente,
@@ -43,6 +42,12 @@ interface OrdemServicoKanbanProps {
         ordem: OrdemServico,
         status: StatusOrdemServico
     ) => void | Promise<void>;
+    /** US#2.11 — quando informado, a última coluna alterna entre Concluídas e Arquivadas (nunca as duas juntas). */
+    arquivadasSelecionadas?: boolean;
+    onAlternarArquivadas?: (arquivadas: boolean) => void;
+    carregandoArquivadas?: boolean;
+    falhaArquivadas?: boolean;
+    onTentarNovamenteArquivadas?: () => void;
 }
 
 function OrdemServicoKanban({
@@ -57,6 +62,11 @@ function OrdemServicoKanban({
     onAbrir,
     onAlterarAtivo,
     onMoverStatus,
+    arquivadasSelecionadas = false,
+    onAlternarArquivadas,
+    carregandoArquivadas = false,
+    falhaArquivadas = false,
+    onTentarNovamenteArquivadas,
 }: OrdemServicoKanbanProps) {
     const [projetoSelecionado, setProjetoSelecionado] = useState("");
 
@@ -127,9 +137,13 @@ function OrdemServicoKanban({
         void onMoverStatus(origem, destino);
     }
 
+    // Se houver alternância de arquivadas, o quadro precisa continuar visível
+    // mesmo vazio, senão o usuário perde o botão para voltar/alternar.
+    const ocultarQuadroVazio =
+        ordensFiltradas.length === 0 && !onAlternarArquivadas;
+
     return (
         <div className="ordens-kanban-wrapper">
-
             {/* Filtro de projeto */}
             <div className="ordens-kanban-filters">
                 <div className="ordens-kanban-filter-group">
@@ -176,7 +190,7 @@ function OrdemServicoKanban({
                     <strong>Selecione um projeto para visualizar o Kanban.</strong>
                     <p>As ordens de serviço vinculadas ao projeto aparecerão abaixo.</p>
                 </div>
-            ) : ordensFiltradas.length === 0 ? (
+            ) : ocultarQuadroVazio ? (
                 <div className="projetos-empty">
                     <strong>Nenhuma ordem de serviço encontrada.</strong>
                     <p>Este projeto ainda não possui O.S. vinculadas.</p>
@@ -193,11 +207,28 @@ function OrdemServicoKanban({
                         const recebeArrasto =
                             statusAlvo === status && podeSoltar(status);
 
+                        const alternaArquivadas =
+                            status === "concluido" &&
+                            Boolean(onAlternarArquivadas);
+
+                        // Última coluna exibindo arquivadas: sem ação de inativar nos cartões.
+                        const arquivadasNaColuna =
+                            alternaArquivadas && arquivadasSelecionadas;
+
                         return (
                             <section
                                 key={status}
                                 className={`ordens-kanban-column ordens-kanban-column--${status}${recebeArrasto ? " ordens-kanban-column--alvo" : ""}`}
-                                aria-labelledby={`ordens-kanban-title-${status}`}
+                                aria-labelledby={
+                                    alternaArquivadas
+                                        ? undefined
+                                        : `ordens-kanban-title-${status}`
+                                }
+                                aria-label={
+                                    alternaArquivadas
+                                        ? "Ordens concluídas ou arquivadas"
+                                        : undefined
+                                }
                                 onDragEnter={(event) => {
                                     if (podeSoltar(status)) {
                                         event.preventDefault();
@@ -225,9 +256,34 @@ function OrdemServicoKanban({
                                 onDrop={(event) => soltar(event, status)}
                             >
                                 <header className="ordens-kanban-column-header">
-                                    <h3 id={`ordens-kanban-title-${status}`}>
-                                        {STATUS_LABELS[status]}
-                                    </h3>
+                                    {alternaArquivadas ? (
+                                        <div
+                                            className="ordens-view-switch"
+                                            role="group"
+                                            aria-label="Exibir concluídas ou arquivadas"
+                                        >
+                                            <button
+                                                type="button"
+                                                className={arquivadasSelecionadas ? "" : "active"}
+                                                aria-pressed={!arquivadasSelecionadas}
+                                                onClick={() => onAlternarArquivadas?.(false)}
+                                            >
+                                                Concluídas
+                                            </button>
+                                            <button
+                                                type="button"
+                                                className={arquivadasSelecionadas ? "active" : ""}
+                                                aria-pressed={arquivadasSelecionadas}
+                                                onClick={() => onAlternarArquivadas?.(true)}
+                                            >
+                                                Arquivadas
+                                            </button>
+                                        </div>
+                                    ) : (
+                                        <h3 id={`ordens-kanban-title-${status}`}>
+                                            {STATUS_LABELS[status]}
+                                        </h3>
+                                    )}
 
                                     <span
                                         aria-label={`${ordensDaColuna.length} ordens`}
@@ -239,9 +295,29 @@ function OrdemServicoKanban({
 
                                 <div className="ordens-kanban-column-body">
                                     {ordensDaColuna.length === 0 ? (
-                                        <p className="ordens-kanban-empty">
-                                            Nenhuma O.S. nesta coluna.
-                                        </p>
+                                        arquivadasNaColuna && falhaArquivadas ? (
+                                            <div
+                                                className="ordens-kanban-empty"
+                                                role="alert"
+                                            >
+                                                <p>Não foi possível carregar as arquivadas.</p>
+                                                <button
+                                                    type="button"
+                                                    className="projeto-btn-secondary btn"
+                                                    onClick={onTentarNovamenteArquivadas}
+                                                >
+                                                    Tentar novamente
+                                                </button>
+                                            </div>
+                                        ) : (
+                                            <p className="ordens-kanban-empty">
+                                                {arquivadasNaColuna
+                                                    ? carregandoArquivadas
+                                                        ? "Carregando arquivadas..."
+                                                        : "Nenhuma O.S. arquivada."
+                                                    : "Nenhuma O.S. nesta coluna."}
+                                            </p>
+                                        )
                                     ) : (
                                         ordensDaColuna.map((ordem) => {
                                             const opcoes =
@@ -261,7 +337,7 @@ function OrdemServicoKanban({
                                                     clientes={clientes}
                                                     departamentos={departamentos}
                                                     funcionarios={funcionarios}
-                                                    podeEditar={podeEditar}
+                                                    podeEditar={podeEditar && !arquivadasNaColuna}
                                                     bloqueado={bloqueado}
                                                     modoKanban
                                                     opcoesStatusMovimentacao={opcoes}

@@ -473,7 +473,8 @@ Após o login, você verá as áreas do sistema disponíveis **para o seu perfil
 | Ordens de Serviço | Abertura, consulta e atualização de O.S. |
 | Notificações | Avisos sobre suas O.S. |
 
-> MAIS PRINTS P/ AS ÁREAS 
+![Dashboard do gestor](./prints/dashboard_g.png)
+![Painel de ordem de serviço](./prints/ordensdeservico.png)
 
 ### 7.3 Perfis e permissões
  
@@ -540,29 +541,29 @@ Campos do cadastro:
 1. Acesse **Clientes** e clique em **Novo cliente**.
 2. Preencha razão social, ramo de atuação e categoria.
 3. Adicione um ou mais **ativos/locais operacionais**, informando o tipo (embarcação, usina ou site) e a identificação.
-4. Clique em **Salvar**.
+4. Clique em **Cadastrar cliente**.
 
-> COLOCAR O PRINT DO CADASTRO DO CLI
+![Tela de Cadastro do Cliente](./prints/cadastro_cli.png)
 
 ### 8.2 Departamentos *(Gestor)*
 
 Os departamentos estruturam a equipe e recebem as O.S. 
 **Como cadastrar**
 1. Acesse **Departamentos** e clique em **Novo departamento**.
-2. Informe nome e descrição.
-3. Salve e já estará registrado.
+2. Informe nome 
+3. Clique em cadastrar e já estará registrado.
 
-> COLOCAR O PRINT DO CADASTRO DO DEP
+![Tela de Cadastro do departamento](./prints/cadastro_dep.png)
 
 ### 8.3 Técnicos e colaboradores *(Gestor)*
 
 **Como cadastrar**
-1. Acesse **Equipe** (ou **Usuários**) e clique em **Novo colaborador**.
+1. Acesse **Funcionários** e clique em **Novo funcionário**.
 2. Informe nome, e-mail e **perfil** (Gestor, Analista, Técnico).
 3. Vincule o colaborador ao **departamento**.
-4. Salve e entregue as credenciais de forma segura.
+4. Cadastre e entregue as credenciais de forma segura.
 
-> COLOCAR O PRINT DO CADASTRO DO FUN
+![Tela de cadastro de funcionários](./prints/cadastro_fun.png)
 
 ---
 
@@ -576,9 +577,9 @@ Um **projeto** é o agrupador central das O.S. de uma implantação.
 2. Selecione o **cliente**.
 3. Selecione os **departamentos envolvidos**.
 4. Preencha os demais dados nome, descrição e data.
-5. Clique em **Salvar**.
+5. Clique em **Cadastrar**.
 
-> COLOCAR O PRINT DO CADASTRO DO PROJ
+![Tela de cadastro de projetos](./prints/cadastro_proj.png)
 
 ### 9.2 Acompanhar o projeto
 
@@ -590,15 +591,15 @@ Cada projeto exibe **status** e **progresso percentual**, calculados a partir da
 
 ### 10.1 Abrir uma O.S. *(Analista)*
 
-1. Acesse **Ordens de Serviço** e clique em **Nova O.S.**
+1. Acesse **Ordens de Serviço** e clique em **Nova ordem de serviço.**
 2. Selecione o **cliente** e o **projeto**.
 3. Escolha o **tipo**: **Instalação** ou **Manutenção**.
 4. Escolha a **criticidade**.
 5. Selecione o **departamento** que atenderá o chamado.
 6. Descreva a solicitação.
-7. Clique em **Salvar**.
+7. Clique em **Cadastrar O.S**.
 
-> COLOCAR O PRINT DO CADASTRO DA O.S.
+![Tela de cadastro de ordens de serviço](./prints/cadastro_os.png)
 
 ### 10.2 Vincular uma O.S. anterior (reincidência)
 
@@ -620,7 +621,7 @@ A **fila** lista as O.S. atribuídas a você. Para organizar o dia:
 - Filtre por **prazo**.
 - Abra uma O.S. para ver detalhes e atualizar o andamento.
 
-> COLOCAR O PRINT DA TELA NORMAL DA O.S.
+![Exemplo da tela de fila de um técnico](./prints/ordensdeservico_tec.png)
 
 ### 10.5 Anexar fotos, laudos e documentos
 
@@ -640,7 +641,7 @@ Use anexos para comprovar a execução do serviço ou detalhar o problema.
 - Os arquivos são **privados**: o download só é permitido a quem tem acesso à O.S.
 - Se o envio falhar, confira o tamanho e o tipo do arquivo. Se aparecer indisponibilidade do serviço de anexos, avise a TI.
 
-> COLOCAR O PRINT DO ANEXO
+![Exemplo de anexo](./prints/anexo.png)
 
 ---
 
@@ -689,8 +690,6 @@ Quando houver paradas operacionais ou regras contratuais específicas, o Gestor 
 
 Quando uma O.S. atinge a **margem de risco de SLA**, o sistema a destaca visualmente para você priorizar os atendimentos críticos.
 
-> COLOCAR O PRINT DAS NOTIF DE RISCO
-
 ---
 
 ## 13. Notificações
@@ -720,13 +719,11 @@ Você é avisado sobre o andamento das O.S. em que está envolvido.
 
 Exibe o **status** e o **progresso percentual** dos projetos, para acompanhar a operação **sem gerar relatórios manuais**.
 
-> COLOCAR O PRINT DO DASHBOARD
+![Dashboard do gestor](./prints/dashboard_g.png)
 
 ### 14.2 Gráfico semanal da minha fila *(Responsável Técnico)*
 
 Resume visualmente suas entregas da semana por situação: **Pendente**, **Em Andamento** e **Concluída**.
-
-> COLOCAR O PRINT DO DASHBOARD
 
 ### 14.3 Histórico de alterações da O.S. *(Gestor)*
 

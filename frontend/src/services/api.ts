@@ -321,7 +321,7 @@ function nomeDoContentDisposition(cabecalho: string | null): string | null {
 }
 
 /** Baixa um arquivo binário de uma rota protegida (o token vai no cabeçalho, não na URL). */
-export async function apiDownload(path: string): Promise<ArquivoBaixado> {
+export async function apiDownload(path: string, notificarSucesso = true): Promise<ArquivoBaixado> {
     const headers = new Headers();
     const token = getAuthToken();
     if (token) {
@@ -345,7 +345,9 @@ export async function apiDownload(path: string): Promise<ArquivoBaixado> {
     }
 
     const blob = await response.blob();
-    publishToast({ title: "Download iniciado", message: "O arquivo foi preparado para download.", variant: "success" });
+    if (notificarSucesso) {
+        publishToast({ title: "Download iniciado", message: "O arquivo foi preparado para download.", variant: "success" });
+    }
     return {
         blob,
         nomeArquivo: nomeDoContentDisposition(response.headers.get("Content-Disposition")),

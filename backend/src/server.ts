@@ -10,6 +10,7 @@
  * Como o cache é write-through, não há nada pendente para gravar no banco ao desligar.
  */
 import { iniciarRotinaNotificacoes } from './jobs/rotinaNotificacoes';
+import { iniciarRotinaArquivamento } from './jobs/rotinaArquivamento';
 import { criarApp } from './app';
 import { env } from './config/env';
 import { prisma } from './prisma/client';
@@ -28,6 +29,7 @@ function iniciar(): void {
             process.exit(1);
         }
         iniciarRotinaNotificacoes();
+        iniciarRotinaArquivamento();
         console.log(`[servidor] rodando na porta ${env.porta}`);
     });
 

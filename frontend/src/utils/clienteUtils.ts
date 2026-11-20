@@ -31,6 +31,31 @@ export function mensagemErro(
     return alternativa;
 }
 
+/**
+ * Mensagem da exportação do relatório de cliente em PDF (US#2.9): trata sessão expirada (401),
+ * falta de permissão (403) e repassa a `mensagem` da API (ou a falha de rede) nos demais casos.
+ */
+export function mensagemErroExportacaoPdf(error: unknown): string {
+    if (error instanceof ApiError) {
+        if (error.status === 401) {
+            return "Sua sessão expirou. Faça login novamente para exportar o relatório.";
+        }
+
+        if (error.status === 403) {
+            return "Apenas gestores e analistas podem exportar o relatório do cliente em PDF.";
+        }
+
+        return error.message;
+    }
+
+    // Ex.: arquivo recebido não é um PDF (assinatura %PDF- ausente)
+    if (error instanceof Error && error.message) {
+        return error.message;
+    }
+
+    return "Não foi possível exportar o relatório do cliente em PDF. Tente novamente.";
+}
+
 export function correspondeBusca(
     cliente: Cliente,
     termo: string

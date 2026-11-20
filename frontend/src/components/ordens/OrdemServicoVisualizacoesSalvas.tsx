@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { FiltroResponsavelOrdem, FiltroStatusOrdem } from "../../utils/ordemServicoUtils";
-import { STATUS_LABELS } from "../../utils/ordemServicoUtils";
+import { FILTRO_ARQUIVADOS, STATUS_LABELS } from "../../utils/ordemServicoUtils";
 import { prazoFiltrosValidos } from "../../utils/prazoOrdem";
 
 export type TipoVisualizacaoOrdens = "tabela" | "cartoes" | "kanban";
@@ -30,7 +30,7 @@ interface OrdemServicoVisualizacoesSalvasProps {
 
 const CHAVE_BASE = "sgos.ordens.visualizacoes.v1.usuario.";
 const MAXIMO_VISUALIZACOES = 30;
-const STATUS_VALIDOS = new Set<string>(["todos", ...Object.keys(STATUS_LABELS)]);
+const STATUS_VALIDOS = new Set<string>(["todos", FILTRO_ARQUIVADOS, ...Object.keys(STATUS_LABELS)]);
 
 function responsavelValido(valor: unknown): valor is FiltroResponsavelOrdem {
     return valor === "todos" || valor === "sem_responsavel" ||

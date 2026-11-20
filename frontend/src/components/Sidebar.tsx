@@ -397,15 +397,18 @@ function Sidebar({ darkMode, setDarkMode }: SidebarProps) {
 
                     <div className="sidebar-nav-section">
 
-                        <NavLink
-                            to="/auditoria"
-                            className="menu-item"
-                            title="Logs de auditoria"
-                            aria-label="Logs de auditoria"
-                        >
-                            <i className="fa-solid fa-clock-rotate-left" aria-hidden="true" />
-                            <span>Logs de auditoria</span>
-                        </NavLink>
+                        {/* US#2.10: a auditoria é exclusiva do gestor (o backend responde 403 aos demais) */}
+                        {usuario?.tipo === "gestor" && (
+                            <NavLink
+                                to="/auditoria"
+                                className="menu-item"
+                                title="Logs de auditoria"
+                                aria-label="Logs de auditoria"
+                            >
+                                <i className="fa-solid fa-clock-rotate-left" aria-hidden="true" />
+                                <span>Logs de auditoria</span>
+                            </NavLink>
+                        )}
 
                         <NavLink
                             to="/relatorios"

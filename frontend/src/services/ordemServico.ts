@@ -1,15 +1,28 @@
-import { apiRequest } from "./api";
-import type { HistoricoOrdemServico, OrdemServico, OrdemServicoInput, RegistroHorasInput } from "../types/api";
+import { apiDownload, apiRequest } from "./api";
+import type { OrdemServico, OrdemServicoInput, RegistroHorasInput, RespostaHistoricoOrdemServico } from "../types/api";
 
 export const ordemServicoService = {
-    /** GET /ordens-servico — o backend não lê filtros de prazo; eles são aplicados no cliente. */
-    listar(): Promise<OrdemServico[]> {
-        return apiRequest<OrdemServico[]>("/ordens-servico");
+    /**
+     * GET /ordens-servico — o backend não lê filtros de prazo; eles são aplicados no cliente.
+     * Por padrão não traz as O.S. arquivadas (US#2.11); Relatórios, Home e Auditoria pedem
+     * `incluirArquivadas` para não perder as concluídas há 14 dias ou mais.
+     */
+    listar(opcoes: { incluirArquivadas?: boolean } = {}): Promise<OrdemServico[]> {
+        const consulta = opcoes.incluirArquivadas ? "?incluir_arquivadas=true" : "";
+        return apiRequest<OrdemServico[]>(`/ordens-servico${consulta}`);
     },
 
     /** GET /ordens-servico/inativas — somente gestor. */
     listarInativas(): Promise<OrdemServico[]> {
         return apiRequest<OrdemServico[]>("/ordens-servico/inativas");
+    },
+
+    /**
+     * GET /ordens-servico/arquivadas — O.S. concluídas há 14 dias ou mais (US#2.11).
+     * Gestor e técnico; o técnico recebe apenas as O.S. do seu alcance.
+     */
+    listarArquivadas(): Promise<OrdemServico[]> {
+        return apiRequest<OrdemServico[]>("/ordens-servico/arquivadas");
     },
 
     /** PATCH /ordens-servico/:id/ativo — somente gestor. */
@@ -26,13 +39,21 @@ export const ordemServicoService = {
             method: "PATCH",
         });
     },
+    
+    async exportarPdf(id: number): Promise<Blob> {
+        const arquivo = await apiDownload(`/ordens-servico/${id}/relatorio.pdf`, false);
+        return arquivo.blob;
+    },
 
     buscarPorId(id: number): Promise<OrdemServico> {
         return apiRequest<OrdemServico>(`/ordens-servico/${id}`);
     },
 
-    listarHistorico(id: number): Promise<HistoricoOrdemServico[]> {
-        return apiRequest<HistoricoOrdemServico[]>(`/ordens-servico/${id}/historico`);
+    /** GET /ordens-servico/:id/historico — somente gestor; mais recentes primeiro, paginado. */
+    listarHistorico(id: number, pagina = 1, limite = 20): Promise<RespostaHistoricoOrdemServico> {
+        return apiRequest<RespostaHistoricoOrdemServico>(
+            `/ordens-servico/${id}/historico?pagina=${pagina}&limite=${limite}`,
+        );
     },
 
     criar(payload: OrdemServicoInput): Promise<OrdemServico> {
