@@ -300,7 +300,8 @@ function Ordens() {
                         </section>
                     ) : visualizacao === "kanban" ? (
                         <OrdemServicoKanban
-                            ordens={paginacaoOrdens.pageItems}
+                            ordens={ordensExibidas}
+                            projetos={ordens.projetos ?? []}
                             clientes={ordens.clientes}
                             departamentos={ordens.departamentos}
                             funcionarios={ordens.funcionariosConhecidos}
@@ -341,9 +342,17 @@ function Ordens() {
                             ))}
                         </div>
                     )}
-                    {!carregamentoAtual && ordensExibidas.length > 0 && (
-                        <Pagination page={paginacaoOrdens.page} totalPages={paginacaoOrdens.totalPages} totalItems={ordensExibidas.length} pageSize={10} onPageChange={paginacaoOrdens.setPage} />
-                    )}
+                    {!carregamentoAtual &&
+                        ordensExibidas.length > 0 &&
+                        visualizacao !== "kanban" && (
+                            <Pagination
+                                page={paginacaoOrdens.page}
+                                totalPages={paginacaoOrdens.totalPages}
+                                totalItems={ordensExibidas.length}
+                                pageSize={10}
+                                onPageChange={paginacaoOrdens.setPage}
+                            />
+                        )}
                 </div>
             </main>
 
