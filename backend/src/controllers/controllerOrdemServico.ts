@@ -16,8 +16,14 @@ import { serviceLancamentoHoras } from '../services/serviceLancamentoHoras';
 
 export class ControllerOrdemServico {
     /** GET /ordens-servico — lista todas as O.S. cadastradas. */
-    public async getAll(_req: Request, resp: Response): Promise<Response> {
-        return resp.status(200).json(await serviceOrdemServico.listar());
+    public async getAll(req: Request, resp: Response): Promise<Response> {
+        const incluirArquivadas = req.query.incluir_arquivadas === 'true';
+        return resp.status(200).json(await serviceOrdemServico.listar({ incluirArquivadas }));
+    }
+
+    /** GET /ordens-servico/arquivadas */
+    public async getArquivadas(_req: Request, resp: Response): Promise<Response> {
+        return resp.status(200).json(await serviceOrdemServico.listarArquivadas());
     }
 
     /** GET /ordens-servico/inativas — consulta o histórico de OS inativas. */

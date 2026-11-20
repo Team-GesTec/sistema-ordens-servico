@@ -5,7 +5,10 @@ import type {
     TipoOrdemServico,
 } from "../types/api";
 
-export type FiltroStatusOrdem = StatusOrdemServico | "todos";
+/** US#2.11 — valor do filtro de status que exibe o histórico de O.S. arquivadas. */
+export const FILTRO_ARQUIVADOS = "arquivados";
+
+export type FiltroStatusOrdem = StatusOrdemServico | "todos" | typeof FILTRO_ARQUIVADOS;
 export type FiltroResponsavelOrdem = number | "todos" | "sem_responsavel";
 
 export const STATUS_LABELS: Record<StatusOrdemServico, string> = {

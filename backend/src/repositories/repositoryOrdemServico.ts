@@ -49,6 +49,24 @@ export class RepositoryOrdemServico {
         return ordemServicoCache.obterTodos(() => prisma.ordens_servico.findMany({ orderBy: { data_criacao: 'desc' } }));
     }
 
+    /** Arquiva as O.S. concluídas com data_fim até o limite. */
+    async arquivarConcluidas(limite: Date, somenteIds?: number[]): Promise<number> {
+        const { count } = await prisma.ordens_servico.updateMany({
+            where: {
+                status: 'concluido',
+                arquivada_em: null,
+                data_fim: { lte: limite },
+                ...(somenteIds ? { id: { in: somenteIds } } : {}),
+            },
+            data: { arquivada_em: new Date() },
+        });
+
+        if (count > 0) {
+            ordemServicoCache.invalidarTudo();
+        }
+        return count;
+    }
+
     /** Lista ordens de serviço vinculadas a um departamento. */
     async listarPorDepartamento(
         departamentoId: number,

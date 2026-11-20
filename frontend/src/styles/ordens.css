@@ -1896,6 +1896,19 @@
     text-align: center;
 }
 
+/* US#2.11 — alternância Concluídas/Arquivadas no cabeçalho da última coluna do Kanban. */
+.gestec-app .ordens-kanban-column-header .ordens-view-switch {
+    flex: 1;
+    min-width: 0;
+}
+
+.gestec-app .ordens-kanban-column-header .ordens-view-switch button {
+    flex: 1;
+    min-width: 0;
+    padding: 5px 6px;
+    font-size: 11px;
+}
+
 .ordem-card-actions--kanban {
     display: flex;
     flex-direction: column;

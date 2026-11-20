@@ -23,6 +23,12 @@ interface OrdemServicoKanbanProps {
     onAbrir: (ordem: OrdemServico) => void;
     onAlterarAtivo: (ordem: OrdemServico, acao: AcaoAtivoOrdem) => void;
     onMoverStatus: (ordem: OrdemServico, status: StatusOrdemServico) => void | Promise<void>;
+    /** US#2.11 — quando informado, a última coluna alterna entre Concluídas e Arquivadas (nunca as duas juntas). */
+    arquivadasSelecionadas?: boolean;
+    onAlternarArquivadas?: (arquivadas: boolean) => void;
+    carregandoArquivadas?: boolean;
+    falhaArquivadas?: boolean;
+    onTentarNovamenteArquivadas?: () => void;
 }
 
 function OrdemServicoKanban({
@@ -36,6 +42,11 @@ function OrdemServicoKanban({
     onAbrir,
     onAlterarAtivo,
     onMoverStatus,
+    arquivadasSelecionadas = false,
+    onAlternarArquivadas,
+    carregandoArquivadas = false,
+    falhaArquivadas = false,
+    onTentarNovamenteArquivadas,
 }: OrdemServicoKanbanProps) {
     const [ordemArrastadaId, setOrdemArrastadaId] = useState<number | null>(null);
     const [statusAlvo, setStatusAlvo] = useState<StatusOrdemServico | null>(null);
@@ -72,11 +83,15 @@ function OrdemServicoKanban({
             {COLUNAS_KANBAN.map((status) => {
                 const ordensDaColuna = porColuna.get(status) ?? [];
                 const recebeArrasto = statusAlvo === status && podeSoltar(status);
+                const alternaArquivadas = status === "concluido" && Boolean(onAlternarArquivadas);
+                // Última coluna exibindo arquivadas: sem ação de inativar nos cartões.
+                const arquivadasNaColuna = alternaArquivadas && arquivadasSelecionadas;
                 return (
                     <section
                         key={status}
                         className={`ordens-kanban-column ordens-kanban-column--${status}${recebeArrasto ? " ordens-kanban-column--alvo" : ""}`}
-                        aria-labelledby={`ordens-kanban-title-${status}`}
+                        aria-labelledby={alternaArquivadas ? undefined : `ordens-kanban-title-${status}`}
+                        aria-label={alternaArquivadas ? "Ordens concluídas ou arquivadas" : undefined}
                         onDragEnter={(event) => {
                             if (podeSoltar(status)) {
                                 event.preventDefault();
@@ -98,14 +113,28 @@ function OrdemServicoKanban({
                         onDrop={(event) => soltar(event, status)}
                     >
                         <header className="ordens-kanban-column-header">
-                            <h3 id={`ordens-kanban-title-${status}`}>{STATUS_LABELS[status]}</h3>
+                            {alternaArquivadas ? (
+                                <div className="ordens-view-switch" role="group" aria-label="Exibir concluídas ou arquivadas">
+                                    <button type="button" className={arquivadasSelecionadas ? "" : "active"} aria-pressed={!arquivadasSelecionadas} onClick={() => onAlternarArquivadas?.(false)}>Concluídas</button>
+                                    <button type="button" className={arquivadasSelecionadas ? "active" : ""} aria-pressed={arquivadasSelecionadas} onClick={() => onAlternarArquivadas?.(true)}>Arquivadas</button>
+                                </div>
+                            ) : (
+                                <h3 id={`ordens-kanban-title-${status}`}>{STATUS_LABELS[status]}</h3>
+                            )}
                             <span aria-label={`${ordensDaColuna.length} ordens`} className="ordens-kanban-count">
                                 {ordensDaColuna.length}
                             </span>
                         </header>
                         <div className="ordens-kanban-column-body">
                             {ordensDaColuna.length === 0 ? (
-                                <p className="ordens-kanban-empty">Nenhuma O.S. nesta coluna.</p>
+                                arquivadasNaColuna && falhaArquivadas ? (
+                                    <div className="ordens-kanban-empty" role="alert">
+                                        <p>Não foi possível carregar as arquivadas.</p>
+                                        <button type="button" className="projeto-btn-secondary btn" onClick={onTentarNovamenteArquivadas}>Tentar novamente</button>
+                                    </div>
+                                ) : (
+                                    <p className="ordens-kanban-empty">{arquivadasNaColuna ? (carregandoArquivadas ? "Carregando arquivadas..." : "Nenhuma O.S. arquivada.") : "Nenhuma O.S. nesta coluna."}</p>
+                                )
                             ) : ordensDaColuna.map((ordem) => {
                                 const opcoes = COLUNAS_KANBAN.filter((destino) => destino !== ordem.status && podeMoverParaStatus(ordem, destino));
                                 return (
@@ -115,7 +144,7 @@ function OrdemServicoKanban({
                                         clientes={clientes}
                                         departamentos={departamentos}
                                         funcionarios={funcionarios}
-                                        podeEditar={podeEditar}
+                                        podeEditar={podeEditar && !arquivadasNaColuna}
                                         bloqueado={bloqueado}
                                         modoKanban
                                         opcoesStatusMovimentacao={opcoes}
