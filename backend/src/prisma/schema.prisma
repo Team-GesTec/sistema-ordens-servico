@@ -150,6 +150,7 @@ model ordens_servico {
   sla_manual                                               Boolean              @default(false)
   titulo                                                   String
   ativo                                                    Boolean              @default(true)
+  arquivada_em                                             DateTime?            @db.Timestamptz(6)
   anexos                                                   anexos[]
   apontamento_horas                                        apontamento_horas[]
   auditoria                                                auditoria[]
@@ -170,6 +171,7 @@ model ordens_servico {
   @@index([departamento_id, status], map: "idx_os_departamento_status")
   @@index([projeto_id], map: "idx_os_projeto")
   @@index([responsavel_id, status], map: "idx_os_responsavel_status")
+  @@index([status, arquivada_em, data_fim], map: "idx_os_status_arquivamento")
 }
 
 model projetos {

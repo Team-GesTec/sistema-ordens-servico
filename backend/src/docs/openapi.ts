@@ -1,3 +1,5 @@
+import { pathsAuditoria, schemasAuditoria } from './swaggerAuditoria';
+
 export const especificacaoOpenApi = {
     openapi: '3.0.3',
     info: {
@@ -24,10 +26,37 @@ export const especificacaoOpenApi = {
                     data_criacao: { type: 'string', format: 'date-time' },
                 },
             },
+            // US#2.10: histórico de atividades da O.S. e logs de auditoria
+            ...schemasAuditoria,
         },
     },
     security: [{ BearerAuth: [] }],
     paths: {
+        // US#2.10: histórico de atividades da O.S. e logs de auditoria
+        ...pathsAuditoria,
+        '/ordens-servico': {
+            get: {
+                summary: 'Lista as O.S. ativas (sem as arquivadas, por padrão)',
+                parameters: [
+                    { in: 'query', name: 'incluir_arquivadas', required: false, description: 'Quando true, inclui as O.S. concluídas já arquivadas (US#2.11). Usado por Relatórios, Home e Auditoria.', schema: { type: 'boolean', default: false } },
+                ],
+                responses: {
+                    '200': { description: 'Lista de O.S. ativas, cada uma com estado_sla e arquivada_em.' },
+                    '401': { description: 'Token inválido ou ausente.' },
+                },
+            },
+        },
+        '/ordens-servico/arquivadas': {
+            get: {
+                summary: 'Histórico de O.S. concluídas arquivadas automaticamente após 14 dias (US#2.11)',
+                description: 'Perfis: gestor e técnico. Retorna as O.S. ativas com arquivada_em preenchido, no mesmo formato de GET /ordens-servico.',
+                responses: {
+                    '200': { description: 'Lista de O.S. arquivadas.' },
+                    '401': { description: 'Token inválido ou ausente.' },
+                    '403': { description: 'Somente gestor e técnico consultam o histórico de arquivadas.' },
+                },
+            },
+        },
         '/departamento/{id}/equipe': {
             get: {
                 summary: 'Consulta funcionários, projetos e ordens de serviço vinculados ao departamento',
@@ -74,6 +103,26 @@ export const especificacaoOpenApi = {
         },
         '/notificacoes/lidas': {
             patch: { summary: 'Marca todas as notificações do usuário como lidas', responses: { '200': { description: 'Quantidade de notificações atualizadas.' } } },
+        },
+        '/ordens-servico/{id}/relatorio.pdf': {
+            get: {
+                summary: 'Baixa o relatório individual da O.S. em PDF',
+                parameters: [{ in: 'path', name: 'id', required: true, schema: { type: 'integer', minimum: 1 } }],
+                responses: {
+                    '200': { description: 'PDF da O.S.', content: { 'application/pdf': {} } },
+                    '401': { description: 'Token ausente ou inválido.' }, '403': { description: 'Somente Gestor ou Analista.' }, '404': { description: 'O.S. não encontrada.' },
+                },
+            },
+        },
+        '/cliente/{id}/relatorio.pdf': {
+            get: {
+                summary: 'Baixa o relatório de O.S. ativas do cliente em PDF',
+                parameters: [{ in: 'path', name: 'id', required: true, schema: { type: 'integer', minimum: 1 } }],
+                responses: {
+                    '200': { description: 'PDF do cliente.', content: { 'application/pdf': {} } },
+                    '401': { description: 'Token ausente ou inválido.' }, '403': { description: 'Somente Gestor ou Analista.' }, '404': { description: 'Cliente não encontrado.' },
+                },
+            },
         },
     },
 };

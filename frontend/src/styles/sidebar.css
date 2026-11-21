@@ -31,11 +31,7 @@
     border-right: 1px solid #b9dcea;
 
     overflow: hidden;
-
     z-index: 1000;
-
-    /* A borda esquerda permanece fixa.
-       Somente a largura aumenta para a direita. */
 
     transform: none;
     transform-origin: left center;
@@ -45,10 +41,34 @@
         box-shadow 0.6s ease;
 }
 
-.sidebar:hover {
-    width: 250px;
+/* EXPANSÃO */
 
-    box-shadow: 8px 0 30px rgba(0, 0, 0, 0.08);
+.sidebar.expandida {
+    width: 250px;
+}
+
+.sidebar.expandida .menu-item {
+    width: 100%;
+}
+
+.sidebar.expandida .menu-item span {
+    opacity: 1;
+    transition-delay: 0.12s;
+}
+
+.sidebar.expandida .perfil-informacoes {
+    opacity: 1;
+    transition-delay: 0.12s;
+}
+
+.sidebar.expandida .sidebar-perfil > i {
+    opacity: 0.7;
+    transition-delay: 0.12s;
+}
+
+.sidebar.expandida ~ .overlay {
+    opacity: 1;
+    visibility: visible;
 }
 
 /* =========================================
@@ -64,7 +84,6 @@
     justify-content: flex-start;
 
     gap: 12px;
-
     padding: 0 5px;
 
     box-sizing: border-box;
@@ -72,8 +91,10 @@
     color: #090c5c;
     text-decoration: none;
 
-    flex-shrink: 0;
+    border: none;
+    box-shadow: none;
 
+    flex-shrink: 0;
     overflow: hidden;
 }
 
@@ -87,6 +108,9 @@
     justify-content: center;
 
     flex-shrink: 0;
+
+    border: none;
+    box-shadow: none;
 }
 
 .sidebar-brand-mark img {
@@ -94,8 +118,32 @@
     height: 45px;
 
     object-fit: contain;
-
     display: block;
+
+    border: none;
+    box-shadow: none;
+}
+
+/* =========================================
+   ÁREA ROLÁVEL DA NAVEGAÇÃO
+========================================= */
+
+.sidebar-nav-viewport {
+    flex: 1;
+    min-height: 0;
+    width: 100%;
+
+    overflow-x: hidden;
+    overflow-y: auto;
+
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+
+    overscroll-behavior: contain;
+}
+
+.sidebar-nav-viewport::-webkit-scrollbar {
+    display: none;
 }
 
 /* =========================================
@@ -108,18 +156,77 @@
     display: flex;
     flex-direction: column;
 
-    gap: 12px;
-
-    overflow: hidden;
+    gap: 6px;
+    overflow: visible;
 }
 
 .sidebar-nav-section {
-    width: 100%;
-
     display: flex;
     flex-direction: column;
 
     gap: 5px;
+}
+
+.sidebar-nav .menu-item {
+    padding-top: 9px;
+    padding-bottom: 9px;
+}
+
+.sidebar-nav hr {
+    margin: 1px 0;
+}
+
+/* DIVISORES */
+
+.sidebar-divider {
+    display: flex;
+    align-items: center;
+
+    gap: 8px;
+
+    width: 100%;
+    padding: 2px;
+    margin:0;
+
+    white-space: nowrap;
+}
+
+.sidebar-divider::before,
+.sidebar-divider::after {
+    content: "";
+
+    flex: 1;
+
+    height: 1px;
+    background: rgba(128, 128, 128, 0.35);
+}
+
+.sidebar-divider span {
+    font-family: "Montserrat", sans-serif;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 1px;
+
+    color: #888;
+
+    opacity: 0;
+
+    transition: opacity 0.2s ease;
+}
+
+/* TEXTO DOS DIVISORES */
+
+.sidebar.expandida .sidebar-divider span {
+    opacity: 1;
+}
+
+.sidebar:not(.expandida) .sidebar-divider {
+    gap: 0;
+    padding: 8px 12px;
+}
+
+.sidebar:not(.expandida) .sidebar-divider span {
+    display: none;
 }
 
 /* =========================================
@@ -144,7 +251,6 @@
     text-decoration: none;
 
     border-radius: 8px;
-
     overflow: hidden;
 
     transition:
@@ -153,11 +259,7 @@
         border-radius 0.3s ease;
 }
 
-.sidebar:hover .menu-item {
-    width: 100%;
-}
-
-/* ÍCONES: POSIÇÃO FIXA */
+/* ÍCONES */
 
 .menu-item i {
     width: 55px;
@@ -190,11 +292,6 @@
     transition: opacity 0.35s ease;
 
     pointer-events: none;
-}
-
-.sidebar:hover .menu-item span {
-    opacity: 1;
-    transition-delay: 0.12s;
 }
 
 /* HOVER */
@@ -242,7 +339,6 @@
     justify-content: flex-start;
 
     gap: 10px;
-
     padding: 6px;
 
     box-sizing: border-box;
@@ -254,7 +350,6 @@
     color: inherit;
 
     text-align: left;
-
     cursor: pointer;
 
     transition:
@@ -312,11 +407,6 @@
     pointer-events: none;
 }
 
-.sidebar:hover .perfil-informacoes {
-    opacity: 1;
-    transition-delay: 0.12s;
-}
-
 .perfil-informacoes strong {
     overflow: hidden;
 
@@ -350,11 +440,6 @@
     transition: opacity 0.35s ease;
 }
 
-.sidebar:hover .sidebar-perfil > i {
-    opacity: 0.7;
-    transition-delay: 0.12s;
-}
-
 /* HOVER DO PERFIL */
 
 .sidebar-perfil:hover,
@@ -380,7 +465,6 @@
     flex-direction: column;
 
     gap: 4px;
-
     padding: 8px;
 
     border: 1px solid rgba(128, 128, 128, 0.2);
@@ -412,14 +496,13 @@
     transform: translateY(0) scale(1);
 }
 
-/* CABEÇALHO DO MENU */
+/* CABEÇALHO */
 
 .perfil-menu-cabecalho {
     display: flex;
     flex-direction: column;
 
     gap: 5px;
-
     padding: 12px;
 
     overflow: hidden;
@@ -450,7 +533,6 @@
     gap: 10px;
 
     width: 100%;
-
     padding: 11px 12px;
 
     border: none;
@@ -463,7 +545,6 @@
     font-size: 0.83rem;
 
     text-align: left;
-
     cursor: pointer;
 
     transition: background 0.2s ease;
@@ -489,7 +570,7 @@
 }
 
 /* =========================================
-   CHAVE DE TEMA NO PERFIL
+   CHAVE DE TEMA
 ========================================= */
 
 .sidebar-theme-switch {
@@ -552,7 +633,7 @@
     pointer-events: none;
 }
 
-.sidebar:hover ~ .overlay {
+.sidebar.expandida ~ .overlay {
     opacity: 1;
     visibility: visible;
 }
@@ -600,12 +681,12 @@
    TABLET
 ========================================= */
 
-@media (max-width: 850px) {
+@media (max-width: 850px) and (min-width: 651px) {
     .sidebar {
         width: 75px;
     }
 
-    .sidebar:hover {
+    .sidebar.expandida {
         width: 220px;
     }
 }
@@ -639,9 +720,8 @@
         transition: none;
     }
 
-    .sidebar:hover {
+    .sidebar.expandida {
         width: 100%;
-        box-shadow: none;
     }
 
     .sidebar-brand {
@@ -655,6 +735,14 @@
         width: 42px;
         height: 42px;
         min-width: 42px;
+    }
+
+    .sidebar-nav-viewport {
+        flex: 0 0 auto;
+        width: auto;
+        min-height: auto;
+
+        overflow: visible;
     }
 
     .sidebar-nav {
@@ -677,6 +765,10 @@
         gap: 5px;
     }
 
+    .sidebar-divider {
+        display: none;
+    }
+
     .menu-item {
         width: 42px;
         min-width: 42px;
@@ -687,7 +779,7 @@
         justify-content: center;
     }
 
-    .sidebar:hover .menu-item {
+    .sidebar.expandida .menu-item {
         width: 42px;
     }
 
@@ -742,13 +834,6 @@
         min-width: 42px;
         height: 42px;
         margin: 0;
-    }
-
-    .sidebar:hover .theme-button {
-        width: 42px;
-        min-width: 42px;
-        padding: 0;
-        justify-content: center;
     }
 }
 

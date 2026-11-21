@@ -2,13 +2,16 @@
  * docs/swaggerAuditoria.ts
  *
  * Trecho OpenAPI 3.0 da US#2.10: histórico de atividades de uma O.S. e logs globais de auditoria.
- * É juntado aos demais trechos em `docs/swagger.ts`.
+ * É juntado à especificação da API em `docs/openapi.ts`.
  *
  * ALTERAÇÕES (05/11/2026):
  *  - 2.10-BE03: criado.
  *
  * ALTERAÇÕES (06/11/2026):
  *  - GET /auditoria: parâmetros `data_inicio` e `data_fim`.
+ *
+ * ALTERAÇÕES (20/11/2026):
+ *  - Passa a ser juntado ao `docs/openapi.ts` (padrão do time); o `docs/swagger.ts` foi removido.
  */
 
 const TIPOS_EVENTO = [
@@ -131,7 +134,7 @@ export const pathsAuditoria = {
             description:
                 'Somente os registros da O.S. informada, do mais recente ao mais antigo, com desempate pelo id ' +
                 '(decrescente). O.S. sem atividades devolve `dados: []` e paginação zerada.',
-            security: [{ bearerAuth: [] }],
+            security: [{ BearerAuth: [] }],
             parameters: [
                 { name: 'id', in: 'path', required: true, schema: { type: 'integer', minimum: 1 } },
                 ...parametrosPaginacao,
@@ -166,7 +169,7 @@ export const pathsAuditoria = {
                 'Lista paginada, do mais recente ao mais antigo, com desempate pelo id (decrescente). ' +
                 'Os indicadores são calculados sobre o mesmo filtro (busca, tipo e período), sem a paginação. ' +
                 'Somente leitura: não existem rotas de alteração ou exclusão de auditoria.',
-            security: [{ bearerAuth: [] }],
+            security: [{ BearerAuth: [] }],
             parameters: [
                 {
                     name: 'busca',

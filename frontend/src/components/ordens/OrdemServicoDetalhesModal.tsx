@@ -16,6 +16,11 @@ import type {
 } from "../../types/api";
 
 import { formatarDataTrabalho, hojeNoBrasil, validarDataTrabalho, validarDuracao } from "../../utils/horasUtils";
+import { getStoredUser } from "../../services/auth";
+import { ordemServicoService } from "../../services/ordemServico";
+import { ApiError } from "../../services/api";
+import { publishToast } from "../../services/feedbackEvents";
+import { garantirPdfValido, salvarArquivo } from "../../utils/download";
 
 import {
     CRITICIDADE_LABELS,
@@ -196,6 +201,41 @@ function OrdemServicoDetalhesModal({
     onRegistrarHoras,
 }: OrdemServicoDetalhesModalProps) {
     const [parecerTemporario, setParecerTemporario] = useState("");
+    const [exportandoPdf, setExportandoPdf] = useState(false);
+    const exportacaoPdfEmAndamento = useRef(false);
+    const podeExportarPdf = ["gestor", "analista"].includes(getStoredUser()?.tipo ?? "");
+
+    async function exportarPdf() {
+        if (!ordem || !podeExportarPdf || exportacaoPdfEmAndamento.current) return;
+
+        exportacaoPdfEmAndamento.current = true;
+        setExportandoPdf(true);
+
+        try {
+            const arquivo = await ordemServicoService.exportarPdf(ordem.id);
+            // Mesmo fluxo de download do relatório de cliente (US#2.9): utils/download.ts
+            await garantirPdfValido(arquivo);
+            salvarArquivo(arquivo, `OS-${ordem.id}.pdf`);
+            publishToast({
+                title: "PDF da O.S. preparado",
+                message: `O arquivo OS-${ordem.id}.pdf foi enviado para download.`,
+                variant: "success",
+            });
+        } catch (error) {
+            if (error instanceof ApiError) return;
+            publishToast({
+                title: "Não foi possível exportar a O.S.",
+                message: error instanceof Error
+                    ? error.message
+                    : "Ocorreu uma falha ao gerar ou baixar o PDF. Tente novamente.",
+                variant: "error",
+                duration: 8000,
+            });
+        } finally {
+            exportacaoPdfEmAndamento.current = false;
+            setExportandoPdf(false);
+        }
+    }
     const [edicaoDiretaAberta, setEdicaoDiretaAberta] = useState(false);
     const [confirmacaoSaidaAberta, setConfirmacaoSaidaAberta] = useState(false);
     const [justificativaEdicao, setJustificativaEdicao] = useState("");
@@ -685,6 +725,18 @@ function OrdemServicoDetalhesModal({
                                 </div>
                                 <div className="os-detail-top-actions">
                                     <button type="button" className="os-detail-btn os-detail-btn--secondary" onClick={onFechar}><i className="fa-solid fa-arrow-left" aria-hidden="true" /> Voltar às ordens</button>
+                                    {podeExportarPdf && (
+                                        <button
+                                            type="button"
+                                            className="os-detail-btn os-detail-btn--secondary"
+                                            onClick={() => void exportarPdf()}
+                                            disabled={exportandoPdf}
+                                            aria-busy={exportandoPdf}
+                                        >
+                                            <i className="fa-solid fa-file-pdf" aria-hidden="true" />
+                                            {exportandoPdf ? "Gerando PDF…" : "Exportar PDF"}
+                                        </button>
+                                    )}
                                     {podeGerenciar && onAlterarAtivo && (
                                         <button
                                             type="button"
@@ -756,76 +808,305 @@ function OrdemServicoDetalhesModal({
                                     <span><i className="fa-regular fa-calendar" aria-hidden="true" /> Criada em {formatarData(ordem.data_criacao)}</span>
                                     <span><i className="fa-solid fa-user" aria-hidden="true" /> Aberta por {solicitanteAtual?.nome || "Mariana Costa"}</span>
                                 </div>
-                            </section>
+                            </section >
 
-                            {statusPainelAberto && <section className="os-detail-inline-panel">
-                                <div><h2>Alterar status</h2><p>A atualização será enviada à API do SGOS.</p></div>
-                                <label className="os-detail-field"><span>Novo status</span><select value={statusSelecionado} onChange={(event) => setStatusSelecionado(event.target.value as StatusOrdemServico)} disabled={!podeAlterarStatus || alterandoStatusId !== null}>{statusEditaveis.map((status) => <option key={status} value={status}>{STATUS_LABELS[status]}</option>)}</select></label>
-                                {statusSelecionado === "concluido" && <label className="os-detail-field os-detail-field--wide"><span>Parecer técnico obrigatório</span><textarea rows={3} value={parecerTemporario} onChange={(event) => setParecerTemporario(event.target.value)} placeholder="Descreva o trabalho realizado e os testes concluídos…" /></label>}
-                                <div className="os-detail-inline-actions"><button type="button" className="os-detail-btn os-detail-btn--secondary" onClick={() => setStatusPainelAberto(false)}>Cancelar</button><button type="button" className="os-detail-btn os-detail-btn--primary" onClick={() => { onAlterarStatus(statusSelecionado, statusSelecionado === "concluido" ? parecerTemporario : undefined); setStatusPainelAberto(false); }} disabled={!podeAlterarStatus || alterandoStatusId !== null || statusSelecionado === ordem.status || (statusSelecionado === "concluido" && !parecerTemporario.trim())}>{alterandoStatusId === ordem.id ? "Atualizando…" : "Salvar status"}</button></div>
-                            </section>}
+        { edicaoDiretaAberta && (
+            <section className="os-detail-inline-panel">
+                <div>
+                    <h2>Editar ordem de serviço</h2>
+                    <p>
+                        Altere os dados da ordem. A justificativa será registrada no histórico.
+                    </p>
+                </div>
 
-                            {prazoPainelAberto && <section className="os-detail-inline-panel">
-                                <div><h2>Alterar prazo</h2><p>O motivo será solicitado antes de enviar a alteração.</p></div>
-                                <label className="os-detail-field"><span>Novo prazo final</span><input type="date" value={prazoSelecionado} onChange={(event) => setPrazoSelecionado(event.target.value)} disabled={alterandoPrazo} /></label>
-                                <div className="os-detail-inline-actions"><button type="button" className="os-detail-btn os-detail-btn--secondary" onClick={() => setPrazoPainelAberto(false)}>Cancelar</button><button type="button" className="os-detail-btn os-detail-btn--primary" onClick={() => { setPrazoPainelAberto(false); setJustificativaAberta(true); }} disabled={!podeAlterarPrazo || alterandoPrazo || !prazoSelecionado || prazoSelecionado === prazoAtual}>Continuar</button></div>
-                            </section>}
+                <label className="os-detail-field">
+                    <span>Título</span>
+                    <input
+                        type="text"
+                        value={dadosEdicao.titulo ?? ""}
+                        onChange={(event) =>
+                            setDadosEdicao((atual) => ({
+                                ...atual,
+                                titulo: event.target.value,
+                            }))
+                        }
+                    />
+                </label>
 
-                            {responsavelPainelAberto && <section className="os-detail-inline-panel">
-                                <div><h2>Alterar responsável</h2><p>Somente funcionários elegíveis são listados.</p></div>
-                                <label className="os-detail-field os-detail-field--wide"><span>Responsável técnico</span><Autocomplete id="ordem-responsavel-novo" options={responsavelOptions} value={responsavelNovoId} onChange={(value) => setResponsavelNovoId(value === null ? null : Number(value))} placeholder="Pesquisar funcionário ativo" clearable disabled={atribuindoResponsavel} emptyMessage="Nenhum funcionário ativo encontrado." /></label>
-                                <div className="os-detail-inline-actions"><button type="button" className="os-detail-btn os-detail-btn--secondary" onClick={() => setResponsavelPainelAberto(false)}>Cancelar</button><button type="button" className="os-detail-btn os-detail-btn--primary" onClick={() => { if (responsavelNovoId !== null) onAtribuirResponsavel(responsavelNovoId); setResponsavelPainelAberto(false); }} disabled={atribuindoResponsavel || responsavelNovoId === null || responsavelNovoId === ordem.responsavel_id}>{atribuindoResponsavel ? "Salvando…" : "Salvar responsável"}</button></div>
-                            </section>}
+                <label className="os-detail-field">
+                    <span>Tipo</span>
+                    <select
+                        value={dadosEdicao.tipo ?? ""}
+                        onChange={(event) =>
+                            setDadosEdicao((atual) => ({
+                                ...atual,
+                                tipo: event.target.value as OrdemServicoInput["tipo"],
+                            }))
+                        }
+                    >
+                        <option value="instalacao">Instalação</option>
+                        <option value="manutencao">Manutenção</option>
+                    </select>
+                </label>
 
-                            <section className="os-detail-facts" aria-label="Resumo da ordem">
-                                <article><span>Cliente</span><strong>{cliente?.nome || (ordem.cliente_id ? `Cliente #${ordem.cliente_id}` : "Não associado")}</strong><small>{cliente?.razao_social || "contato@altave.com.br"}</small></article>
-                                <article><span>Responsável técnico</span><strong>{responsavelAtual?.nome || (ordem.responsavel_id ? `Funcionário #${ordem.responsavel_id}` : "André Lima")}</strong><small>{responsavelAtual ? `${responsavelAtual.tipo === "tecnico" ? "Operações" : responsavelAtual.tipo} · ${responsavelAtual.ativo ? "Ativo" : "Inativo"}` : "Operações · Técnico sênior (demo)"}</small></article>
-                                <article><span>Projeto</span><strong>{projetoAtual?.nome || (ordem.projeto_id ? `Projeto #${ordem.projeto_id}` : "Infraestrutura de rede")}</strong><small>{ordem.projeto_id ? `PRJ-${String(ordem.projeto_id).padStart(4, "0")}-008` : "Informação de demonstração"}</small></article>
-                                <article className="os-detail-time-fact"><span>Tempo registrado</span><strong>{Math.floor(horasRegistradasDemo)}h {Math.round((horasRegistradasDemo % 1) * 60)}min <small>/ {horasEstimadas}h estimadas</small></strong><div className="os-detail-progress"><span style={{ width: `${progressoHorasDemo}%` }} /></div></article>
-                            </section>
+                <label className="os-detail-field os-detail-field--wide">
+                    <span>Descrição</span>
+                    <textarea
+                        rows={4}
+                        value={dadosEdicao.descricao ?? ""}
+                        onChange={(event) =>
+                            setDadosEdicao((atual) => ({
+                                ...atual,
+                                descricao: event.target.value,
+                            }))
+                        }
+                    />
+                </label>
 
-                            {lancarHorasAberto && <div className="os-detail-demo-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setLancarHorasAberto(false); }}><section className="os-detail-demo-dialog" role="dialog" aria-modal="true" aria-labelledby="os-detail-hours-title"><header><div><span className="os-detail-eyebrow">REGISTRO DE EXEMPLO</span><h2 id="os-detail-hours-title">Lançar horas</h2></div><button type="button" aria-label="Fechar" onClick={() => setLancarHorasAberto(false)}>×</button></header><p>O backend do SGOS não possui lançamento de horas. Este registro é demonstrativo e ficará somente nesta tela.</p><label className="os-detail-field"><span>Horas trabalhadas</span><input type="number" min="0.25" max="24" step="0.25" value={horasDigitadas} onChange={(event) => setHorasDigitadas(event.target.value)} /></label><label className="os-detail-field"><span>Descrição</span><textarea rows={3} value={descricaoHoras} onChange={(event) => setDescricaoHoras(event.target.value)} placeholder="O que foi realizado?" /></label><footer><button type="button" className="os-detail-btn os-detail-btn--secondary" onClick={() => setLancarHorasAberto(false)}>Cancelar</button><button type="button" className="os-detail-btn os-detail-btn--primary" onClick={() => { const quantidade = Number(horasDigitadas); if (!Number.isFinite(quantidade) || quantidade <= 0 || quantidade > 24) return; setHorasDemo((atuais) => [...atuais, { id: Date.now(), horas: quantidade, descricao: descricaoHoras.trim() || "Atividade registrada (demo)", quando: "Agora", autor: "Você" }]); setAbaAcompanhamento("horas"); setLancarHorasAberto(false); setDescricaoHoras(""); }} disabled={!Number.isFinite(Number(horasDigitadas)) || Number(horasDigitadas) <= 0 || Number(horasDigitadas) > 24}>Registrar (local)</button></footer></section></div>}
+                <label className="os-detail-field">
+                    <span>Cliente</span>
+                    <select
+                        value={dadosEdicao.cliente_id ?? ""}
+                        onChange={(event) =>
+                            setDadosEdicao((atual) => ({
+                                ...atual,
+                                cliente_id: event.target.value
+                                    ? Number(event.target.value)
+                                    : undefined,
+                                projeto_id: null,
+                            }))
+                        }
+                    >
+                        <option value="">Selecione um cliente</option>
+                        {clientes.map((clienteItem) => (
+                            <option key={clienteItem.id} value={clienteItem.id}>
+                                {clienteItem.nome}
+                            </option>
+                        ))}
+                    </select>
+                </label>
 
-                            <div className="os-detail-content-grid">
-                                <div className="os-detail-primary-column">
-                                    <section className="os-detail-card os-detail-activity-card">
-                                        <header className="os-detail-card-heading"><div><h2>Acompanhamento da ordem</h2><p>Histórico de atividades e atualizações</p></div><button type="button" className="os-detail-btn os-detail-btn--secondary" onClick={() => { comentarioRef.current?.focus(); document.querySelector(".os-detail-comments-card")?.scrollIntoView({ block: "nearest", behavior: "smooth" }); }}><i className="fa-solid fa-plus" aria-hidden="true" /> Adicionar atualização</button></header>
-                                        <div className="os-detail-tabs" role="tablist" aria-label="Atividades da ordem">
-                                            <button type="button" role="tab" aria-selected={abaAcompanhamento === "historico"} className={abaAcompanhamento === "historico" ? "ativo" : ""} onClick={() => setAbaAcompanhamento("historico")}>Histórico <span>API</span></button>
-                                            <button type="button" role="tab" aria-selected={abaAcompanhamento === "horas"} className={abaAcompanhamento === "horas" ? "ativo" : ""} onClick={() => setAbaAcompanhamento("horas")}>Horas registradas <span>{horasDemo.length}</span></button>
-                                            <button type="button" role="tab" aria-selected={abaAcompanhamento === "anexos"} className={abaAcompanhamento === "anexos" ? "ativo" : ""} onClick={() => setAbaAcompanhamento("anexos")}>Anexos <span>{anexos.length}</span></button>
-                                        </div>
-                                        {abaAcompanhamento === "historico" && <div className="os-detail-history-content"><OrdemServicoHistorico osId={ordem.id} /></div>}
-                                        {abaAcompanhamento === "horas" && <div className="os-detail-timeline-list">{horasDemo.slice().reverse().map((item) => <article key={item.id} className="os-detail-timeline-item"><span className="os-detail-timeline-icon os-detail-timeline-icon--violet"><i className="fa-regular fa-clock" aria-hidden="true" /></span><div><strong>{item.horas.toLocaleString("pt-BR")}h · {item.descricao}</strong><p>Registro demonstrativo local · {item.quando} · {item.autor}</p></div></article>)}<p className="os-detail-demo-note">Horas de demonstração; ainda não são persistidas no SGOS.</p></div>}
-                                        {abaAcompanhamento === "anexos" && <div className="os-detail-attachments-content">{carregandoAnexos ? <p role="status">Carregando anexos…</p> : erroAnexos ? <p role="alert">{erroAnexos}</p> : anexos.length === 0 ? <div className="os-detail-empty"><i className="fa-regular fa-file-lines" aria-hidden="true" /><strong>Nenhum anexo registrado</strong><span>Adicione arquivos para consultar nesta seção.</span></div> : <ul>{anexos.map((anexo) => <li key={anexo.id}><i className="fa-regular fa-file-lines" aria-hidden="true" /><span><strong>{anexo.nome}</strong><small>{anexo.autor || "Usuário"}{anexo.data_envio ? ` · ${formatarData(anexo.data_envio)}` : ""}</small></span><button type="button" className="os-detail-btn os-detail-btn--secondary" onClick={() => void baixarAnexo(anexo)}>Baixar</button></li>)}</ul>}<button type="button" className="os-detail-btn os-detail-btn--primary" onClick={() => setAnexoAberto(true)}><i className="fa-solid fa-paperclip" aria-hidden="true" /> Anexar arquivo</button></div>}
-                                    </section>
+                <label className="os-detail-field">
+                    <span>Departamento</span>
+                    <select
+                        value={dadosEdicao.departamento_id ?? ""}
+                        onChange={(event) =>
+                            setDadosEdicao((atual) => ({
+                                ...atual,
+                                departamento_id: Number(event.target.value),
+                            }))
+                        }
+                    >
+                        <option value="">Selecione um departamento</option>
+                        {departamentos.map((departamentoItem) => (
+                            <option
+                                key={departamentoItem.id}
+                                value={departamentoItem.id}
+                            >
+                                {departamentoItem.nome}
+                            </option>
+                        ))}
+                    </select>
+                </label>
 
-                                    <section className="os-detail-card os-detail-technical-opinion-card">
-                                        <header className="os-detail-card-heading">
-                                            <div><h2>Parecer técnico</h2><p>Registro técnico da execução e conclusão da ordem</p></div>
-                                            <span className={`os-detail-count ${ordem.parecer_tecnico?.trim() ? "os-detail-count--success" : ""}`}>{ordem.parecer_tecnico?.trim() ? "Registrado" : "Pendente"}</span>
-                                        </header>
-                                        {ordem.parecer_tecnico?.trim() ? (
-                                            <div className="os-detail-opinion-content">
-                                                <span className="os-detail-opinion-icon"><i className="fa-solid fa-file-circle-check" aria-hidden="true" /></span>
-                                                <div><strong>Parecer registrado no SGOS</strong><p>{ordem.parecer_tecnico}</p></div>
-                                            </div>
-                                        ) : (
-                                            <div className="os-detail-opinion-empty">
-                                                <span className="os-detail-opinion-icon"><i className="fa-regular fa-file-lines" aria-hidden="true" /></span>
-                                                <div><strong>Nenhum parecer técnico registrado</strong><p>O parecer será salvo no SGOS quando a ordem for concluída.</p></div>
-                                            </div>
-                                        )}
-                                        {!ordem.parecer_tecnico?.trim() && podeConcluir && ordem.status !== "concluido" && (
-                                            <div className="os-detail-opinion-editor">
-                                                <label className="os-detail-field" htmlFor="os-detail-opinion-draft"><span>Preparar parecer técnico</span>
-                                                    <textarea id="os-detail-opinion-draft" rows={4} value={parecerTemporario} onChange={(event) => setParecerTemporario(event.target.value)} placeholder="Descreva o trabalho realizado, os testes executados e o resultado…" />
-                                                </label>
-                                                <button type="button" className="os-detail-btn os-detail-btn--primary" disabled={!parecerTemporario.trim() || alterandoStatusId !== null} onClick={() => { setStatusSelecionado("concluido"); setStatusPainelAberto(true); document.querySelector(".gestec-os-detail-main")?.scrollIntoView({ behavior: "smooth", block: "start" }); }}><i className="fa-solid fa-clipboard-check" aria-hidden="true" /> Revisar conclusão e salvar</button>
-                                                <small className="os-detail-demo-note">O parecer só será persistido após confirmar a conclusão na etapa seguinte.</small>
-                                            </div>
-                                        )}
-                                    </section>
+                <label className="os-detail-field">
+                    <span>Projeto</span>
+                    <select
+                        value={dadosEdicao.projeto_id ?? ""}
+                        onChange={(event) =>
+                            setDadosEdicao((atual) => ({
+                                ...atual,
+                                projeto_id: event.target.value
+                                    ? Number(event.target.value)
+                                    : null,
+                            }))
+                        }
+                    >
+                        <option value="">Nenhum projeto</option>
+                        {projetos
+                            .filter((projeto) =>
+                                !dadosEdicao.cliente_id ||
+                                projeto.cliente_id === dadosEdicao.cliente_id
+                            )
+                            .map((projeto) => (
+                                <option key={projeto.id} value={projeto.id}>
+                                    {projeto.nome}
+                                </option>
+                            ))}
+                    </select>
+                </label>
+
+                <label className="os-detail-field">
+                    <span>Responsável</span>
+                    <Autocomplete
+                        id="ordem-responsavel-edicao-direta"
+                        options={responsavelOptions}
+                        value={responsavelNovoId ?? ordem.responsavel_id}
+                        onChange={(value) =>
+                            setResponsavelNovoId(
+                                value === null || value === "" ? null : Number(value),
+                            )
+                        }
+                        placeholder="Selecione um responsável"
+                    />
+                </label>
+
+                <label className="os-detail-field">
+                    <span>Prazo final</span>
+                    <input
+                        type="date"
+                        value={prazoSelecionado}
+                        onChange={(event) =>
+                            setPrazoSelecionado(event.target.value)
+                        }
+                    />
+                </label>
+
+                <div className="os-detail-edit-layout">
+                    <label className="os-detail-field">
+                        <span>Motivo da atualização (obrigatório)</span>
+                        <textarea
+                            rows={3}
+                            value={justificativaEdicao}
+                            onChange={(event) =>
+                                setJustificativaEdicao(event.target.value)
+                            }
+                            placeholder="Descreva o que foi alterado e o motivo."
+                        />
+                    </label>
+
+                    <div className="os-detail-edit-side">
+                        <label className="os-detail-field">
+                            <span>Criticidade</span>
+                            <select
+                                value={dadosEdicao.criticidade ?? ""}
+                                onChange={(event) =>
+                                    setDadosEdicao((atual) => ({
+                                        ...atual,
+                                        criticidade: event.target.value || null,
+                                    }))
+                                }
+                            >
+                                <option value="">Não definida</option>
+                                {Object.entries(CRITICIDADE_LABELS).map(
+                                    ([valor, rotulo]) => (
+                                        <option key={valor} value={valor}>
+                                            {rotulo}
+                                        </option>
+                                    ),
+                                )}
+                            </select>
+                        </label>
+
+                        <div className="os-detail-inline-actions">
+                            <button
+                                type="button"
+                                className="os-detail-btn os-detail-btn--secondary"
+                                onClick={confirmarSaidaEdicao}
+                                disabled={salvandoEdicaoDireta}
+                            >
+                                Cancelar
+                            </button>
+
+                            <button
+                                type="button"
+                                className="os-detail-btn os-detail-btn--primary"
+                                onClick={salvarEdicaoDireta}
+                                disabled={
+                                    salvandoEdicaoDireta ||
+                                    !justificativaEdicao.trim()
+                                }
+                            >
+                                {salvandoEdicaoDireta
+                                    ? "Salvando..."
+                                    : "Salvar alterações"}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        )
+}
+
+{
+    statusPainelAberto && ordem.ativo && <section className="os-detail-inline-panel">
+        <div><h2>Alterar status</h2><p>A atualização será enviada à API do SGOS.</p></div>
+                                <label className="os-detail-field">
+                                    <span>Novo status</span>
+                                    <select
+                                        value={statusSelecionado}
+                                        onChange={(event) => setStatusSelecionado(event.target.value as StatusOrdemServico)}
+                                        disabled={!ordem.ativo || !podeAlterarStatus || alterandoStatusId !== null}
+                                    >
+                                        {statusEditaveis.map((status) => (
+                                            <option key={status} value={status}>
+                                                {STATUS_LABELS[status]}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </label>
+
+                                {podeRegistrarHoras && (
+                                    <CamposHoras
+                                        idBase="os-status-horas"
+                                        duracao={duracaoStatus}
+                                        dataTrabalho={dataStatus}
+                                        onDuracao={setDuracaoStatus}
+                                        onDataTrabalho={setDataStatus}
+                                        desabilitado={!podeAlterarStatus || alterandoStatusId !== null}
+                                        opcional
+                                    />
+                                )}
+
+                                {erroHorasStatus && (
+                                    <p role="alert" className="os-detail-form-error os-detail-field--wide">
+                                        {erroHorasStatus}
+                                    </p>
+                                )}
+
+                                {statusSelecionado === "concluido" && (
+                                    <label className="os-detail-field os-detail-field--wide">
+                                        <span>Parecer técnico obrigatório</span>
+                                        <textarea
+                                            rows={3}
+                                            value={parecerTemporario}
+                                            onChange={(event) => setParecerTemporario(event.target.value)}
+                                            placeholder="Descreva o trabalho realizado e os testes concluídos…"
+                                        />
+                                    </label>
+                                )}
+
+                                <div className="os-detail-inline-actions">
+                                    <button
+                                        type="button"
+                                        className="os-detail-btn os-detail-btn--secondary"
+                                        onClick={() => setStatusPainelAberto(false)}
+                                    >
+                                        Cancelar
+                                    </button>
+
+                                    <button
+                                        type="button"
+                                        className="os-detail-btn os-detail-btn--primary"
+                                        onClick={() => {
+                                            onAlterarStatus(
+                                                statusSelecionado,
+                                                statusSelecionado === "concluido" ? parecerTemporario : undefined,
+                                                horasDoStatus,
+                                            );
+                                            setStatusPainelAberto(false);
+                                        }}
+                                        disabled={
+                                            !ordem.ativo ||
+                                            !podeAlterarStatus ||
+                                            alterandoStatusId !== null ||
+                                            statusSelecionado === ordem.status ||
+                                            erroHorasStatus !== null ||
+                                            (statusSelecionado === "concluido" && !parecerTemporario.trim())
+                                        }
+                                    >
+                                        {alterandoStatusId === ordem.id ? "Atualizando…" : "Salvar status"}
+                                    </button>
                                 </div>
                             </section >}
 
@@ -881,7 +1162,7 @@ function OrdemServicoDetalhesModal({
                 <button type="button" role="tab" aria-selected={abaAcompanhamento === "horas"} className={abaAcompanhamento === "horas" ? "ativo" : ""} onClick={() => setAbaAcompanhamento("horas")}>Horas registradas <span>{lancamentosHoras.length}</span></button>
                 <button type="button" role="tab" aria-selected={abaAcompanhamento === "anexos"} className={abaAcompanhamento === "anexos" ? "ativo" : ""} onClick={() => setAbaAcompanhamento("anexos")}>Anexos <span>{anexos.length}</span></button>
             </div>
-            {abaAcompanhamento === "historico" && <div className="os-detail-history-content"><OrdemServicoHistorico osId={ordem.id} usarFallbackDemonstrativo /></div>}
+            {abaAcompanhamento === "historico" && <div className="os-detail-history-content"><OrdemServicoHistorico osId={ordem.id} /></div>}
             {abaAcompanhamento === "horas" && (
                 <div className="os-detail-timeline-list">
                     {carregandoHoras ? (
@@ -1300,6 +1581,18 @@ function OrdemServicoDetalhesModal({
         >
             Fechar
         </button>
+
+        {ordem && podeExportarPdf && (
+            <button
+                type="button"
+                className="ordens-btn-secondary"
+                onClick={() => void exportarPdf()}
+                disabled={exportandoPdf}
+                aria-busy={exportandoPdf}
+            >
+                {exportandoPdf ? "Gerando PDF…" : "Exportar PDF"}
+            </button>
+        )}
 
         {ordem && (
             <button

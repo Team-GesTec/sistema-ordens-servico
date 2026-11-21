@@ -3,14 +3,11 @@
  *
  * Acesso a dados de OS: ÚNICO lugar que fala com `prisma.ordens_servico`.
  * Leituras passam pelo cache; escritas vão ao banco e, confirmadas, atualizam o cache.
-<<<<<<< Updated upstream
  * Criação e atribuição registram auditoria na mesma transação da O.S.
-=======
  *
  * ALTERAÇÕES (05/11/2026):
  *  - 2.10-BE01: a auditoria da atribuição de responsável e do SLA manual passa a ser gravada
  *    pelo repositoryAuditoria (com `tipo_evento` e `descricao`), ainda dentro da mesma transação.
->>>>>>> Stashed changes
  */
 
 
@@ -50,6 +47,24 @@ export class RepositoryOrdemServico {
     /** Lista todas as OS (cache → banco), mais recentes primeiro. */
     async listar(): Promise<OrdemServico[]> {
         return ordemServicoCache.obterTodos(() => prisma.ordens_servico.findMany({ orderBy: { data_criacao: 'desc' } }));
+    }
+
+    /** Arquiva as O.S. concluídas com data_fim até o limite. */
+    async arquivarConcluidas(limite: Date, somenteIds?: number[]): Promise<number> {
+        const { count } = await prisma.ordens_servico.updateMany({
+            where: {
+                status: 'concluido',
+                arquivada_em: null,
+                data_fim: { lte: limite },
+                ...(somenteIds ? { id: { in: somenteIds } } : {}),
+            },
+            data: { arquivada_em: new Date() },
+        });
+
+        if (count > 0) {
+            ordemServicoCache.invalidarTudo();
+        }
+        return count;
     }
 
     /** Lista ordens de serviço vinculadas a um departamento. */

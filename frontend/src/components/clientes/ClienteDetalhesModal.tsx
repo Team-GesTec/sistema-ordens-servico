@@ -11,6 +11,11 @@ interface ClienteDetalhesModalProps {
     salvando: boolean;
     erro: string | null;
     onSalvar: (clienteId: number, dados: DadosEdicao) => Promise<Cliente | null>;
+    /** Exportação do relatório em PDF (US#2.9) — exibida somente para Gestor e Analista. */
+    podeExportarPdf: boolean;
+    exportandoPdf: boolean;
+    erroExportacaoPdf: string | null;
+    onExportarPdf: (cliente: Cliente) => void;
 }
 
 export default function ClienteDetalhesModal({
@@ -20,6 +25,10 @@ export default function ClienteDetalhesModal({
     salvando,
     erro,
     onSalvar,
+    podeExportarPdf,
+    exportandoPdf,
+    erroExportacaoPdf,
+    onExportarPdf,
 }: ClienteDetalhesModalProps) {
     const [editando, setEditando] = useState(false);
     const [rascunho, setRascunho] = useState<DadosEdicao>({
@@ -143,6 +152,19 @@ export default function ClienteDetalhesModal({
                                         Fechar
                                     </button>
 
+                                    {podeExportarPdf && (
+                                        <button
+                                            type="button"
+                                            className="projeto-btn-secondary"
+                                            onClick={() => onExportarPdf(clienteAtual)}
+                                            disabled={exportandoPdf}
+                                            aria-busy={exportandoPdf}
+                                        >
+                                            <i className="fa-solid fa-file-pdf" aria-hidden="true" />{" "}
+                                            {exportandoPdf ? "Gerando PDF..." : "Exportar PDF"}
+                                        </button>
+                                    )}
+
                                     {podeGerenciar && clienteAtual.ativo && (
                                         <button
                                             type="button"
@@ -229,6 +251,15 @@ export default function ClienteDetalhesModal({
                                 role="alert"
                             >
                                 {erro}
+                            </div>
+                        )}
+
+                        {erroExportacaoPdf && !editando && (
+                            <div
+                                className="projetos-feedback projetos-feedback--error"
+                                role="alert"
+                            >
+                                {erroExportacaoPdf}
                             </div>
                         )}
                     </section>

@@ -1683,6 +1683,128 @@
 }
 
 /* AJ-06/AJ-07 — visualizações acessíveis, Kanban e movimentação validada no servidor. */
+
+/* =========================================
+   FILTRO DO KANBAN
+========================================= */
+
+.ordens-kanban-filters {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+
+    width: 100%;
+    margin-bottom: 22px;
+    padding: 18px 22px;
+
+    background: var(--branco, #f9fbff);
+    border: 1px solid rgba(21, 137, 202, 0.16);
+    border-radius: 12px;
+
+    box-shadow: 0 3px 12px rgba(9, 12, 92, 0.04);
+}
+
+.ordens-kanban-filter-group {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+
+    flex: 1;
+    max-width: 600px;
+}
+
+.ordens-kanban-filter-group label {
+    color: var(--azul-escuro, #090c5c);
+    font-size: 0.9rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.ordens-kanban-filter-group select {
+    flex: 1;
+    min-width: 180px;
+    height: 42px;
+    padding: 0 38px 0 14px;
+
+    color: var(--preto, #1a1a1a);
+    background-color: #fff;
+
+    border: 1px solid #dce5ed;
+    border-radius: 8px;
+    outline: none;
+
+    font-family: inherit;
+    font-size: 0.9rem;
+    cursor: pointer;
+
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.ordens-kanban-filter-group select:hover {
+    border-color: var(--azul-claro, #1589ca);
+}
+
+.ordens-kanban-filter-group select:focus {
+    border-color: var(--azul-claro, #1589ca);
+    box-shadow: 0 0 0 3px rgba(21, 137, 202, 0.12);
+}
+
+.ordens-kanban-filter-count {
+    padding: 7px 12px;
+
+    color: var(--azul-escuro, #090c5c);
+    background: rgba(21, 137, 202, 0.09);
+
+    border: 1px solid rgba(21, 137, 202, 0.15);
+    border-radius: 20px;
+
+    font-size: 0.8rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+/* =========================================
+   MENSAGENS DO FILTRO
+========================================= */
+
+.ordens-kanban-select-project {
+    min-height: 220px;
+}
+
+.ordens-kanban-select-project strong {
+    color: var(--azul-escuro, #090c5c);
+}
+
+/* =========================================
+   RESPONSIVIDADE
+========================================= */
+
+@media (max-width: 650px) {
+    .ordens-kanban-filters {
+        align-items: stretch;
+        flex-direction: column;
+        gap: 12px;
+        padding: 15px;
+    }
+
+    .ordens-kanban-filter-group {
+        align-items: stretch;
+        flex-direction: column;
+        gap: 8px;
+        max-width: none;
+    }
+
+    .ordens-kanban-filter-group select {
+        width: 100%;
+    }
+
+    .ordens-kanban-filter-count {
+        align-self: flex-start;
+    }
+}
+
+
 .ordens-toolbar-filters {
     display: flex;
     align-items: flex-end;
@@ -1894,6 +2016,19 @@
     color: #71889a;
     font-size: 11px;
     text-align: center;
+}
+
+/* US#2.11 — alternância Concluídas/Arquivadas no cabeçalho da última coluna do Kanban. */
+.gestec-app .ordens-kanban-column-header .ordens-view-switch {
+    flex: 1;
+    min-width: 0;
+}
+
+.gestec-app .ordens-kanban-column-header .ordens-view-switch button {
+    flex: 1;
+    min-width: 0;
+    padding: 5px 6px;
+    font-size: 11px;
 }
 
 .ordem-card-actions--kanban {

@@ -1,13 +1,9 @@
 /**
  * Rotas de O.S., montadas em /ordens-servico no app.ts
-<<<<<<< Updated upstream
  * Gestor, técnico e analista abrem O.S.; atribuição e demais escritas exigem perfil específico.
-=======
- * Gestor e técnico podem abrir O.S. conforme Ata de alinhamento de 16/09
  *
  * ALTERAÇÕES (05/11/2026):
  *  - 2.10-BE02: o histórico de atividades da O.S. passa a ser exclusivo do gestor (403 para os demais).
->>>>>>> Stashed changes
  */
 
 import { Router, type Request, type Response } from 'express';
@@ -35,6 +31,11 @@ router.get('/:id/historico', somenteGestor, (req: Request, res: Response) =>
 // GET ALL INATIVAS
 router.get('/inativas', somenteGestor, (req: Request, res: Response) =>
     controllerOrdemServico.getInativas(req, res),
+);
+
+// GET ALL ARQUIVADAS
+router.get('/arquivadas', gestorOuTecnico, (req: Request, res: Response) =>
+    controllerOrdemServico.getArquivadas(req, res),
 );
 
 // GET BY ID — qualquer usuário autenticado

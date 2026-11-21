@@ -16,8 +16,14 @@ import { serviceLancamentoHoras } from '../services/serviceLancamentoHoras';
 
 export class ControllerOrdemServico {
     /** GET /ordens-servico — lista todas as O.S. cadastradas. */
-    public async getAll(_req: Request, resp: Response): Promise<Response> {
-        return resp.status(200).json(await serviceOrdemServico.listar());
+    public async getAll(req: Request, resp: Response): Promise<Response> {
+        const incluirArquivadas = req.query.incluir_arquivadas === 'true';
+        return resp.status(200).json(await serviceOrdemServico.listar({ incluirArquivadas }));
+    }
+
+    /** GET /ordens-servico/arquivadas */
+    public async getArquivadas(_req: Request, resp: Response): Promise<Response> {
+        return resp.status(200).json(await serviceOrdemServico.listarArquivadas());
     }
 
     /** GET /ordens-servico/inativas — consulta o histórico de OS inativas. */
@@ -124,7 +130,6 @@ export class ControllerOrdemServico {
         return resp.status(200).json({ mensagem: 'Ordem excluída com sucesso' });
     }
 
-    /** GET /ordens-servico/:id/historico — atividades da O.S., mais recentes primeiro (somente gestor). */
     /** POST /ordens-servico/:id/horas — registra horas trabalhadas (US#2.7). */
     public async registrarHoras(req: Request, resp: Response): Promise<Response> {
         const usuario = usuarioAutenticado(req);
@@ -141,6 +146,7 @@ export class ControllerOrdemServico {
         return resp.status(200).json(await serviceLancamentoHoras.listarPorOrdem(id));
     }
 
+    /** GET /ordens-servico/:id/historico — atividades da O.S., mais recentes primeiro (somente gestor). */
     public async listarHistorico(req: Request, resp: Response): Promise<Response> {
         const id = lerId(req.params.id);
         const historico = await serviceAuditoria.listarPorOrdemServico(id, req.query);

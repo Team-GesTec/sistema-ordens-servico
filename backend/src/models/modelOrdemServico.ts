@@ -19,6 +19,9 @@ export const STATUS_PADRAO: StatusOrdemServico = status_enum.em_andamento;
 
 export type OrdemServico = ordens_servico;
 
+/** Dias depois da conclusão para a O.S. ser arquivada (US#2.11). */
+export const DIAS_PARA_ARQUIVAMENTO = 14;
+
 /** Dados validados para criar uma O.S. */
 export interface DadosCriacaoOrdemServico {
     tipo: 'instalacao' | 'manutencao';
