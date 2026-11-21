@@ -146,7 +146,6 @@ export interface OrdemServico {
     tipo: TipoOrdemServico;
     titulo: string;
     criticidade: NivelCriticidade | null;
-    prazo_horas: number;
     descricao: string;
     status: StatusOrdemServico;
     ativo: boolean;
@@ -288,6 +287,43 @@ export interface HorasOrdem {
     total_minutos: number;
     total_duracao: string;
     lancamentos: LancamentoHoras[];
+}
+
+export interface AgregadoHorasDashboard {
+    id: number | null;
+    nome: string;
+    total_minutos: number;
+    total_horas: number;
+    total_duracao: string;
+}
+
+export interface LancamentoHorasDashboard {
+    id: string;
+    os_id: number;
+    ordem_titulo: string;
+    data_trabalho: string;
+    minutos: number;
+    duracao: string;
+    funcionario: { id: number; nome: string };
+    registrado_em: string;
+}
+
+export interface DashboardHoras {
+    total_minutos: number;
+    total_horas: number;
+    total_duracao: string;
+    quantidade_lancamentos: number;
+    ultimos_lancamentos: LancamentoHorasDashboard[];
+    por_departamento: AgregadoHorasDashboard[];
+    por_projeto: AgregadoHorasDashboard[];
+}
+
+export interface ComentarioOrdem {
+    id: number;
+    os_id: number;
+    conteudo: string;
+    criado_em: string;
+    autor: { id: number; nome: string; tipo: string };
 }
 
 export interface RegistroHorasInput {

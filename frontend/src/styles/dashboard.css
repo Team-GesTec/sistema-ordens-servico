@@ -574,3 +574,348 @@
   color: #627b91;
 }
 
+
+/* Horas do dashboard: indicador compacto, visualmente ancorado e rastreável por O.S. */
+.gestec-app .dashboard-hours-content {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    gap: 17px;
+}
+
+.gestec-app .dashboard-hours-total {
+    display: flex;
+    min-width: 0;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 17px 18px;
+    border: 1px solid #d5e8f4;
+    border-radius: 14px;
+    background: linear-gradient(115deg, #f4faff 0%, #edf7fd 58%, #f8fcff 100%);
+}
+
+.gestec-app .dashboard-hours-total-main {
+    display: flex;
+    min-width: 0;
+    flex: 1;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.gestec-app .dashboard-hours-total-meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 12px;
+}
+
+.gestec-app .dashboard-hours-eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: #54758f;
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: .65px;
+    text-transform: uppercase;
+}
+
+.gestec-app .dashboard-hours-count {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 8px;
+    border: 1px solid #d7e9f5;
+    border-radius: 999px;
+    background: rgba(255,255,255,.78);
+    color: #5c7991;
+    font-size: 10px;
+    font-weight: 700;
+}
+
+.gestec-app .dashboard-hours-total-main > strong {
+    color: #153b5b;
+    font-size: clamp(27px, 3vw, 36px);
+    font-weight: 850;
+    line-height: 1.08;
+    letter-spacing: -.7px;
+    font-variant-numeric: tabular-nums;
+}
+
+.gestec-app .dashboard-hours-total-main > small {
+    color: #71899d;
+    font-size: 11px;
+    line-height: 1.45;
+}
+
+.gestec-app .dashboard-hours-total-icon {
+    display: grid;
+    width: 54px;
+    height: 54px;
+    flex: 0 0 54px;
+    place-items: center;
+    border: 1px solid #d4e9f6;
+    border-radius: 16px;
+    background: #e2f3fd;
+    color: #1285c1;
+    font-size: 23px;
+    box-shadow: 0 5px 14px rgba(27, 121, 171, .08);
+}
+
+.gestec-app .dashboard-hours-section-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 5px;
+}
+
+.gestec-app .dashboard-hours-section-heading h3 {
+    margin: 0;
+    color: #23445f;
+    font-size: 12px;
+    font-weight: 800;
+}
+
+.gestec-app .dashboard-hours-section-heading p {
+    margin: 3px 0 0;
+    color: #8a9cad;
+    font-size: 10px;
+}
+
+.gestec-app .dashboard-hours-section-heading > span {
+    color: #8a9cad;
+    font-size: 10px;
+    white-space: nowrap;
+}
+
+.gestec-app .dashboard-hours-records {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.gestec-app .dashboard-hours-records li + li {
+    border-top: 1px solid #edf2f6;
+}
+
+.gestec-app .dashboard-hours-records a {
+    display: flex;
+    min-width: 0;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 2px;
+    color: inherit;
+    text-decoration: none;
+    transition: background .15s ease, transform .15s ease;
+}
+
+.gestec-app .dashboard-hours-records a:hover {
+    background: #f8fbfd;
+}
+
+.gestec-app .dashboard-hours-record-icon {
+    display: grid;
+    width: 32px;
+    height: 32px;
+    flex: 0 0 32px;
+    place-items: center;
+    border-radius: 10px;
+    background: #eef7fc;
+    color: #2589bd;
+    font-size: 13px;
+}
+
+.gestec-app .dashboard-hours-record-main {
+    display: flex;
+    min-width: 0;
+    flex: 1;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.gestec-app .dashboard-hours-records strong {
+    overflow: hidden;
+    color: #28465f;
+    font-size: 11px;
+    font-weight: 750;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.gestec-app .dashboard-hours-records small {
+    overflow: hidden;
+    color: #8296a8;
+    font-size: 10px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.gestec-app .dashboard-hours-records small i {
+    margin-right: 3px;
+}
+
+.gestec-app .dashboard-hours-record-duration {
+    display: inline-flex;
+    flex: 0 0 auto;
+    align-items: center;
+    gap: 7px;
+    color: #1783b9;
+}
+
+.gestec-app .dashboard-hours-record-duration b {
+    font-size: 11px;
+    font-weight: 850;
+    font-variant-numeric: tabular-nums;
+}
+
+.gestec-app .dashboard-hours-record-duration > i {
+    color: #a2b5c4;
+    font-size: 9px;
+}
+
+.gestec-app .dashboard-hours-empty,
+.gestec-app .dashboard-hours-state {
+    display: flex;
+    min-height: 68px;
+    align-items: center;
+    gap: 11px;
+    padding: 12px 14px;
+    border: 1px solid #e1edf4;
+    border-radius: 11px;
+    background: #f9fcfe;
+    color: #6e879b;
+    font-size: 11px;
+    line-height: 1.5;
+}
+
+.gestec-app .dashboard-hours-empty-icon,
+.gestec-app .dashboard-hours-state-icon {
+    display: grid;
+    width: 34px;
+    height: 34px;
+    flex: 0 0 34px;
+    place-items: center;
+    border-radius: 10px;
+    background: #eaf5fb;
+    color: #398db9;
+    font-size: 14px;
+}
+
+.gestec-app .dashboard-hours-empty > div {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.gestec-app .dashboard-hours-empty strong {
+    color: #36576f;
+    font-size: 11px;
+}
+
+.gestec-app .dashboard-hours-empty > div > span {
+    color: #8296a8;
+    font-size: 10px;
+}
+
+.gestec-app .dashboard-hours-state {
+    justify-content: space-between;
+}
+
+.gestec-app .dashboard-hours-state--error {
+    flex-wrap: wrap;
+    border-color: #f0d7d9;
+    background: #fffafb;
+    color: #9f3e49;
+}
+
+.gestec-app .dashboard-hours-state button {
+    padding: 7px 10px;
+    border: 1px solid #d1e4ef;
+    border-radius: 8px;
+    background: #fff;
+    color: #24688d;
+    cursor: pointer;
+    font-size: 10px;
+    font-weight: 750;
+}
+
+.gestec-app.dark-mode .dashboard-hours-total {
+    border-color: #2d4b63;
+    background: linear-gradient(115deg, #10283b 0%, #132f46 60%, #10273a 100%);
+}
+
+.gestec-app.dark-mode .dashboard-hours-eyebrow,
+.gestec-app.dark-mode .dashboard-hours-section-heading h3,
+.gestec-app.dark-mode .dashboard-hours-empty strong {
+    color: #c8dcea;
+}
+
+.gestec-app.dark-mode .dashboard-hours-count,
+.gestec-app.dark-mode .dashboard-hours-record-icon,
+.gestec-app.dark-mode .dashboard-hours-empty-icon,
+.gestec-app.dark-mode .dashboard-hours-state-icon {
+    border-color: #304e65;
+    background: #1a3a52;
+    color: #9edcff;
+}
+
+.gestec-app.dark-mode .dashboard-hours-total-main > strong {
+    color: #eff8ff;
+}
+
+.gestec-app.dark-mode .dashboard-hours-total-main > small,
+.gestec-app.dark-mode .dashboard-hours-section-heading p,
+.gestec-app.dark-mode .dashboard-hours-section-heading > span,
+.gestec-app.dark-mode .dashboard-hours-records small,
+.gestec-app.dark-mode .dashboard-hours-empty > div > span {
+    color: #9bb4c7;
+}
+
+.gestec-app.dark-mode .dashboard-hours-total-icon {
+    border-color: #31546e;
+    background: #1a3d57;
+    color: #7fd0f4;
+}
+
+.gestec-app.dark-mode .dashboard-hours-records li + li {
+    border-top-color: #263f54;
+}
+
+.gestec-app.dark-mode .dashboard-hours-records a:hover,
+.gestec-app.dark-mode .dashboard-hours-empty,
+.gestec-app.dark-mode .dashboard-hours-state {
+    border-color: #29465d;
+    background: #10283b;
+    color: #c3d7e5;
+}
+
+.gestec-app.dark-mode .dashboard-hours-records strong {
+    color: #e3f1fa;
+}
+
+.gestec-app.dark-mode .dashboard-hours-record-duration {
+    color: #86d4f6;
+}
+
+@media (max-width: 520px) {
+    .gestec-app .dashboard-hours-total {
+        padding: 14px;
+    }
+
+    .gestec-app .dashboard-hours-total-icon {
+        width: 45px;
+        height: 45px;
+        flex-basis: 45px;
+        border-radius: 13px;
+        font-size: 19px;
+    }
+
+    .gestec-app .dashboard-hours-total-main > strong {
+        font-size: 27px;
+    }
+}

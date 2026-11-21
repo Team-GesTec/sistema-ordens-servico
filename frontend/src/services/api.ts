@@ -57,6 +57,11 @@ function emitirSucessoDaOperacao(path: string, method: string, requestBody: Body
         return;
     }
 
+    if (rota.endsWith("/comentarios") && method === "POST") {
+        publishToast({ title: "Comentário enviado", message: "O comentário foi salvo na ordem de serviço.", variant: "success" });
+        return;
+    }
+
     if (rota.endsWith("/horas") && method === "POST") {
         publishToast({ title: "Horas registradas", message: "As horas foram lançadas na ordem de serviço.", variant: "success" });
         return;

@@ -2069,3 +2069,8 @@
   color: #eaf6ff !important;
 }
 
+
+.gestec-app.dark-mode .os-detail-comment-form-footer small,
+.gestec-app.dark-mode .os-detail-comment-readonly {
+    color: #b4c9d9;
+}

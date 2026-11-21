@@ -13,7 +13,8 @@
     "jsonwebtoken": "^9.0.3",
     "multer": "^2.4.0",
     "pdfkit": "^0.20.2",
-    "pg": "^8.23.0"
+    "pg": "^8.23.0",
+    "swagger-ui-dist": "^5.35.1"
   },
   "devDependencies": {
     "@cucumber/cucumber": "^13.2.1",
@@ -38,7 +39,11 @@
     "test": "cucumber-js",
     "prisma:generate": "prisma generate",
     "db:status": "prisma migrate status",
-    "db:seed": "prisma db seed"
+    "db:deploy": "prisma migrate deploy",
+    "db:seed": "prisma db seed",
+    "lint:openapi": "node scripts/lint-openapi.cjs",
+    "test:openapi": "node tests/openapi-coverage.cjs",
+    "check:docs": "npm run lint:openapi && npm run test:openapi"
   },
   "engines": {
     "node": ">=22"

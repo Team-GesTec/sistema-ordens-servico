@@ -83,6 +83,9 @@ export function useOrdens() {
     const [perfilGestor, setPerfilGestor] = useState(
         () => getStoredUser()?.tipo === "gestor",
     );
+    const [perfilTecnico, setPerfilTecnico] = useState(
+        () => getStoredUser()?.tipo === "tecnico",
+    );
 
 
 
@@ -104,7 +107,7 @@ export function useOrdens() {
         (funcionario) => funcionario.id === usuarioAtualId && funcionario.ativo,
     );
     const podeTecnicoAssumirOrdemSelecionada = Boolean(
-        !podeGerenciar &&
+        perfilTecnico &&
         ordemSelecionada?.ativo &&
         ordemSelecionada.status !== "concluido" &&
         ordemSelecionada.responsavel_id === null &&
@@ -119,6 +122,7 @@ export function useOrdens() {
         async function carregarDados() {
             try {
                 let gestor = false;
+                let tecnico = false;
                 let podeCriarOS = false;
 
                 if (authService.hasSession()) {
@@ -130,12 +134,14 @@ export function useOrdens() {
                         setUsuarioAtualId(usuario.id);
 
                         gestor = usuario.tipo === "gestor";
+                        tecnico = usuario.tipo === "tecnico";
                         podeCriarOS =
                             usuario.tipo === "gestor" ||
                             usuario.tipo === "tecnico";
                     } catch {
                         setUsuarioAtualId(null);
                         gestor = false;
+                        tecnico = false;
                         podeCriarOS = false;
                     }
                 }
@@ -143,6 +149,7 @@ export function useOrdens() {
                 if (!ativo) return;
 
                 setPerfilGestor(gestor);
+                setPerfilTecnico(tecnico);
                 setPodeCriar(podeCriarOS);
 
                 const [ordensApi, clientesApi, departamentosApi, projetosApi] = await Promise.all([
@@ -528,10 +535,6 @@ export function useOrdens() {
             setErro("Não é possível alterar o responsável de uma O.S. inativa.");
             return false;
         }
-        if (!ordemSelecionada.ativo) {
-            setErro("Não é possível alterar o responsável de uma O.S. inativa.");
-            return false;
-        }
 
         const funcionarioDestino = funcionariosAtivos.find(
             (funcionario) => funcionario.id === funcionarioId && funcionario.ativo,
@@ -543,7 +546,7 @@ export function useOrdens() {
         }
 
         const podeTecnicoAssumir = Boolean(
-            !podeGerenciar &&
+            perfilTecnico &&
             ordemSelecionada.ativo &&
             ordemSelecionada.status !== "concluido" &&
             ordemSelecionada.responsavel_id === null &&
@@ -600,42 +603,39 @@ export function useOrdens() {
         novoStatus: StatusOrdemServico,
         parecerTecnico?: string,
         horas?: RegistroHorasInput,
-    ): Promise<void> {
+    ): Promise<boolean> {
         const ehResponsavel = ordem.responsavel_id === usuarioAtualId;
 
-        if (!podeGerenciar && !ehResponsavel) {
+        if (!podeGerenciar && (!perfilTecnico || !ehResponsavel)) {
             setErro("Apenas Gestor/Admin ou o Técnico responsável pode alterar o status.");
-            return;
+            return false;
         }
         if (!ordem.ativo) {
             setErro("Não é possível alterar o status de uma O.S. inativa.");
-            return;
+            return false;
         }
         if (ordem.status === "bloqueado" || ordem.status === "concluido") {
             setErro("Esta O.S. não permite alteração de status por esta operação.");
-            return;
+            return false;
         }
         if (novoStatus === "bloqueado") {
             setErro("O bloqueio deve utilizar a operação específica de bloqueio.");
-            return;
+            return false;
         }
-        if (novoStatus === "concluido" && !ehResponsavel) {
-            setErro("Apenas o responsável designado pode concluir esta O.S.");
-            return;
-        }
+        // A API aceita conclusão pelo gestor ou pelo técnico responsável.
         const parecerFinal = parecerTecnico?.trim();
         if (novoStatus === "concluido" && !parecerFinal) {
             setErro("Informe o parecer técnico para concluir a O.S.");
-            return;
+            return false;
         }
-        if (ordem.status === novoStatus) return;
+        if (ordem.status === novoStatus) return false;
 
         // As horas são opcionais na troca de status; quando informadas, precisam ser válidas.
         if (horas) {
             const erroHoras = validarDuracao(horas.duracao) ?? validarDataTrabalho(horas.data_trabalho);
             if (erroHoras) {
                 setErro(erroHoras);
-                return;
+                return false;
             }
         }
 
@@ -659,8 +659,10 @@ export function useOrdens() {
             if (detalhesAbertos && ordemSelecionada?.id === ordem.id) {
                 await recarregarDetalheAposMutacao(atualizada, fallbackDetalhe);
             }
+            return true;
         } catch (error) {
             setErro(mensagemErro(error, "Não foi possível alterar o status da ordem de serviço."));
+            return false;
         } finally {
             setAlterandoStatusId(null);
         }
@@ -670,22 +672,22 @@ export function useOrdens() {
         novoStatus: StatusOrdemServico,
         parecerTecnico?: string,
         horas?: RegistroHorasInput,
-    ): Promise<void> {
-        if (!ordemSelecionada) return;
-        await executarAlteracaoStatus(ordemSelecionada, novoStatus, parecerTecnico, horas);
+    ): Promise<boolean> {
+        if (!ordemSelecionada) return false;
+        return executarAlteracaoStatus(ordemSelecionada, novoStatus, parecerTecnico, horas);
     }
 
     function podeMoverOrdemParaStatus(ordem: OrdemServico, destino: StatusOrdemServico): boolean {
         if (
             !ordem.ativo ||
             !usuarioAtualId ||
-            (!podeGerenciar && ordem.responsavel_id !== usuarioAtualId) ||
+            (!podeGerenciar && (!perfilTecnico || ordem.responsavel_id !== usuarioAtualId)) ||
             ordem.status === "bloqueado" ||
             ordem.status === "concluido" ||
-            (destino === "concluido" && ordem.responsavel_id !== usuarioAtualId) ||
+            (destino === "concluido" && !podeGerenciar && ordem.responsavel_id !== usuarioAtualId) ||
             destino === ordem.status
         ) return false;
-        if (destino === "bloqueado") return true;
+        if (destino === "bloqueado") return podeGerenciar;
         return ["em_andamento", "aguardando", "validacao_testes", "concluido"].includes(destino);
     }
 
@@ -1001,7 +1003,7 @@ export function useOrdens() {
             ordemSelecionada &&
             ordemSelecionada.ativo &&
             usuarioAtualId !== null &&
-            (podeGerenciar || ordemSelecionada.responsavel_id === usuarioAtualId) &&
+            (podeGerenciar || (perfilTecnico && ordemSelecionada.responsavel_id === usuarioAtualId)) &&
             ordemSelecionada.status !== "bloqueado" &&
             ordemSelecionada.status !== "concluido",
         ),
@@ -1009,7 +1011,7 @@ export function useOrdens() {
             ordemSelecionada &&
             ordemSelecionada.ativo &&
             usuarioAtualId !== null &&
-            ordemSelecionada.responsavel_id === usuarioAtualId &&
+            (podeGerenciar || (perfilTecnico && ordemSelecionada.responsavel_id === usuarioAtualId)) &&
             ordemSelecionada.status !== "bloqueado" &&
             ordemSelecionada.status !== "concluido",
         ),

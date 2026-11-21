@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type ChangeEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type ChangeEvent, type FormEvent } from "react";
 import { Link } from "react-router-dom";
 import Autocomplete, { type AutocompleteOption } from "../common/Autocomplete";
 import OrdemServicoHistorico from "./OrdemServicoHistorico";
@@ -21,6 +21,7 @@ import { ordemServicoService } from "../../services/ordemServico";
 import { ApiError } from "../../services/api";
 import { publishToast } from "../../services/feedbackEvents";
 import { garantirPdfValido, salvarArquivo } from "../../utils/download";
+import { useComentariosOrdem } from "../../hooks/useComentariosOrdem";
 
 import {
     CRITICIDADE_LABELS,
@@ -100,7 +101,7 @@ interface OrdemServicoDetalhesModalProps {
         status: StatusOrdemServico,
         parecerTecnico?: string,
         horas?: RegistroHorasInput,
-    ) => void;
+    ) => Promise<boolean>;
     // Recebe a data (AAAA-MM-DD) e o motivo da alteração
     onAlterarPrazo?: (dataLimite: string, justificativa: string) => Promise<boolean>;
     statusSugerido?: StatusOrdemServico | null;
@@ -201,6 +202,8 @@ function OrdemServicoDetalhesModal({
     onRegistrarHoras,
 }: OrdemServicoDetalhesModalProps) {
     const [parecerTemporario, setParecerTemporario] = useState("");
+    const [textoComentario, setTextoComentario] = useState("");
+    const { comentarios, carregando: carregandoComentarios, enviando: enviandoComentario, erro: erroComentarios, enviar: enviarComentario, recarregar: recarregarComentarios } = useComentariosOrdem(ordem?.id ?? null, aberto);
     const [exportandoPdf, setExportandoPdf] = useState(false);
     const exportacaoPdfEmAndamento = useRef(false);
     const podeExportarPdf = ["gestor", "analista"].includes(getStoredUser()?.tipo ?? "");
@@ -276,12 +279,6 @@ function OrdemServicoDetalhesModal({
     const [statusPainelAberto, setStatusPainelAberto] = useState(false);
     const [prazoPainelAberto, setPrazoPainelAberto] = useState(false);
     const [responsavelPainelAberto, setResponsavelPainelAberto] = useState(false);
-    const [comentarioNovo, setComentarioNovo] = useState("");
-    const comentarioRef = useRef<HTMLTextAreaElement | null>(null);
-    const [comentariosDemo, setComentariosDemo] = useState([
-        { id: 1, iniciais: "MC", autor: "Mariana Costa", quando: "Hoje, 08:52", texto: "O cliente confirmou a janela para execução entre 9h e 16h. Avisem por aqui quando o teste de conectividade começar.", tom: "azul" },
-        { id: 2, iniciais: "AL", autor: "André Lima", quando: "Hoje, 09:04", texto: "Instalação física iniciada. Todos os equipamentos foram conferidos, sem divergências no recebimento.", tom: "verde" },
-    ]);
     const [lancarHorasAberto, setLancarHorasAberto] = useState(false);
     const [duracaoHoras, setDuracaoHoras] = useState("");
     const [dataHoras, setDataHoras] = useState(() => hojeNoBrasil());
@@ -326,7 +323,6 @@ function OrdemServicoDetalhesModal({
         setStatusPainelAberto(false);
         setPrazoPainelAberto(false);
         setResponsavelPainelAberto(false);
-        setComentarioNovo("");
         setLancarHorasAberto(false);
         setDuracaoHoras("");
         setDataHoras(hojeNoBrasil());
@@ -429,6 +425,22 @@ function OrdemServicoDetalhesModal({
         enviandoAnexo,
         edicaoDiretaAberta,
     ]);
+
+    async function submeterComentario(event: FormEvent<HTMLFormElement>) {
+        event.preventDefault();
+        const conteudo = textoComentario.trim();
+        if (!conteudo || !ordem || enviandoComentario) return;
+        try {
+            await enviarComentario(conteudo);
+            setTextoComentario("");
+        } catch {
+            // O hook mantém a mensagem para ser exibida junto ao formulário.
+        }
+    }
+
+    function iniciaisAutor(nome: string): string {
+        return nome.trim().split(/\s+/).slice(0, 2).map((parte) => parte[0] ?? "").join("").toUpperCase();
+    }
 
     if (!aberto) return null;
 
@@ -592,13 +604,13 @@ function OrdemServicoDetalhesModal({
         ? projetos.find((item) => item.id === ordem.projeto_id)
         : undefined;
     const lancamentosHoras = horas?.lancamentos ?? [];
-    const horasRegistradas = (horas?.total_minutos ?? 0) / 60;
-    const horasEstimadas = Math.max(1, ordem?.prazo_horas || 12);
-    const progressoHoras = Math.min(100, (horasRegistradas / horasEstimadas) * 100);
+    const exigeHorasStatus = podeRegistrarHoras && getStoredUser()?.tipo !== "gestor";
     const informouHorasStatus = podeRegistrarHoras && duracaoStatus.trim() !== "";
-    const erroHorasStatus = informouHorasStatus
-        ? validarDuracao(duracaoStatus) ?? validarDataTrabalho(dataStatus)
-        : null;
+    const erroHorasStatus = exigeHorasStatus && !informouHorasStatus
+        ? "Informe o tempo trabalhado e a data para alterar o status desta O.S."
+        : informouHorasStatus
+            ? validarDuracao(duracaoStatus) ?? validarDataTrabalho(dataStatus)
+            : null;
     const horasDoStatus = informouHorasStatus
         ? { duracao: duracaoStatus.trim(), data_trabalho: dataStatus }
         : undefined;
@@ -760,7 +772,7 @@ function OrdemServicoDetalhesModal({
                                     <div className="os-detail-badges">
                                         <span className={`os-detail-badge os-detail-badge--status os-detail-badge--${ordem.status}`}><span aria-hidden="true">●</span> {STATUS_LABELS[ordem.status]}</span>
                                         <span className={`os-detail-badge os-detail-badge--priority os-detail-badge--${ordem.criticidade || "indefinida"}`}><span aria-hidden="true">●</span> {ordem.criticidade ? CRITICIDADE_LABELS[ordem.criticidade] : "Prioridade não definida"}</span>
-                                        <span className="os-detail-badge os-detail-badge--sla" title={!ordem.data_limite_sla ? "Prazo de SLA demonstrativo: campo não disponível na API desta ordem." : undefined}>{ordem.data_limite_sla ? (new Date(ordem.data_limite_sla).getTime() < Date.now() ? `SLA vencido · ${formatarData(ordem.data_limite_sla).split(",")[0]}` : `SLA vence ${formatarData(ordem.data_limite_sla)}`) : "SLA vence hoje, 16:00"}</span>
+                                        <span className="os-detail-badge os-detail-badge--sla" title={!ordem.data_limite_sla ? "Prazo de SLA não informado." : undefined}>{ordem.data_limite_sla ? (new Date(ordem.data_limite_sla).getTime() < Date.now() ? `SLA vencido · ${formatarData(ordem.data_limite_sla).split(",")[0]}` : `SLA vence ${formatarData(ordem.data_limite_sla)}`) : "SLA não definido"}</span>
                                     </div>
                                     <div className="os-detail-summary-tools">
                                         <div className="os-detail-actions-menu-wrap">
@@ -806,7 +818,7 @@ function OrdemServicoDetalhesModal({
                                 <div className="os-detail-summary-meta">
                                     <span><i className="fa-solid fa-hashtag" aria-hidden="true" /> OS-{Number.isNaN(new Date(ordem.data_criacao).getTime()) ? new Date().getFullYear() : new Date(ordem.data_criacao).getFullYear()}-{String(ordem.id).padStart(4, "0")}</span>
                                     <span><i className="fa-regular fa-calendar" aria-hidden="true" /> Criada em {formatarData(ordem.data_criacao)}</span>
-                                    <span><i className="fa-solid fa-user" aria-hidden="true" /> Aberta por {solicitanteAtual?.nome || "Mariana Costa"}</span>
+                                    <span><i className="fa-solid fa-user" aria-hidden="true" /> Aberta por {solicitanteAtual?.nome || `Funcionário #${ordem.solicitante_id}`}</span>
                                 </div>
                             </section >
 
@@ -1054,7 +1066,7 @@ function OrdemServicoDetalhesModal({
                                         onDuracao={setDuracaoStatus}
                                         onDataTrabalho={setDataStatus}
                                         desabilitado={!podeAlterarStatus || alterandoStatusId !== null}
-                                        opcional
+                                        opcional={!exigeHorasStatus}
                                     />
                                 )}
 
@@ -1088,13 +1100,13 @@ function OrdemServicoDetalhesModal({
                                     <button
                                         type="button"
                                         className="os-detail-btn os-detail-btn--primary"
-                                        onClick={() => {
-                                            onAlterarStatus(
+                                        onClick={async () => {
+                                            const sucesso = await onAlterarStatus(
                                                 statusSelecionado,
                                                 statusSelecionado === "concluido" ? parecerTemporario : undefined,
                                                 horasDoStatus,
                                             );
-                                            setStatusPainelAberto(false);
+                                            if (sucesso) setStatusPainelAberto(false);
                                         }}
                                         disabled={
                                             !ordem.ativo ||
@@ -1127,10 +1139,10 @@ function OrdemServicoDetalhesModal({
 }
 
 <section className="os-detail-facts" aria-label="Resumo da ordem">
-    <article><span>Cliente</span><strong>{cliente?.nome || (ordem.cliente_id ? `Cliente #${ordem.cliente_id}` : "Não associado")}</strong><small>{cliente?.razao_social || "contato@altave.com.br"}</small></article>
-    <article><span>Responsável técnico</span><strong>{responsavelAtual?.nome || (ordem.responsavel_id ? `Funcionário #${ordem.responsavel_id}` : "André Lima")}</strong><small>{responsavelAtual ? `${responsavelAtual.tipo === "tecnico" ? "Operações" : responsavelAtual.tipo} · ${responsavelAtual.ativo ? "Ativo" : "Inativo"}` : "Operações · Técnico sênior (demo)"}</small></article>
-    <article><span>Projeto</span><strong>{projetoAtual?.nome || (ordem.projeto_id ? `Projeto #${ordem.projeto_id}` : "Infraestrutura de rede")}</strong><small>{ordem.projeto_id ? `PRJ-${String(ordem.projeto_id).padStart(4, "0")}-008` : "Informação de demonstração"}</small></article>
-    <article className="os-detail-time-fact"><span>Tempo registrado</span><strong>{horas?.total_duracao ?? "0m"} <small>/ {horasEstimadas}h estimadas</small></strong><div className="os-detail-progress"><span style={{ width: `${progressoHoras}%` }} /></div></article>
+    <article><span>Cliente</span><strong>{cliente?.nome || (ordem.cliente_id ? `Cliente #${ordem.cliente_id}` : "Não associado")}</strong><small>{cliente?.razao_social || (ordem.cliente_id ? "Dados cadastrais indisponíveis" : "—")}</small></article>
+    <article><span>Responsável técnico</span><strong>{responsavelAtual?.nome || (ordem.responsavel_id ? `Funcionário #${ordem.responsavel_id}` : "Não atribuído")}</strong><small>{responsavelAtual ? `${responsavelAtual.tipo} · ${responsavelAtual.ativo ? "Ativo" : "Inativo"}` : (ordem.responsavel_id ? "Cadastro não carregado" : "Sem responsável designado")}</small></article>
+    <article><span>Projeto</span><strong>{projetoAtual?.nome || (ordem.projeto_id ? `Projeto #${ordem.projeto_id}` : "Sem projeto associado")}</strong><small>{ordem.projeto_id ? "Projeto vinculado à ordem" : "—"}</small></article>
+    <article className="os-detail-time-fact"><span>Tempo registrado</span><strong>{carregandoHoras ? "Carregando…" : erroHoras ? "Indisponível" : horas?.total_duracao ?? "0m"}</strong></article>
 </section>
 
 {
@@ -1156,7 +1168,7 @@ function OrdemServicoDetalhesModal({
 <div className="os-detail-content-grid">
     <div className="os-detail-primary-column">
         <section className="os-detail-card os-detail-activity-card">
-            <header className="os-detail-card-heading"><div><h2>Acompanhamento da ordem</h2><p>Histórico de atividades e atualizações</p></div><button type="button" className="os-detail-btn os-detail-btn--secondary" onClick={() => { comentarioRef.current?.focus(); document.querySelector(".os-detail-comments-card")?.scrollIntoView({ block: "nearest", behavior: "smooth" }); }}><i className="fa-solid fa-plus" aria-hidden="true" /> Adicionar atualização</button></header>
+            <header className="os-detail-card-heading"><div><h2>Acompanhamento da ordem</h2><p>Histórico de atividades e registros de horas</p></div></header>
             <div className="os-detail-tabs" role="tablist" aria-label="Atividades da ordem">
                 <button type="button" role="tab" aria-selected={abaAcompanhamento === "historico"} className={abaAcompanhamento === "historico" ? "ativo" : ""} onClick={() => setAbaAcompanhamento("historico")}>Histórico <span>API</span></button>
                 <button type="button" role="tab" aria-selected={abaAcompanhamento === "horas"} className={abaAcompanhamento === "horas" ? "ativo" : ""} onClick={() => setAbaAcompanhamento("horas")}>Horas registradas <span>{lancamentosHoras.length}</span></button>
@@ -1224,20 +1236,93 @@ function OrdemServicoDetalhesModal({
 
     <aside className="os-detail-aside-column">
         <section className="os-detail-card os-detail-comments-card">
-            <header className="os-detail-card-heading"><div><h2>Comentários</h2><p>Troca de informações da equipe</p></div><span className="os-detail-count">{comentariosDemo.length} comentários</span></header>
-            <div className="os-detail-comments-list">{comentariosDemo.map((comentario) => <article key={comentario.id} className="os-detail-comment"><span className={`os-detail-avatar os-detail-avatar--${comentario.tom}`}>{comentario.iniciais}</span><div className="os-detail-comment-body"><div className="os-detail-comment-meta"><strong>{comentario.autor}</strong><time>{comentario.quando}</time></div><p>{comentario.texto}</p></div></article>)}</div>
-            <form className="os-detail-comment-form" onSubmit={(event) => { event.preventDefault(); const texto = comentarioNovo.trim(); if (!texto) return; const userText = "Você"; setComentariosDemo((atuais) => [...atuais, { id: Date.now(), iniciais: "VC", autor: userText, quando: "Agora", texto, tom: "azul" }]); setComentarioNovo(""); }}>
-                <textarea ref={comentarioRef} rows={2} value={comentarioNovo} onChange={(event) => setComentarioNovo(event.target.value)} placeholder="Escreva uma atualização para a equipe…" aria-label="Escrever comentário demonstrativo" />
-                <button type="submit" className="os-detail-btn os-detail-btn--primary" disabled={!comentarioNovo.trim()}><i className="fa-solid fa-check" aria-hidden="true" /> Enviar atualização</button>
-            </form>
-            <small className="os-detail-demo-note">Comentários demonstrativos: não são enviados nem salvos no backend.</small>
+            <header className="os-detail-card-heading">
+                <div><h2>Comentários</h2><p>Troca de informações da equipe</p></div>
+                <span className="os-detail-count">{comentarios.length} {comentarios.length === 1 ? "comentário" : "comentários"}</span>
+            </header>
+            {carregandoComentarios ? (
+                <p role="status">Carregando comentários…</p>
+            ) : erroComentarios && comentarios.length === 0 ? (
+                <div className="os-detail-comments-error" role="alert">
+                    <span className="os-detail-comments-state-icon"><i className="fa-solid fa-triangle-exclamation" aria-hidden="true" /></span>
+                    <div>
+                        <strong>Não foi possível carregar a conversa</strong>
+                        <span>{erroComentarios}</span>
+                        <small>Confira se a API atual está em execução e se a migration de comentários foi aplicada ao banco.</small>
+                    </div>
+                    <button type="button" className="os-detail-btn os-detail-btn--secondary" onClick={() => void recarregarComentarios()}>Tentar novamente</button>
+                </div>
+            ) : comentarios.length === 0 ? (
+                <div className="os-detail-comments-empty">
+                    <span className="os-detail-comments-state-icon"><i className="fa-regular fa-comments" aria-hidden="true" /></span>
+                    <div>
+                        <strong>A conversa ainda não começou</strong>
+                        <span>Registre uma atualização, dúvida ou orientação para manter a equipe alinhada nesta O.S.</span>
+                    </div>
+                </div>
+            ) : (
+                <div className="os-detail-comments-list" aria-live="polite">
+                    {comentarios.map((comentario) => (
+                        <article key={comentario.id} className="os-detail-comment">
+                            <span className="os-detail-avatar os-detail-avatar--blue" aria-hidden="true">{iniciaisAutor(comentario.autor.nome)}</span>
+                            <div className="os-detail-comment-body">
+                                <div className="os-detail-comment-meta">
+                                    <strong>{comentario.autor.nome}</strong>
+                                    <time dateTime={comentario.criado_em}>{formatarData(comentario.criado_em)}</time>
+                                </div>
+                                <p>{comentario.conteudo}</p>
+                            </div>
+                        </article>
+                    ))}
+                </div>
+            )}
+            {ordem.ativo ? (
+                <form className="os-detail-comment-form" onSubmit={(event) => void submeterComentario(event)}>
+                    <label className="os-detail-field" htmlFor="os-detail-new-comment">
+                        <span>Adicionar comentário</span>
+                        <textarea
+                            id="os-detail-new-comment"
+                            rows={3}
+                            maxLength={2000}
+                            value={textoComentario}
+                            onChange={(event) => setTextoComentario(event.target.value)}
+                            placeholder="Escreva uma atualização ou uma dúvida para a equipe…"
+                            disabled={enviandoComentario}
+                        />
+                    </label>
+                    <div className="os-detail-comment-form-footer">
+                        <small>{textoComentario.length}/2000 caracteres</small>
+                        <button type="submit" className="os-detail-btn os-detail-btn--primary" disabled={enviandoComentario || !textoComentario.trim()}>
+                            <i className="fa-regular fa-paper-plane" aria-hidden="true" /> {enviandoComentario ? "Enviando…" : "Enviar comentário"}
+                        </button>
+                    </div>
+                    {erroComentarios && <p role="alert" className="os-detail-form-error">{erroComentarios}</p>}
+                </form>
+            ) : (
+                <p className="os-detail-comment-readonly">Esta O.S. está inativa. Os comentários permanecem disponíveis para consulta.</p>
+            )}
         </section>
 
-        <section className="os-detail-card os-detail-people-card"><header className="os-detail-card-heading"><div><h2>Pessoas envolvidas</h2></div><button type="button" aria-label="Alterar pessoa responsável" onClick={() => setResponsavelPainelAberto((aberto) => !aberto)} disabled={!ordem.ativo || !podeReatribuirResponsavel || podeEditar}><i className="fa-solid fa-plus" aria-hidden="true" /></button></header><div className="os-detail-people-list">
-        <article><span className="os-detail-avatar os-detail-avatar--blue">{(responsavelAtual?.nome || "André Lima").split(/\s+/).slice(0, 2).map((parte) => parte[0]).join("").toUpperCase()}</span><div><strong>{responsavelAtual?.nome || "André Lima"}</strong><small>Responsável técnico{!responsavelAtual ? " · demonstração" : ""}</small></div><i className={`os-detail-presence${responsavelAtual?.ativo === false ? " inativo" : ""}`} aria-label={responsavelAtual?.ativo === false ? "Inativo" : "Ativo"} /></article>
-        <article><span className="os-detail-avatar os-detail-avatar--violet">JF</span><div><strong>Juliana Ferreira</strong><small>Apoio técnico · demonstração</small></div><i className="os-detail-presence" aria-label="Ativo (demonstração)" /></article>
-        <article><span className="os-detail-avatar os-detail-avatar--blue">MC</span><div><strong>Mariana Costa</strong><small>Gestora da ordem · demonstração</small></div><i className="os-detail-presence inativo" aria-label="Disponibilidade não informada" /></article>
-    </div></section>
+        <section className="os-detail-card os-detail-people-card">
+            <header className="os-detail-card-heading">
+                <div><h2>Pessoas envolvidas</h2></div>
+                <button type="button" aria-label="Alterar pessoa responsável" onClick={() => setResponsavelPainelAberto((aberto) => !aberto)} disabled={!ordem.ativo || !podeReatribuirResponsavel || podeEditar}><i className="fa-solid fa-plus" aria-hidden="true" /></button>
+            </header>
+            <div className="os-detail-people-list">
+                <article>
+                    <span className="os-detail-avatar os-detail-avatar--blue">{(solicitanteAtual?.nome || `F${ordem.solicitante_id}`).split(/\s+/).slice(0, 2).map((parte) => parte[0]).join("").toUpperCase()}</span>
+                    <div><strong>{solicitanteAtual?.nome || `Funcionário #${ordem.solicitante_id}`}</strong><small>{ordem.responsavel_id === ordem.solicitante_id ? "Solicitante e responsável técnico" : "Solicitante"}</small></div>
+                    {solicitanteAtual && <i className={`os-detail-presence${solicitanteAtual.ativo ? "" : " inativo"}`} aria-label={solicitanteAtual.ativo ? "Ativo" : "Inativo"} />}
+                </article>
+                {ordem.responsavel_id !== null && ordem.responsavel_id !== ordem.solicitante_id && (
+                    <article>
+                        <span className="os-detail-avatar os-detail-avatar--violet">{(responsavelAtual?.nome || `F${ordem.responsavel_id}`).split(/\s+/).slice(0, 2).map((parte) => parte[0]).join("").toUpperCase()}</span>
+                        <div><strong>{responsavelAtual?.nome || `Funcionário #${ordem.responsavel_id}`}</strong><small>Responsável técnico</small></div>
+                        {responsavelAtual && <i className={`os-detail-presence${responsavelAtual.ativo ? "" : " inativo"}`} aria-label={responsavelAtual.ativo ? "Ativo" : "Inativo"} />}
+                    </article>
+                )}
+            </div>
+        </section>
 </aside>
 </div>
                         </>
@@ -1454,7 +1539,7 @@ function OrdemServicoDetalhesModal({
                                 onDataTrabalho={setDataStatus}
                                 desabilitado={alterandoStatusId !== null}
                                 classeCampo="ordem-status-field"
-                                opcional
+                                opcional={!exigeHorasStatus}
                             />
                         )}
 
@@ -1466,15 +1551,19 @@ function OrdemServicoDetalhesModal({
     <button
         type="button"
         className="ordens-btn-primary ordem-status-atualizar"
-        onClick={() => onAlterarStatus(
-            statusSelecionado,
-            statusSelecionado === "concluido" ? parecerTemporario : undefined,
-            horasDoStatus,
-        )}
+        onClick={async () => {
+            const sucesso = await onAlterarStatus(
+                statusSelecionado,
+                statusSelecionado === "concluido" ? parecerTemporario : undefined,
+                horasDoStatus,
+            );
+            if (sucesso && statusSelecionado === "concluido") onFechar();
+        }}
         disabled={
             alterandoStatusId !== null ||
             statusSelecionado === ordem.status ||
-            erroHorasStatus !== null
+            erroHorasStatus !== null ||
+            (statusSelecionado === "concluido" && !parecerTemporario.trim())
         }
         aria-busy={alterandoStatusId === ordem.id}
     >

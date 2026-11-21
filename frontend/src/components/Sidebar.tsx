@@ -420,6 +420,11 @@ function Sidebar({ darkMode, setDarkMode }: SidebarProps) {
                             <span>Relatórios</span>
                         </NavLink>
 
+                        <NavLink to="/ajuda" className="menu-item" title="Ajuda" aria-label="Ajuda">
+                            <i className="fa-solid fa-circle-question" aria-hidden="true" />
+                            <span>Ajuda</span>
+                        </NavLink>
+
                     </div>
 
                 </nav>

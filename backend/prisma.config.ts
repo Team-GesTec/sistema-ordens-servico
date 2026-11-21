@@ -9,6 +9,10 @@ export default defineConfig({
   },
   datasource: {
     url: env("DIRECT_URL"),
-    shadowDatabaseUrl: env("SHADOW_DATABASE_URL"),
+    // Migrations já versionadas podem ser aplicadas sem shadow database.
+    // A URL só é necessária ao criar migrations com `prisma migrate dev`.
+    ...(process.env.SHADOW_DATABASE_URL
+      ? { shadowDatabaseUrl: process.env.SHADOW_DATABASE_URL }
+      : {}),
   },
 });

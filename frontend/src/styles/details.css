@@ -2126,3 +2126,111 @@
 
 
 
+
+.gestec-app .os-detail-comment-form-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.gestec-app .os-detail-comment-form-footer small,
+.gestec-app .os-detail-comment-readonly {
+    color: var(--gestec-muted);
+    font-size: 11px;
+}
+
+.gestec-app .os-detail-comment-form-footer .os-detail-btn {
+    flex: 0 0 auto;
+}
+
+.gestec-app .os-detail-comments-card .os-detail-empty {
+    padding: 18px 12px;
+}
+
+
+/* Estado vazio/erro da conversa de comentários: não é um placeholder, o formulário abaixo continua ativo. */
+.gestec-app .os-detail-comments-empty,
+.gestec-app .os-detail-comments-error {
+    display: flex;
+    align-items: flex-start;
+    gap: 11px;
+    padding: 14px;
+    border: 1px solid #dcebf4;
+    border-radius: 11px;
+    background: #f7fbfe;
+}
+
+.gestec-app .os-detail-comments-state-icon {
+    display: grid;
+    width: 34px;
+    height: 34px;
+    flex: 0 0 34px;
+    place-items: center;
+    border-radius: 10px;
+    background: #e6f4fb;
+    color: #2389ba;
+    font-size: 14px;
+}
+
+.gestec-app .os-detail-comments-empty > div,
+.gestec-app .os-detail-comments-error > div {
+    display: flex;
+    min-width: 0;
+    flex: 1;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.gestec-app .os-detail-comments-empty strong,
+.gestec-app .os-detail-comments-error strong {
+    color: #31536d;
+    font-size: 12px;
+}
+
+.gestec-app .os-detail-comments-empty > div > span,
+.gestec-app .os-detail-comments-error > div > span {
+    color: #71899c;
+    font-size: 11px;
+    line-height: 1.55;
+}
+
+.gestec-app .os-detail-comments-error {
+    flex-wrap: wrap;
+    border-color: #f0dadd;
+    background: #fffafb;
+}
+
+.gestec-app .os-detail-comments-error .os-detail-comments-state-icon {
+    background: #fff0f1;
+    color: #ba4c58;
+}
+
+.gestec-app .os-detail-comments-error > div > small {
+    margin-top: 3px;
+    color: #9c7479;
+    font-size: 10px;
+    line-height: 1.5;
+}
+
+.gestec-app.dark-mode .os-detail-comments-empty,
+.gestec-app.dark-mode .os-detail-comments-error {
+    border-color: #2b485e;
+    background: #10283b;
+}
+
+.gestec-app.dark-mode .os-detail-comments-state-icon {
+    background: #1a3b53;
+    color: #8ad7fa;
+}
+
+.gestec-app.dark-mode .os-detail-comments-empty strong,
+.gestec-app.dark-mode .os-detail-comments-error strong {
+    color: #e0eff8;
+}
+
+.gestec-app.dark-mode .os-detail-comments-empty > div > span,
+.gestec-app.dark-mode .os-detail-comments-error > div > span,
+.gestec-app.dark-mode .os-detail-comments-error > div > small {
+    color: #a9c1d1;
+}

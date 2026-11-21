@@ -28,6 +28,7 @@
  *     `autenticar`; documentação OpenAPI pública em `/docs` (interface) e `/docs/openapi.json`.
  */
 
+import path from 'node:path';
 import notificacaoRoutes from './routes/routeNotificacao';
 import express, { type Express, type Request, type Response } from 'express';
 import cors, { type CorsOptions } from 'cors';
@@ -45,6 +46,7 @@ import { criarRotasAnexo, criarRotasConfiguracaoAnexo } from './routes/routeAnex
 import auditoriaRoutes from './routes/routeAuditoria';
 import { especificacaoOpenApi } from './docs/openapi';
 import relatorioRoutes from './routes/routeRelatorio';
+import dashboardRoutes from './routes/routeDashboard';
 
 /** Tamanho máximo aceito para o corpo JSON das requisições. */
 const LIMITE_JSON = '100kb';
@@ -67,13 +69,57 @@ function opcoesCors(): CorsOptions {
 export function criarApp(controllerAnexo: ControllerAnexo = controllerAnexoPadrao): Express {
     const app = express();
 
+    // Arquivos locais do Swagger UI — sem dependência de CDN externo.
+    const swaggerUiDistPath = path.resolve(
+        __dirname,
+        '../node_modules/swagger-ui-dist'
+    );
+
+    app.use('/docs-assets', express.static(swaggerUiDistPath));
+
     app.disable('x-powered-by');
     app.use(cors(opcoesCors()));
     app.use(express.json({ limit: LIMITE_JSON }));
 
-    app.get('/docs/openapi.json', (_req: Request, res: Response) => res.status(200).json(especificacaoOpenApi));
-    app.get('/docs', (_req: Request, res: Response) => res.type('html').send(`<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>SGOS API — Swagger</title><link rel="stylesheet" href="https://unpkg.com/swagger-ui-dist@5/swagger-ui.css"></head><body><div id="swagger-ui"></div><script src="https://unpkg.com/swagger-ui-dist@5/swagger-ui-bundle.js"></script><script>SwaggerUIBundle({url:'/docs/openapi.json',dom_id:'#swagger-ui',persistAuthorization:true})</script></body></html>`));
+// Documentação OpenAPI em formato JSON.
+    app.get('/docs/openapi.json', (_req: Request, res: Response) => {
+        res.status(200).json(especificacaoOpenApi);
+    });
 
+    // Interface Swagger UI — arquivos servidos localmente.
+    app.get('/docs', (_req: Request, res: Response) => {
+        res.type('html').send(`<!doctype html>
+    <html lang="pt-BR">
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="description" content="Documentação interativa da API SGOS">
+        <title>SGOS API — Documentação</title>
+        <link rel="stylesheet" href="/docs-assets/swagger-ui.css">
+    </head>
+    <body>
+        <div id="swagger-ui"></div>
+
+        <script src="/docs-assets/swagger-ui-bundle.js"></script>
+
+        <script>
+            window.onload = () => {
+                window.ui = SwaggerUIBundle({
+                    url: '/docs/openapi.json',
+                    dom_id: '#swagger-ui',
+                    deepLinking: true,
+                    displayRequestDuration: true,
+                    filter: true,
+                    persistAuthorization: true,
+                    tryItOutEnabled: true,
+                    docExpansion: 'list',
+                    defaultModelsExpandDepth: 1
+                });
+            };
+        </script>
+    </body>
+    </html>`);
+    });
     // Verificação de saúde (pública) — útil para monitoramento/deploy.
     app.get('/health', (_req: Request, res: Response) => {
         res.status(200).json({ status: 'ok' });
@@ -93,6 +139,7 @@ export function criarApp(controllerAnexo: ControllerAnexo = controllerAnexoPadra
     app.use('/notificacoes', autenticar, notificacaoRoutes);
     app.use('/auditoria', autenticar, auditoriaRoutes);
     app.use('/', autenticar, relatorioRoutes);
+    app.use('/dashboard', autenticar, dashboardRoutes);
     // Precisam ser os últimos: 404 para rotas inexistentes e tratamento central de erros.
     app.use(rotaNaoEncontrada);
     app.use(tratarErros);

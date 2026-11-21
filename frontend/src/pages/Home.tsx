@@ -20,6 +20,7 @@ import { ordemServicoService } from "../services/ordemServico";
 import { departamentoService } from "../services/departamento";
 import { funcionarioService } from "../services/funcionario";
 import { projetoService } from "../services/projeto";
+import { dashboardService } from "../services/dashboard";
 
 import type {
     Departamento,
@@ -28,6 +29,7 @@ import type {
     OrdemServico,
     Projeto,
     StatusOrdemServico,
+    DashboardHoras,
 } from "../types/api";
 
 import { formatarDataOrdem, parseDataOrdem, STATUS_LABELS } from "../utils/ordemServicoUtils";
@@ -85,9 +87,17 @@ function contar<T extends string>(
     }));
 }
 
+function formatarDataLancamentoDashboard(valor: string): string {
+    const data = new Date(`${valor}T00:00:00`);
+    return Number.isNaN(data.getTime()) ? valor : data.toLocaleDateString("pt-BR");
+}
+
 function Dashboard() {
     const usuario = getStoredUser();
     const navigate = useNavigate();
+    const ehGestor = usuario?.tipo === "gestor";
+    const ehTecnico = usuario?.tipo === "tecnico";
+    const usuarioId = usuario?.id ?? null;
 
     const [dados, setDados] = useState<DadosDashboard>({
         ordens: [],
@@ -98,6 +108,30 @@ function Dashboard() {
 
     const [carregando, setCarregando] = useState(true);
     const [erro, setErro] = useState<string | null>(null);
+    const [horasDashboard, setHorasDashboard] = useState<DashboardHoras | null>(null);
+    const [carregandoHorasDashboard, setCarregandoHorasDashboard] = useState(true);
+    const [erroHorasDashboard, setErroHorasDashboard] = useState<string | null>(null);
+
+    const carregarHorasDashboard = useCallback(async () => {
+        if (usuarioId === null) {
+            setCarregandoHorasDashboard(false);
+            return;
+        }
+        setCarregandoHorasDashboard(true);
+        setErroHorasDashboard(null);
+        try {
+            setHorasDashboard(await dashboardService.horas());
+        } catch (error: unknown) {
+            setErroHorasDashboard(
+                error instanceof ApiError
+                    ? error.message
+                    : "Não foi possível carregar os registros de horas.",
+            );
+        } finally {
+            setCarregandoHorasDashboard(false);
+        }
+    }, [usuarioId]);
+
     const carregarDados = useCallback(async (inicial = false) => {
         if (inicial) {
             setCarregando(true);
@@ -133,6 +167,10 @@ function Dashboard() {
     useEffect(() => {
         void carregarDados(true);
     }, [carregarDados]);
+
+    useEffect(() => {
+        void carregarHorasDashboard();
+    }, [carregarHorasDashboard]);
 
     const departamentoId = usuario?.departamento_id;
 
@@ -281,9 +319,6 @@ function Dashboard() {
             </main>
         );
     }
-
-    const ehGestor = usuario.tipo === "gestor";
-    const ehTecnico = usuario.tipo === "tecnico";
 
     const tituloPerfil = ehGestor
         ? "Visão geral da empresa"
@@ -516,10 +551,28 @@ function Dashboard() {
                                 </div>
                                 <span className="dashboard-card-icone">◷</span>
                             </div>
-                            <div className="dashboard-vazio">
-                                O backend ainda precisa fornecer os registros
-                                de horas para gerar este gráfico.
-                            </div>
+                            {carregandoHorasDashboard ? (
+                                <div className="dashboard-vazio">Carregando horas registradas…</div>
+                            ) : erroHorasDashboard ? (
+                                <div className="dashboard-vazio" role="alert">
+                                    <span>{erroHorasDashboard}</span>
+                                    <button type="button" onClick={() => void carregarHorasDashboard()}>Tentar novamente</button>
+                                </div>
+                            ) : (horasDashboard?.por_departamento.length ?? 0) > 0 ? (
+                                <div className="dashboard-grafico" style={{ height: Math.max(220, (horasDashboard?.por_departamento.length ?? 0) * 44) }}>
+                                    <ResponsiveContainer width="100%" height="100%">
+                                        <BarChart data={horasDashboard?.por_departamento ?? []} layout="vertical" margin={{ top: 8, right: 18, left: 10, bottom: 4 }}>
+                                            <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#e7edf4" />
+                                            <XAxis type="number" tickFormatter={(valor: number) => `${valor}h`} axisLine={false} tickLine={false} />
+                                            <YAxis type="category" dataKey="nome" width={125} tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
+                                            <Tooltip formatter={(valor) => [`${Number(valor).toLocaleString("pt-BR", { maximumFractionDigits: 2 })} h`, "Tempo registrado"]} />
+                                            <Bar dataKey="total_horas" name="Horas registradas" fill="#1689ca" radius={[0, 7, 7, 0]} barSize={20} />
+                                        </BarChart>
+                                    </ResponsiveContainer>
+                                </div>
+                            ) : (
+                                <div className="dashboard-vazio">Nenhuma hora foi registrada até o momento.</div>
+                            )}
                         </article>
 
                         <article className="dashboard-card">
@@ -530,10 +583,28 @@ function Dashboard() {
                                 </div>
                                 <span className="dashboard-card-icone">▥</span>
                             </div>
-                            <div className="dashboard-vazio">
-                                O backend ainda precisa fornecer os registros
-                                de horas para gerar este gráfico.
-                            </div>
+                            {carregandoHorasDashboard ? (
+                                <div className="dashboard-vazio">Carregando horas registradas…</div>
+                            ) : erroHorasDashboard ? (
+                                <div className="dashboard-vazio" role="alert">
+                                    <span>{erroHorasDashboard}</span>
+                                    <button type="button" onClick={() => void carregarHorasDashboard()}>Tentar novamente</button>
+                                </div>
+                            ) : (horasDashboard?.por_projeto.length ?? 0) > 0 ? (
+                                <div className="dashboard-grafico" style={{ height: Math.max(220, (horasDashboard?.por_projeto.length ?? 0) * 44) }}>
+                                    <ResponsiveContainer width="100%" height="100%">
+                                        <BarChart data={horasDashboard?.por_projeto ?? []} layout="vertical" margin={{ top: 8, right: 18, left: 10, bottom: 4 }}>
+                                            <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#e7edf4" />
+                                            <XAxis type="number" tickFormatter={(valor: number) => `${valor}h`} axisLine={false} tickLine={false} />
+                                            <YAxis type="category" dataKey="nome" width={145} tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
+                                            <Tooltip formatter={(valor) => [`${Number(valor).toLocaleString("pt-BR", { maximumFractionDigits: 2 })} h`, "Tempo registrado"]} />
+                                            <Bar dataKey="total_horas" name="Horas registradas" fill="#8257d5" radius={[0, 7, 7, 0]} barSize={20} />
+                                        </BarChart>
+                                    </ResponsiveContainer>
+                                </div>
+                            ) : (
+                                <div className="dashboard-vazio">Nenhuma hora foi registrada até o momento.</div>
+                            )}
                         </article>
                     </>
                 )}
@@ -623,9 +694,67 @@ function Dashboard() {
                             </div>
                             <span className="dashboard-card-icone">◷</span>
                         </div>
-                        <div className="dashboard-vazio">
-                            Aguardando integração dos registros de horas.
-                        </div>
+                        {carregandoHorasDashboard ? (
+                            <div className="dashboard-hours-state" role="status">
+                                <span className="dashboard-hours-state-icon"><i className="fa-solid fa-hourglass-half" aria-hidden="true" /></span>
+                                <span>Carregando seus lançamentos de horas…</span>
+                            </div>
+                        ) : erroHorasDashboard ? (
+                            <div className="dashboard-hours-state dashboard-hours-state--error" role="alert">
+                                <span>{erroHorasDashboard}</span>
+                                <button type="button" onClick={() => void carregarHorasDashboard()}>Tentar novamente</button>
+                            </div>
+                        ) : (
+                            <div className="dashboard-hours-content">
+                                <div className="dashboard-hours-total">
+                                    <div className="dashboard-hours-total-main">
+                                        <div className="dashboard-hours-total-meta">
+                                            <span className="dashboard-hours-eyebrow"><i className="fa-regular fa-clock" aria-hidden="true" /> Tempo acumulado</span>
+                                            <span className="dashboard-hours-count"><i className="fa-solid fa-list-check" aria-hidden="true" /> {horasDashboard?.quantidade_lancamentos ?? 0} {horasDashboard?.quantidade_lancamentos === 1 ? "lançamento" : "lançamentos"}</span>
+                                        </div>
+                                        <strong>{horasDashboard?.total_duracao ?? "0m"}</strong>
+                                        <small>Somatório dos tempos efetivamente lançados nas ordens de serviço.</small>
+                                    </div>
+                                    <span className="dashboard-hours-total-icon" aria-hidden="true"><i className="fa-solid fa-stopwatch" /></span>
+                                </div>
+                                {horasDashboard?.ultimos_lancamentos?.length ? (
+                                    <div className="dashboard-hours-records-wrap">
+                                        <div className="dashboard-hours-section-heading">
+                                            <div>
+                                                <h3>Atividade recente</h3>
+                                                <p>Últimos tempos registrados no sistema</p>
+                                            </div>
+                                            <span>Até 5 registros</span>
+                                        </div>
+                                        <ul className="dashboard-hours-records">
+                                            {(horasDashboard.ultimos_lancamentos ?? []).map((lancamento) => (
+                                                <li key={lancamento.id}>
+                                                    <Link to={`/ordens/${lancamento.os_id}`} aria-label={`Abrir ordem de serviço ${lancamento.os_id}, ${lancamento.duracao}`}>
+                                                        <span className="dashboard-hours-record-icon" aria-hidden="true"><i className="fa-regular fa-clipboard" /></span>
+                                                        <span className="dashboard-hours-record-main">
+                                                            <strong>O.S. #{lancamento.os_id} · {lancamento.ordem_titulo}</strong>
+                                                            <small>
+                                                                <i className="fa-regular fa-calendar" aria-hidden="true" /> {formatarDataLancamentoDashboard(lancamento.data_trabalho)}
+                                                                {ehTecnico ? "" : ` · ${lancamento.funcionario.nome}`}
+                                                            </small>
+                                                        </span>
+                                                        <span className="dashboard-hours-record-duration"><b>{lancamento.duracao}</b><i className="fa-solid fa-arrow-up-right-from-square" aria-hidden="true" /></span>
+                                                    </Link>
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    </div>
+                                ) : (
+                                    <div className="dashboard-hours-empty">
+                                        <span className="dashboard-hours-empty-icon"><i className="fa-regular fa-clock" aria-hidden="true" /></span>
+                                        <div>
+                                            <strong>Nenhum lançamento por enquanto</strong>
+                                            <span>Quando você registrar tempo em uma O.S., os lançamentos aparecerão aqui.</span>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        )}
                     </article>
                 )}
             </section>

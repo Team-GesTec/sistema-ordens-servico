@@ -8,6 +8,7 @@
 
 import { Router, type Request, type Response } from 'express';
 import { controllerOrdemServico } from '../controllers/controllerOrdemServico';
+import { controllerComentario } from '../controllers/controllerComentario';
 import { autorizar } from '../middlewares/authMiddleware';
 
 const router = Router();
@@ -37,6 +38,10 @@ router.get('/inativas', somenteGestor, (req: Request, res: Response) =>
 router.get('/arquivadas', gestorOuTecnico, (req: Request, res: Response) =>
     controllerOrdemServico.getArquivadas(req, res),
 );
+
+// Comentários persistentes — leitura e escrita seguem o escopo validado pelo service.
+router.get('/:id/comentarios', (req: Request, res: Response) => controllerComentario.listar(req, res));
+router.post('/:id/comentarios', (req: Request, res: Response) => controllerComentario.criar(req, res));
 
 // GET BY ID — qualquer usuário autenticado
 router.get('/:id', (req: Request, res: Response) => controllerOrdemServico.getById(req, res));
