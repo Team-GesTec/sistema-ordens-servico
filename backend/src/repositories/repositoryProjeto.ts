@@ -123,6 +123,25 @@ export class RepositoryProjeto {
         return paraListaResumo(registros);
     }
 
+    /** Lista projetos vinculados a um departamento. */
+    async listarPorDepartamento(
+        departamentoId: number,
+        incluirInativos = false,
+    ): Promise<Projeto[]> {
+        const registros = await prisma.projetos.findMany({
+            where: {
+                ...(incluirInativos ? {} : { ativo: true }),
+                projetos_departamentos: {
+                    some: { departamento_id: departamentoId },
+                },
+            },
+            include: INCLUIR_PROJETO_BASE,
+            orderBy: { id: 'asc' },
+        });
+
+        return paraListaResumo(registros);
+    }
+
     /** Detalhes preservam O.S. inativas somente para Gestor. */
     async buscarPorId(id: number, incluirOSInativas = false): Promise<ProjetoDetalhe | null> {
         const registro = await prisma.projetos.findUnique({

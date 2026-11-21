@@ -151,7 +151,7 @@ function Relatorios() {
         setErro(null);
         try {
             const [ordens, clientes, departamentos] = await Promise.all([
-                ordemServicoService.listar(),
+                ordemServicoService.listar({ incluirArquivadas: true }),
                 clienteService.listar(),
                 departamentoService.listar(),
             ]);
@@ -440,7 +440,7 @@ function Relatorios() {
                                 ) : <div className="analysis-empty">Não há clientes com ordens no período selecionado.</div>}
                             </article>
                         </section>
-                        <p className="analysis-data-note">Indicadores calculados a partir das ordens, clientes e departamentos retornados pela API. Horas registradas não são exibidas porque o contrato atual não fornece apontamentos de horas.</p>
+                        <p className="analysis-data-note">Indicadores desta tela são calculados a partir das ordens, clientes e departamentos. Os totais de horas registrados estão disponíveis no dashboard.</p>
                     </>
                 )}
             </div>

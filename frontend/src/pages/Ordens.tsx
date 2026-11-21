@@ -1,3 +1,4 @@
+
 import { useEffect, useMemo, useRef, useState } from "react";
 import { calcularDiasUteisRestantes } from "../utils/filtroPrazo";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
@@ -14,7 +15,7 @@ import { useOrdens } from "../hooks/useOrdens";
 import { useAnexosOrdem } from "../hooks/useAnexosOrdem";
 
 import type { NivelCriticidade } from "../types/api";
-import { CRITICIDADE_LABELS, STATUS_LABELS, formatarDataOrdem, parseDataOrdem } from "../utils/ordemServicoUtils";
+import { CRITICIDADE_LABELS, FILTRO_ARQUIVADOS, STATUS_LABELS, formatarDataOrdem, parseDataOrdem } from "../utils/ordemServicoUtils";
 
 type FiltroPrazo = "todos" | "proximos3" | "proximos5" | "proximos7";
 
@@ -43,18 +44,33 @@ function Ordens() {
 
     const [filtroPrazo, setFiltroPrazo] = useState<FiltroPrazo>("todos");
 
+    // US#2.11: no Kanban, a última coluna alterna entre concluídas e arquivadas; as demais colunas não mudam.
+    const [kanbanMostraArquivadas, setKanbanMostraArquivadas] = useState(false);
+    const kanbanComArquivadas =
+        visualizacao === "kanban" && kanbanMostraArquivadas && ordens.filtroStatus !== FILTRO_ARQUIVADOS;
+
+    const listaBase = useMemo(
+        () => kanbanComArquivadas
+            ? [
+                ...ordens.ordensFiltradas.filter((ordem) => ordem.status !== "concluido"),
+                ...ordens.arquivadasFiltradas,
+            ]
+            : ordens.ordensFiltradas,
+        [kanbanComArquivadas, ordens.ordensFiltradas, ordens.arquivadasFiltradas],
+    );
+
     const ordensExibidas = useMemo(() => {
         const limiteDias =
             filtroPrazo === "todos"
                 ? null
                 : {
-                      proximos3: 3,
-                      proximos5: 5,
-                      proximos7: 7,
-                  }[filtroPrazo];
+                    proximos3: 3,
+                    proximos5: 5,
+                    proximos7: 7,
+                }[filtroPrazo];
 
         // Calcula os dias úteis restantes para cada O.S.
-        const resultado = ordens.ordensFiltradas
+        const resultado = listaBase
             .map((ordem) => ({
                 ordem,
                 dias: calcularDiasUteisRestantes(ordem.data_limite_sla),
@@ -69,7 +85,7 @@ function Ordens() {
                 return (
                     diasA - diasB ||
                     pesoCriticidade(b.ordem.criticidade) -
-                        pesoCriticidade(a.ordem.criticidade) ||
+                    pesoCriticidade(a.ordem.criticidade) ||
                     a.ordem.id - b.ordem.id
                 );
             });
@@ -90,7 +106,8 @@ function Ordens() {
                     item.dias <= limiteDias,
             )
             .map((item) => item.ordem);
-    }, [ordens.ordensFiltradas, filtroPrazo]);
+    }, [listaBase, filtroPrazo]);
+
     const paginacaoOrdens = usePaginatedList(ordensExibidas, 10);
 
     const [searchParams] = useSearchParams();
@@ -110,14 +127,20 @@ function Ordens() {
         }
     }, [idVisualizar, navigate]);
 
-    const fonteAtual = ordens.mostrarInativas ? ordens.ordensInativas : ordens.ordens;
+    // US#2.11: no filtro "Arquivados" a fonte é o histórico de O.S. arquivadas, não a listagem ativa.
+    const modoArquivados = ordens.filtroStatus === FILTRO_ARQUIVADOS;
+    const fonteAtual = modoArquivados
+        ? ordens.ordensArquivadas
+        : ordens.mostrarInativas ? ordens.ordensInativas : ordens.ordens;
     const inicioHoje = new Date();
     inicioHoje.setHours(0, 0, 0, 0);
     const ordensSlaEmRisco = fonteAtual.filter((item) => {
         const prazo = parseDataOrdem(item.data_limite_sla);
         return item.status !== "concluido" && !item.data_fim && prazo !== null && prazo.getTime() < inicioHoje.getTime();
     }).length;
-    const carregamentoAtual = ordens.carregando || (ordens.mostrarInativas && ordens.carregandoInativas);
+    const carregamentoAtual = ordens.carregando
+        || (ordens.mostrarInativas && ordens.carregandoInativas)
+        || (modoArquivados && ordens.carregandoArquivadas);
 
     return (
         <div className="layout">
@@ -142,7 +165,7 @@ function Ordens() {
                     )}
 
                     <section className="gestec-kpi-grid" aria-label="Indicadores de ordens de serviço">
-                        <article className="gestec-kpi-card"><span className="gestec-kpi-label">Total de ordens</span><strong>{fonteAtual.length}</strong><small>{ordens.mostrarInativas ? "Registros inativos" : "Ordens ativas"}</small><span className="gestec-kpi-icon">▤</span></article>
+                        <article className="gestec-kpi-card"><span className="gestec-kpi-label">Total de ordens</span><strong>{fonteAtual.length}</strong><small>{modoArquivados ? "Ordens arquivadas" : ordens.mostrarInativas ? "Registros inativos" : "Ordens ativas"}</small><span className="gestec-kpi-icon">▤</span></article>
                         <article className="gestec-kpi-card"><span className="gestec-kpi-label">Aguardando ação</span><strong>{fonteAtual.filter((item) => item.status === "aguardando").length}</strong><small>Conforme o status informado pela API</small><span className="gestec-kpi-icon gestec-kpi-icon--amber">◷</span></article>
                         <article className="gestec-kpi-card"><span className="gestec-kpi-label">SLA em risco</span><strong>{ordensSlaEmRisco}</strong><small>Ordens abertas com prazo vencido</small><span className="gestec-kpi-icon gestec-kpi-icon--purple">⚑</span></article>
                         <article className="gestec-kpi-card"><span className="gestec-kpi-label">Alta criticidade</span><strong>{fonteAtual.filter((item) => item.criticidade === "alto" || item.criticidade === "muito_alto" || item.criticidade === "urgente").length}</strong><small>Alta, muito alta ou urgente</small><span className="gestec-kpi-icon gestec-kpi-icon--purple">⚑</span></article>
@@ -192,7 +215,7 @@ function Ordens() {
 
                     <div className="projetos-list-header ordens-list-header">
                         <div>
-                            <h2>{ordens.mostrarInativas ? "Ordens de serviço inativas" : "Ordens de serviço ativas"}</h2>
+                            <h2>{modoArquivados ? "Ordens de serviço arquivadas" : ordens.mostrarInativas ? "Ordens de serviço inativas" : "Ordens de serviço ativas"}</h2>
                             <p>{ordensExibidas.length} resultado(s)</p>
                         </div>
                         <div className="ordens-list-header-actions">
@@ -208,26 +231,32 @@ function Ordens() {
                     {carregamentoAtual ? (
                         <div className="projetos-empty" role="status">
                             <span className="projetos-loading-mark" aria-hidden="true" />
-                            {ordens.mostrarInativas ? "Carregando ordens inativas..." : "Carregando ordens de serviço..."}
+                            {modoArquivados ? "Carregando ordens arquivadas..." : ordens.mostrarInativas ? "Carregando ordens inativas..." : "Carregando ordens de serviço..."}
+                        </div>
+                    ) : modoArquivados && ordens.falhaArquivadas ? (
+                        <div className="projetos-empty" role="alert">
+                            <strong>Não foi possível carregar as O.S. arquivadas.</strong>
+                            <p>Verifique a conexão e tente novamente.</p>
+                            <button type="button" className="projeto-btn-secondary btn" onClick={() => void ordens.carregarOrdensArquivadas()}>Tentar novamente</button>
                         </div>
                     ) : ordensExibidas.length === 0 ? (
                         <div className="projetos-empty">
                             <strong>{fonteAtual.length === 0
-                                ? ordens.mostrarInativas ? "Nenhuma O.S. inativa cadastrada" : "Nenhuma O.S. cadastrada"
+                                ? modoArquivados ? "Nenhuma O.S. arquivada encontrada." : ordens.mostrarInativas ? "Nenhuma O.S. inativa cadastrada" : "Nenhuma O.S. cadastrada"
                                 : filtroPrazo !== "todos"
                                     ? "Nenhuma ordem corresponde ao filtro de prazo selecionado."
                                     : "Nenhuma ordem corresponde à busca e aos filtros selecionados."}</strong>
                             <p>{fonteAtual.length === 0
-                                ? ordens.mostrarInativas ? "Não há registros inativos para exibir." : "Cadastre uma ordem de serviço para começar."
+                                ? modoArquivados ? "As O.S. concluídas há 14 dias ou mais aparecem aqui." : ordens.mostrarInativas ? "Não há registros inativos para exibir." : "Cadastre uma ordem de serviço para começar."
                                 : filtroPrazo !== "todos"
                                     ? "Tente selecionar outro intervalo de prazo para visualizar mais ordens."
                                     : "Altere a pesquisa ou os filtros para ver outros resultados."}</p>
                         </div>
                     ) : visualizacao === "tabela" ? (
                         <section className="card table-card gestec-data-card" aria-labelledby="ordens-table-heading">
-                            <div className="gestec-table-heading"><div><h2 id="ordens-table-heading">{ordens.mostrarInativas ? "Ordens inativas" : "Ordens de serviço"}</h2><p>Solicitação, responsável, status, prioridade e prazo da O.S.</p></div><span className="gestec-record-count">{ordensExibidas.length} registro(s)</span></div>
+                            <div className="gestec-table-heading"><div><h2 id="ordens-table-heading">{modoArquivados ? "Ordens arquivadas" : ordens.mostrarInativas ? "Ordens inativas" : "Ordens de serviço"}</h2><p>Solicitação, responsável, status, prioridade e prazo da O.S.</p></div><span className="gestec-record-count">{ordensExibidas.length} registro(s)</span></div>
                             <div className="table-scroll gestec-table-scroll"><table className="table gestec-data-table gestec-orders-table">
-                                <thead><tr><th>OS / identificação</th><th>Solicitação</th><th>Responsável</th><th>Status</th><th>Prioridade</th><th>Prazo / SLA</th><th className="gestec-actions-cell">Ações</th></tr></thead>
+                                <thead><tr><th>OS / identificação</th><th>Solicitação</th><th>Responsável</th><th>Status</th><th>Prioridade</th><th>Prazo / SLA</th><th className="gestec-actions-cell">Ativa</th></tr></thead>
                                 <tbody>{paginacaoOrdens.pageItems.map((ordem) => {
                                     const cliente = ordens.clientes.find((item) => item.id === ordem.cliente_id);
                                     const responsavel = ordens.funcionariosConhecidos.find((item) => item.id === ordem.responsavel_id);
@@ -236,17 +265,33 @@ function Ordens() {
                                     hoje.setHours(0, 0, 0, 0);
                                     const atrasada = Boolean(prazo && prazo.getTime() < hoje.getTime() && ordem.status !== "concluido");
                                     const prioridade = ordem.criticidade ? CRITICIDADE_LABELS[ordem.criticidade] : "Não definida";
-                                    return <tr key={ordem.id}>
+                                    return <tr
+                                        key={ordem.id}
+                                        className="gestec-order-clickable-row"
+                                        tabIndex={0}
+                                        onClick={(event) => {
+                                            if ((event.target as HTMLElement).closest("a, button, input, select, textarea")) {
+                                                return;
+                                            }
+                                            navigate(`/ordens/${ordem.id}`);
+                                        }}
+                                        onKeyDown={(event) => {
+                                            if (event.target !== event.currentTarget) return;
+
+                                            if (event.key === "Enter" || event.key === " ") {
+                                                event.preventDefault();
+                                                navigate(`/ordens/${ordem.id}`);
+                                            }
+                                        }}
+                                    >
                                         <td><div className="gestec-order-title"><span><Link className="gestec-table-link" to={`/ordens/${ordem.id}`}>OS #{ordem.id}</Link><small>{formatarDataOrdem(ordem.data_criacao)} · {ordem.tipo === "instalacao" ? "Instalação" : "Manutenção"}</small></span></div></td>
                                         <td><strong className="gestec-dashboard-order-title">{ordem.titulo}</strong><small className="gestec-cell-subtitle">{cliente ? (cliente.nome || cliente.razao_social || `Cliente #${cliente.id}`) : ordem.cliente_id === null ? "Não associado" : `Cliente #${ordem.cliente_id}`}</small></td>
                                         <td>{responsavel ? responsavel.nome || `Funcionário #${responsavel.id}` : ordem.responsavel_id === null ? "Não atribuído" : `Funcionário #${ordem.responsavel_id}`}</td>
-                                        <td><span className={`gestec-status-pill gestec-os-status status-${ordem.status}`}><i aria-hidden="true" />{STATUS_LABELS[ordem.status]}</span>{!ordem.ativo && <small className="gestec-inline-note">Inativa</small>}</td>
+                                        <td><span className={`gestec-status-pill gestec-os-status status-${ordem.status}`}><i aria-hidden="true" />{STATUS_LABELS[ordem.status]}</span>{modoArquivados && ordem.arquivada_em && <small className="gestec-inline-note">Arquivada em {formatarDataOrdem(ordem.arquivada_em)}</small>}{!ordem.ativo && <small className="gestec-inline-note">Inativa</small>}</td>
                                         <td><span className={`gestec-priority-pill priority-${ordem.criticidade ?? "indefinida"}`}>{prioridade}</span></td>
                                         <td><span className={atrasada ? "gestec-deadline is-late" : "gestec-deadline"}>{formatarDataOrdem(ordem.data_limite_sla)}{atrasada && <small>Vencida</small>}</span></td>
                                         <td className="gestec-actions-cell"><div className="gestec-row-actions">
-                                            <button type="button" className="gestec-icon-action" onClick={() => navigate(`/ordens/${ordem.id}`)} aria-label={`Ver detalhes da O.S. ${ordem.id}`} title="Ver detalhes">◉</button>
-                                            {ordens.podeOperarDepartamento && ordem.ativo && ordem.status !== "concluido" && ordem.status !== "bloqueado" && <button type="button" className="gestec-icon-action" onClick={() => ordens.iniciarEdicao(ordem)} disabled={ordens.salvando} aria-label={`Editar O.S. ${ordem.id}`} title="Editar">✎</button>}
-                                            {ordens.podeGerenciar && <button type="button" className="gestec-icon-action is-danger" onClick={() => ordens.solicitarAlteracaoAtivo(ordem, ordem.ativo ? "inativar" : "reativar")} disabled={ordens.inativandoId !== null} aria-label={`${ordem.ativo ? "Inativar" : "Reativar"} O.S. ${ordem.id}`} title={ordem.ativo ? "Inativar" : "Reativar"}>{ordem.ativo ? "−" : "↻"}</button>}
+                                            {ordens.podeGerenciar && !modoArquivados && <button type="button" className="gestec-icon-action is-danger" onClick={() => ordens.solicitarAlteracaoAtivo(ordem, ordem.ativo ? "inativar" : "reativar")} disabled={ordens.inativandoId !== null} aria-label={`${ordem.ativo ? "Inativar" : "Reativar"} O.S. ${ordem.id}`} title={ordem.ativo ? "Inativar" : "Reativar"}>{ordem.ativo ? "−" : "↻"}</button>}
                                         </div></td>
                                     </tr>;
                                 })}</tbody>
@@ -255,17 +300,30 @@ function Ordens() {
                         </section>
                     ) : visualizacao === "kanban" ? (
                         <OrdemServicoKanban
-                            ordens={paginacaoOrdens.pageItems}
+                            ordens={ordensExibidas}
+                            projetos={ordens.projetos ?? []}
                             clientes={ordens.clientes}
                             departamentos={ordens.departamentos}
                             funcionarios={ordens.funcionariosConhecidos}
-                            podeEditar={ordens.podeOperarDepartamento}
+                            podeEditar={ordens.podeOperarDepartamento && !modoArquivados}
                             bloqueado={ordens.salvando || ordens.alterandoStatusId !== null}
                             podeMoverParaStatus={ordens.podeMoverOrdemParaStatus}
                             onAbrir={(selecionada) => navigate(`/ordens/${selecionada.id}`)}
-                            onEditar={ordens.iniciarEdicao}
                             onAlterarAtivo={ordens.solicitarAlteracaoAtivo}
                             onMoverStatus={ordens.moverOrdemKanban}
+                            arquivadasSelecionadas={modoArquivados || kanbanMostraArquivadas}
+                            carregandoArquivadas={ordens.carregandoArquivadas}
+                            falhaArquivadas={ordens.falhaArquivadas}
+                            onTentarNovamenteArquivadas={() => void ordens.carregarOrdensArquivadas()}
+                            onAlternarArquivadas={(arquivadas) => {
+                                paginacaoOrdens.setPage(1);
+                                setKanbanMostraArquivadas(arquivadas);
+                                if (arquivadas && !modoArquivados) {
+                                    void ordens.carregarOrdensArquivadas();
+                                } else if (!arquivadas && modoArquivados) {
+                                    ordens.setFiltroStatus("todos");
+                                }
+                            }}
                         />
                     ) : (
                         <div className="projetos-grid ordens-grid">
@@ -277,22 +335,32 @@ function Ordens() {
                                     clientes={ordens.clientes}
                                     departamentos={ordens.departamentos}
                                     funcionarios={ordens.funcionariosConhecidos}
-                                    podeEditar={ordens.podeOperarDepartamento}
+                                    podeEditar={ordens.podeOperarDepartamento && !modoArquivados}
                                     bloqueado={ordens.salvando || ordens.alterandoStatusId === ordem.id}
                                     onAbrir={(selecionada) => navigate(`/ordens/${selecionada.id}`)}
-                                    onEditar={ordens.iniciarEdicao}
                                 />
                             ))}
                         </div>
                     )}
-                    {!carregamentoAtual && ordensExibidas.length > 0 && (
-                        <Pagination page={paginacaoOrdens.page} totalPages={paginacaoOrdens.totalPages} totalItems={ordensExibidas.length} pageSize={10} onPageChange={paginacaoOrdens.setPage} />
-                    )}
+                    {!carregamentoAtual &&
+                        ordensExibidas.length > 0 &&
+                        visualizacao !== "kanban" && (
+                            <Pagination
+                                page={paginacaoOrdens.page}
+                                totalPages={paginacaoOrdens.totalPages}
+                                totalItems={ordensExibidas.length}
+                                pageSize={10}
+                                onPageChange={paginacaoOrdens.setPage}
+                            />
+                        )}
                 </div>
             </main>
 
             <OrdemServicoDetalhesModal
                 aberto={ordens.detalhesAbertos}
+                podeGerenciar={ordens.podeGerenciar}
+                inativandoId={ordens.inativandoId}
+                onAlterarAtivo={ordens.solicitarAlteracaoAtivo}
                 ordem={ordens.ordemSelecionada}
                 carregando={ordens.carregandoDetalhes}
                 erro={ordens.detalhesAbertos ? ordens.erro : null}
@@ -308,9 +376,10 @@ function Ordens() {
                     )}
                 atribuindoResponsavel={ordens.atribuindoResponsavel}
                 podeReatribuirResponsavel={ordens.podeAtribuirResponsavel}
-                onAtribuirResponsavel={(funcionarioId) => void ordens.atribuirResponsavelOrdem(funcionarioId)}
+                onAtribuirResponsavel={(funcionarioId) =>
+                    ordens.atribuirResponsavelOrdem(funcionarioId)
+                }
                 onFechar={ordens.fecharDetalhes}
-                onEditar={ordens.iniciarEdicao}
                 podeAlterarStatus={ordens.podeAlterarStatus}
                 podeConcluir={ordens.podeConcluir}
                 alterandoStatusId={ordens.alterandoStatusId}
@@ -338,7 +407,7 @@ function Ordens() {
 
             <OrdemServicoFormModal
                 aberto={ordens.formularioAberto}
-                ordem={ordens.ordemEmEdicao}
+                ordem={null}
                 clientes={ordens.clientes}
                 departamentos={ordens.departamentos}
                 projetos={ordens.projetos}

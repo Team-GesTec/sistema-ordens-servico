@@ -27,6 +27,7 @@ export interface Funcionario {
     id: number;
     departamento_id: number;
     usuario: string;
+    email?: string | null;
     nome: string;
     tipo: PerfilFuncionario;
     ativo: boolean;
@@ -63,6 +64,7 @@ export interface Departamento {
     id: number;
     nome: string;
     responsavel_id: number | null;
+    ativo: boolean;
 }
 
 export interface DepartamentoInput {
@@ -82,6 +84,7 @@ export interface FuncionarioInput {
     usuario: string;
     senha: string;
     nome: string;
+    email?: string | null;
     tipo: PerfilFuncionario;
 }
 
@@ -143,7 +146,6 @@ export interface OrdemServico {
     tipo: TipoOrdemServico;
     titulo: string;
     criticidade: NivelCriticidade | null;
-    prazo_horas: number;
     descricao: string;
     status: StatusOrdemServico;
     ativo: boolean;
@@ -155,6 +157,8 @@ export interface OrdemServico {
     prazo_dias_uteis?: number | null;
     sla_manual?: boolean;
     data_ultima_atualizacao?: string | null;
+    /** US#2.11 — data em que a O.S. concluída foi arquivada (14 dias após a conclusão); null/ausente se não arquivada. */
+    arquivada_em?: string | null;
 }
 
 export interface OrdemServicoInput {
@@ -205,16 +209,126 @@ export interface ConfiguracaoAnexos {
     tamanho_maximo_relato: number;
 }
 
+/** Tipo do evento registrado na auditoria (US#2.10). */
+export type TipoEventoAuditoria =
+    | "criacao"
+    | "edicao"
+    | "mudanca_status"
+    | "atribuicao_responsavel"
+    | "alteracao_sla"
+    | "anexo"
+    | "registro_horas"
+    | "ativacao";
+
 /** Registro real e imutável da auditoria de uma O.S. */
 export interface HistoricoOrdemServico {
     id: number;
     os_id: number;
     funcionario_id: number;
     data_modificacao: string;
+    /** Data e hora já formatadas pelo backend: "dd/mm/aaaa hh:mm". */
+    data_hora: string;
     acao: "insercao" | "atualizacao" | "exclusao";
+    tipo_evento: TipoEventoAuditoria;
+    descricao: string;
     campo_alterado: string | null;
     dado_antigo: string | null;
     dado_novo: string | null;
     justificativa: string | null;
+    /** Parecer técnico informado na mudança de status. */
+    parecer: string | null;
+    /** Lançamento de horas (US#2.7) que gerou o registro. */
+    apontamento_id: number | null;
     funcionarios: Pick<Funcionario, "id" | "nome" | "usuario">;
+    ordem_servico: Pick<OrdemServico, "id" | "titulo">;
+}
+
+/** Metadados de paginação; sem registros, total e total_paginas vêm zerados. */
+export interface Paginacao {
+    pagina: number;
+    limite: number;
+    total: number;
+    total_paginas: number;
+}
+
+/** GET /ordens-servico/:id/historico */
+export interface RespostaHistoricoOrdemServico {
+    dados: HistoricoOrdemServico[];
+    paginacao: Paginacao;
+}
+
+/** Cartões da tela "Logs de auditoria", calculados pelo backend sobre o filtro aplicado. */
+export interface IndicadoresAuditoria {
+    total_eventos: number;
+    eventos_hoje: number;
+    ordens_impactadas: number;
+    ultimo_evento: string | null;
+    ultimo_evento_formatado: string | null;
+}
+
+/** GET /auditoria */
+export interface RespostaLogsAuditoria {
+    dados: HistoricoOrdemServico[];
+    paginacao: Paginacao;
+    indicadores: IndicadoresAuditoria;
+}
+
+export interface LancamentoHoras {
+    id: number;
+    data_trabalho: string;
+    minutos: number;
+    duracao: string;
+    status_os: StatusOrdemServico;
+    autor: { id: number; nome: string };
+    registrado_em: string;
+}
+
+export interface HorasOrdem {
+    total_minutos: number;
+    total_duracao: string;
+    lancamentos: LancamentoHoras[];
+}
+
+export interface AgregadoHorasDashboard {
+    id: number | null;
+    nome: string;
+    total_minutos: number;
+    total_horas: number;
+    total_duracao: string;
+}
+
+export interface LancamentoHorasDashboard {
+    id: string;
+    os_id: number;
+    ordem_titulo: string;
+    data_trabalho: string;
+    minutos: number;
+    duracao: string;
+    funcionario: { id: number; nome: string };
+    registrado_em: string;
+}
+
+export interface DashboardHoras {
+    total_minutos: number;
+    total_horas: number;
+    total_duracao: string;
+    quantidade_lancamentos: number;
+    ultimos_lancamentos: LancamentoHorasDashboard[];
+    por_departamento: AgregadoHorasDashboard[];
+    por_projeto: AgregadoHorasDashboard[];
+}
+
+export interface ComentarioOrdem {
+    id: number;
+    os_id: number;
+    conteudo: string;
+    criado_em: string;
+    autor: { id: number; nome: string; tipo: string };
+}
+
+export interface RegistroHorasInput {
+    /** Formato Jira: "2w 4d 6h 45m". */
+    duracao: string;
+    /** AAAA-MM-DD; não pode estar no futuro. */
+    data_trabalho: string;
 }

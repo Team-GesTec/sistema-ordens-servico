@@ -56,7 +56,7 @@ export function useProjetos() {
                 setDepartamentos(departamentosApi);
                 setCarregandoOpcoes(false);
                 setProjetosAtivos(projetosApi);
-                
+
                 if (gestor) {
                     try {
                         const inativos = await projetoService.listarInativos();
@@ -172,6 +172,45 @@ export function useProjetos() {
         }
     }
 
+    async function salvarEdicaoDireta(
+        projetoId: number,
+        dados: ProjetoInput
+    ): Promise<boolean> {
+        if (!podeGerenciar || salvando) return false;
+
+        setSalvando(true);
+        limparFeedback();
+
+        try {
+            let salvo: Projeto;
+
+            try {
+                salvo = await projetoService.atualizar(projetoId, dados);
+            } catch (error) {
+                setErro(mensagemErro(error, "Não foi possível atualizar o projeto."));
+                return false;
+            }
+
+            setMensagem(`Projeto "${salvo.nome}" atualizado com sucesso.`);
+
+            try {
+                await recarregarListas();
+                const detalheAtualizado = await projetoService.buscarPorId(projetoId);
+                setProjetoSelecionado(detalheAtualizado);
+            } catch (error) {
+                setErro(
+                    `Projeto salvo com sucesso, mas não foi possível atualizar os detalhes exibidos. ${mensagemErro(error, "Falha ao recarregar os dados.")
+                    }`
+                );
+            }
+
+            // A API confirmou o salvamento, mesmo que a atualização da tela falhe.
+            return true;
+        } finally {
+            setSalvando(false);
+        }
+    }
+
     async function abrirDetalhes(projeto: Projeto): Promise<void> {
         limparFeedback();
         try {
@@ -268,6 +307,7 @@ export function useProjetos() {
         iniciarEdicao,
         fecharFormulario,
         salvarProjeto,
+        salvarEdicaoDireta,
         abrirDetalhes,
         solicitarAlteracaoAtivo,
         fecharConfirmacaoAtivo,

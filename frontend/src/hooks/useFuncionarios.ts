@@ -185,6 +185,7 @@ export function useFuncionarios() {
                 const payload: FuncionarioAtualizacaoInput = {
                     nome: dados.nome,
                     usuario: dados.usuario,
+                    ...(dados.email ? { email: dados.email } : { email: null }),
                     departamento_id: dados.departamento_id,
                     tipo: dados.tipo,
                     ...(dados.senha !== "" ? { senha: dados.senha } : {}),
@@ -197,6 +198,7 @@ export function useFuncionarios() {
                     departamento_id: dados.departamento_id,
                     tipo: dados.tipo,
                     senha: dados.senha,
+                    ...(dados.email ? { email: dados.email } : {}),
                 };
                 funcionarioSalvo = await funcionarioService.criar(payload);
             }

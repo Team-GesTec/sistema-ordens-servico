@@ -113,6 +113,8 @@ npm run db:status
 
 `prisma migrate deploy` aplica o SQL das migrations já versionadas que ainda estejam pendentes. Ele não executa um reset automático, não gera novas migrations, não executa o seed e não depende de um shadow database. Leia/revise o SQL antes de aplicar: uma migration pode conter operações de alteração ou remoção de dados/estruturas.
 
+A migration `20261121_comentarios_ordem` adiciona somente a nova tabela `comentarios_ordem`, seus índices e suas chaves estrangeiras. O SQL não executa `ALTER TABLE`, `DROP`, `UPDATE` ou `DELETE` em tabelas existentes. Antes de aplicar, execute `npm run db:status`: `migrate deploy` aplica **todas** as migrations pendentes, portanto confirme que migrations anteriores já estão aplicadas e que a única pendente é `20261121_comentarios_ordem` caso queira garantir que nenhuma outra alteração de estrutura seja executada neste deploy.
+
 **Nunca execute `npx prisma migrate reset` no Supabase compartilhado.** Esse comando pode apagar dados. Evite também `prisma db push` como substituto de migrations em um projeto que mantém histórico versionado.
 
 ### Seed inicial

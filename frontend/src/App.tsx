@@ -10,6 +10,7 @@ import OrdemServicoDetalhes from "./pages/OrdemServicoDetalhes";
 import Projetos from "./pages/Projetos";
 import Relatorios from "./pages/Relatorios";
 import Auditoria from "./pages/Auditoria";
+import Ajuda from "./pages/Ajuda";
 import PrivateRoute from "./components/PrivateRoutes";
 
 function App() {
@@ -30,6 +31,7 @@ function App() {
                     <Route path="/departamentos" element={<Departamentos />} />
                     <Route path="/auditoria" element={<Auditoria />} />
                     <Route path="/relatorios" element={<Relatorios />} />
+                    <Route path="/ajuda" element={<Ajuda />} />
                 </Route>
             </Route>
         </Routes>

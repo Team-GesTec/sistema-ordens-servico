@@ -87,11 +87,10 @@
     display: flex;
     align-items: center;
     justify-content: left;
-    padding: 2%;
+    padding: 2% 0 10% 10%;
 
     min-height: 100vh;
 
-    background: transparent;
 }
 
 /* Painel branco com lateral diagonal */

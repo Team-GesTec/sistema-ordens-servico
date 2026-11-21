@@ -188,3 +188,502 @@
         grid-template-columns: 1fr;
     }
 }
+
+/* ===== GesTec referência consolidado: Search/filter bars follow the compact single-row treatment in the HTML reference. ===== */
+/* Search/filter bars follow the compact single-row treatment in the HTML reference. */
+.gestec-app .projetos-toolbar { position: relative; display: flex; flex-wrap: wrap; align-items: end; gap: 10px; margin: 0 0 18px; padding: 14px 16px; border: 1px solid #d1e5f1; border-radius: 13px; background: rgba(255,255,255,.86); box-shadow: 0 5px 16px rgba(15,69,114,.035); }
+.gestec-app .projetos-toolbar > * { min-width: 0; }
+.gestec-app .projetos-search-wrap { flex: 1 1 270px; }
+.gestec-app .projetos-search-wrap > label,
+.gestec-app .projetos-filter-wrap > label,
+.gestec-app .projetos-filter-wrap > span { display: block; margin: 0 0 5px; color: #607891; font-size: 10px; font-weight: 750; }
+.gestec-app .projetos-search,
+.gestec-app .projetos-filter-wrap select,
+.gestec-app .projetos-toolbar input,
+.gestec-app .projetos-toolbar select,
+.gestec-app .funcionarios-toolbar input,
+.gestec-app .funcionarios-toolbar select { width: 100%; min-width: 0; min-height: 38px; padding: 9px 11px; border: 1px solid #cfe2ee; border-radius: 9px; background: #fff; color: #29445d; font-size: 12px; outline: none; }
+.gestec-app .projetos-filter-wrap { flex: 0 1 190px; }
+.gestec-app .projeto-count-badge,
+.gestec-app .gestec-record-count { display: inline-flex; align-items: center; justify-content: center; align-self: center; padding: 6px 9px; border-radius: 7px; background: #f0f7fb; color: #527189; font-size: 10px; font-weight: 750; white-space: nowrap; }
+.gestec-app .projetos-list-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin: 0 0 13px; }
+.gestec-app .projetos-list-header h2 { margin: 0 0 3px; color: #153451; font-size: 16px; font-weight: 800; letter-spacing: -.2px; }
+.gestec-app .projetos-list-header p { margin: 0; color: #71869b; font-size: 11px; }
+.gestec-app .projetos-loading { color: #5e7891; font-size: 11px; }
+.gestec-app .projetos-empty { min-height: 150px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; padding: 28px; border: 1px dashed #c8deeb; border-radius: 13px; background: rgba(255,255,255,.72); color: #657d92; text-align: center; font-size: 12px; }
+.gestec-app .projetos-empty strong { color: #213a53; font-size: 14px; }
+.gestec-app .projetos-empty p { max-width: 560px; line-height: 1.65; }
+
+
+
+/* ===== GesTec design consolidado: Search is the only always-visible filter control. Everything else opens here. ===== */
+/* Search is the only always-visible filter control. Everything else opens here. */
+.gestec-app .clientes-toolbar-modern,
+.gestec-app .funcionarios-toolbar,
+.gestec-app .gestec-search-toolbar,
+.gestec-app .projetos-toolbar:not(.ordens-toolbar-modern) {
+  display: flex;
+  align-items: flex-end;
+  justify-content: stretch;
+  gap: 12px;
+  width: 100%;
+  padding: 14px;
+}
+
+.gestec-app .clientes-search-wrapper,
+.gestec-app .funcionarios-search-wrap,
+.gestec-app .gestec-search-toolbar>.projetos-search-wrap,
+.gestec-app .projetos-toolbar>.projetos-search-wrap,
+.gestec-app .projetos-toolbar>.projetos-search-autocomplete,
+.gestec-app .projetos-toolbar>.projetos-search-wrap {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.gestec-app .clientes-search-wrapper>span {
+  color: #078ed2;
+}
+
+.gestec-app .ordens-toolbar-modern {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 12px;
+  width: 100%;
+  padding: 14px;
+}
+
+.gestec-app .ordens-toolbar-top {
+  display: contents;
+}
+
+.gestec-app .ordens-search-field {
+  min-width: 0;
+  width: 100%;
+}
+
+.gestec-app .ordens-toolbar-filter-trigger-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+}
+
+.gestec-app .gestec-filter-trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  min-height: 41px;
+  padding: 0 15px;
+  border: 1px solid #a9d5ea;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #fff, #edf9ff);
+  color: #125b86;
+  font-size: 12px;
+  font-weight: 800;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background .15s ease, border-color .15s ease, transform .15s ease;
+}
+
+.gestec-app .gestec-filter-trigger:hover {
+  border-color: #47b5e4;
+  background: #e6f7ff;
+  transform: translateY(-1px);
+}
+
+.gestec-app .gestec-filter-trigger>i {
+  color: #048fd0;
+  font-size: 14px;
+}
+
+.gestec-app .gestec-filter-count {
+  display: inline-grid;
+  place-items: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: #0e8ecb;
+  color: #fff;
+  font-size: 10px;
+}
+
+.gestec-app .gestec-filter-overlay {
+  position: fixed;
+  z-index: 1500;
+  inset: 0;
+  display: flex;
+  justify-content: flex-end;
+  background: rgba(7, 20, 42, .42);
+  backdrop-filter: blur(2px);
+}
+
+.gestec-app .gestec-filter-drawer {
+  display: flex;
+  flex-direction: column;
+  width: min(420px, 94vw);
+  height: 100%;
+  background: #fff;
+  color: #15243a;
+  border-left: 1px solid #d4e8f3;
+  box-shadow: -18px 0 48px rgba(7, 36, 69, .2);
+  animation: gestec-drawer-in .18s ease-out;
+}
+
+@keyframes gestec-drawer-in {
+  from {
+    transform: translateX(20px);
+    opacity: .7;
+  }
+
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.gestec-app .gestec-filter-drawer-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 15px;
+  padding: 25px 24px 21px;
+  border-bottom: 1px solid #deedf5;
+}
+
+.gestec-app .gestec-filter-eyebrow {
+  display: block;
+  margin-bottom: 6px;
+  color: #0789c8;
+  font-size: 9px;
+  font-weight: 850;
+  letter-spacing: 1.3px;
+}
+
+.gestec-app .gestec-filter-drawer-header h2 {
+  margin: 0 0 5px;
+  color: #102e4b;
+  font-size: 22px;
+  letter-spacing: -.4px;
+}
+
+.gestec-app .gestec-filter-drawer-header p {
+  max-width: 300px;
+  margin: 0;
+  color: #6e879b;
+  font-size: 11px;
+  line-height: 1.55;
+}
+
+.gestec-app .gestec-filter-close {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  flex: 0 0 36px;
+  border: 1px solid #d4e6ef;
+  border-radius: 10px;
+  background: #f4faff;
+  color: #167fb2;
+  cursor: pointer;
+}
+
+.gestec-app .gestec-filter-drawer-content {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 22px;
+  min-height: 0;
+  padding: 23px 24px;
+  overflow-y: auto;
+}
+
+.gestec-app .gestec-filter-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.gestec-app .gestec-filter-field>label {
+  color: #31516b;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.gestec-app .gestec-filter-field input:not([type="checkbox"]),
+.gestec-app .gestec-filter-field select,
+.gestec-app .gestec-filter-field textarea {
+  width: 100%;
+  min-height: 42px;
+  padding: 9px 11px;
+  border: 1px solid #cddfea;
+  border-radius: 9px;
+  background: #fbfdff;
+  color: #203d54;
+  font-size: 12px;
+}
+
+.gestec-app .gestec-filter-toggle {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-height: 66px;
+  padding: 13px 12px;
+  border: 1px solid #d6e8f2;
+  border-radius: 12px;
+  background: #f8fcff;
+  cursor: pointer;
+}
+
+.gestec-app .gestec-filter-toggle>span:first-child {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.gestec-app .gestec-filter-toggle strong {
+  color: #21425c;
+  font-size: 11px;
+}
+
+.gestec-app .gestec-filter-toggle small {
+  color: #718ba0;
+  font-size: 10px;
+  line-height: 1.4;
+}
+
+.gestec-app .gestec-filter-toggle input[type="checkbox"] {
+  position: absolute;
+  right: 12px;
+  width: 38px;
+  height: 24px;
+  opacity: 0;
+  cursor: pointer;
+  z-index: 1;
+}
+
+.gestec-app .gestec-toggle-track {
+  display: flex;
+  align-items: center;
+  width: 38px;
+  height: 23px;
+  flex: 0 0 38px;
+  padding: 3px;
+  border-radius: 99px;
+  background: #bacbd8;
+  transition: background .15s ease;
+}
+
+.gestec-app .gestec-toggle-track>span {
+  width: 17px;
+  height: 17px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, .18);
+  transition: transform .15s ease;
+}
+
+.gestec-app .gestec-filter-toggle input:checked+.gestec-toggle-track {
+  background: #069bd5;
+}
+
+.gestec-app .gestec-filter-toggle input:checked+.gestec-toggle-track>span {
+  transform: translateX(15px);
+}
+
+.gestec-app .gestec-filter-toggle input:focus-visible+.gestec-toggle-track {
+  outline: 3px solid rgba(5, 159, 222, .35);
+  outline-offset: 2px;
+}
+
+.gestec-app .gestec-filter-drawer-extra {
+  padding-top: 17px;
+  border-top: 1px solid #deedf5;
+}
+
+.gestec-app .gestec-filter-drawer-footer {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 17px 24px;
+  border-top: 1px solid #deedf5;
+  background: #fafdff;
+}
+
+.gestec-app .gestec-filter-clear,
+.gestec-app .gestec-filter-apply {
+  min-height: 40px;
+  padding: 0 14px;
+  border-radius: 9px;
+  font-size: 11px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.gestec-app .gestec-filter-clear {
+  border: 1px solid #d2e3ed;
+  background: #fff;
+  color: #42627a;
+}
+
+.gestec-app .gestec-filter-apply {
+  min-width: 112px;
+  border: 1px solid #078aca;
+  background: linear-gradient(110deg, #087bbd, #20a6dd);
+  color: #fff;
+}
+
+.gestec-app .gestec-filter-drawer .projeto-btn-secondary {
+  width: 100%;
+  justify-content: center;
+}
+
+.gestec-app .gestec-search-toolbar .projeto-count-badge {
+  display: none;
+}
+
+
+
+/* ===== GesTec design consolidado: Ícones de busca têm área própria; o texto nunca fica por baixo do glifo. ===== */
+/* Ícones de busca têm área própria; o texto nunca fica por baixo do glifo. */
+.gestec-app .clientes-search-wrapper,
+.gestec-app .projetos-search-autocomplete .projetos-search-wrap {
+  position: relative !important;
+  min-width: 0 !important;
+}
+
+.gestec-app .clientes-search-wrapper>span,
+.gestec-app .projetos-search-autocomplete .projetos-search-wrap>span {
+  top: 50% !important;
+  left: 14px !important;
+  z-index: 2 !important;
+  transform: translateY(-50%) !important;
+  pointer-events: none !important;
+  line-height: 1 !important;
+  font-size: 21px !important;
+  color: #087fbd !important;
+}
+
+.gestec-app .clientes-search-wrapper .projetos-search,
+.gestec-app .projetos-search-autocomplete .projetos-search-wrap input {
+  display: block !important;
+  width: 100% !important;
+  padding-left: 46px !important;
+  text-indent: 0 !important;
+}
+
+.gestec-app.dark-mode .clientes-search-wrapper>span,
+.gestec-app.dark-mode .projetos-search-autocomplete .projetos-search-wrap>span {
+  color: #75e0ff !important;
+}
+
+
+
+/* ===== GesTec design consolidado: Campo de pesquisa: reserva espaço real para o ícone em todas as folhas herdadas. ===== */
+/* Campo de pesquisa: reserva espaço real para o ícone em todas as folhas herdadas. */
+.gestec-app .clientes-search-wrapper>span,
+.gestec-app .projetos-search-autocomplete .projetos-search-wrap>span {
+  position: absolute !important;
+  top: 50% !important;
+  left: 14px !important;
+  right: auto !important;
+  transform: translateY(-50%) !important;
+  pointer-events: none !important;
+  z-index: 2 !important;
+}
+
+.gestec-app .clientes-search-wrapper input,
+.gestec-app .projetos-search-autocomplete .projetos-search-wrap input {
+  box-sizing: border-box !important;
+  padding-left: 46px !important;
+  padding-right: 14px !important;
+  text-indent: 0 !important;
+}
+
+
+
+/* ===== GesTec design consolidado: Ajustes de interação: busca e filtro em uma única linha em todos os módulos. ===== */
+/* Ajustes de interação: busca e filtro em uma única linha em todos os módulos. */
+.gestec-app .gestec-search-toolbar-row {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: flex-end !important;
+  justify-content: stretch !important;
+  gap: 12px !important;
+  width: 100%;
+  min-width: 0;
+}
+
+.gestec-app .gestec-search-toolbar-row> :first-child {
+  flex: 1 1 auto !important;
+  min-width: 0 !important;
+  width: auto !important;
+  max-width: none !important;
+}
+
+.gestec-app .gestec-search-toolbar-row>.gestec-filter-trigger,
+.gestec-app .gestec-search-toolbar-row>.gestec-filter-trigger:only-child {
+  flex: 0 0 auto !important;
+  align-self: flex-end;
+  min-width: 112px;
+  white-space: nowrap;
+}
+
+.gestec-app .clientes-search-toolbar-row .clientes-search-wrapper {
+  height: auto;
+  min-height: 44px;
+}
+
+.gestec-app .clientes-search-toolbar-row .clientes-search {
+  min-height: 44px;
+}
+
+.gestec-app .ordens-toolbar-modern {
+  display: block !important;
+}
+
+.gestec-app .ordens-search-toolbar-row .ordens-search-field {
+  flex: 1 1 auto !important;
+  width: auto !important;
+}
+
+.gestec-app .ordens-inactive-loading {
+  display: inline-flex;
+  margin-top: 8px;
+}
+
+.gestec-app .projetos-toolbar:not(.ordens-toolbar-modern) {
+  display: flex !important;
+}
+
+.gestec-app .funcionarios-toolbar {
+  display: flex !important;
+}
+
+.gestec-app .clientes-toolbar-modern {
+  display: flex !important;
+}
+
+@media (max-width: 760px) {
+  .gestec-app .gestec-search-toolbar-row {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: flex-end !important;
+    gap: 8px !important;
+  }
+
+  .gestec-app .gestec-search-toolbar-row> :first-child {
+    min-width: 0 !important;
+  }
+
+  .gestec-app .gestec-search-toolbar-row>.gestec-filter-trigger {
+    min-width: 96px;
+    padding-inline: 10px;
+  }
+}
+
