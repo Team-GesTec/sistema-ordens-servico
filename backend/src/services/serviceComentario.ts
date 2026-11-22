@@ -123,7 +123,7 @@ export class ServiceComentario {
                     f."tipo"::text AS "autor_tipo"
                 FROM "public"."comentarios_ordem" c
                 INNER JOIN "public"."funcionarios" f ON f."id" = c."funcionario_id"
-                WHERE c."id" = ${inserido.id}
+                WHERE c."id" = ${inserido!.id}
                 LIMIT 1
             `;
 
